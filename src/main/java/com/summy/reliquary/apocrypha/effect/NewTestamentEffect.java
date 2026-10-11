@@ -378,9 +378,10 @@ public final class NewTestamentEffect {
 	}
 
 	/**
-	 * 命中行：每支落箭命中一行（由落箭实体在 hurt() 落地、且击退已被还原之后调用，因此能给出还原后的真值）。
+	 * 命中行：每支落箭 / 圣光矢命中一行（由实体在 hurt() 落地、且击退已被还原之后调用，因此能给出还原后的真值）。
 	 *
-	 * <p>金额取 {@code LivingHurtEvent}（LOWEST）里那次的值 = 各类倍率结算后（含 SR 的七罪/七德与最终倍率乘区）。
+	 * <p>前缀按箭种区分（落箭 / 圣光矢），口径文本按钉住来源区分；金额都是**钉住值**
+	 * （落箭 = 固定 arrow_damage 或触发箭金额的 40%；圣光矢 = 触发箭金额 × 比例）。
 	 * 「击退被抵消」= 原版施加击退后的速度与命中前速度之差的模长 —— 非 0 就说明原版确实施加了击退、又被我们抵消掉了。
 	 */
 	public static void logArrowHit(LivingEntity victim, float healthBefore, Vec3 velocityBefore,
@@ -390,10 +391,13 @@ public final class NewTestamentEffect {
 		}
 		// 钉住档不能写「各类倍率后」（那是被改回之前的口径），按实际来源措辞
 		String basis = hitBasis(lastArrowHitHoly, lastArrowHitPinnedValue);
+		// 前缀按箭种区分：圣光矢不要写成「落箭命中」，否则日志里两类命中没法分开筛
+		String label = lastArrowHitHoly ? "圣光矢命中" : "落箭命中";
 		Apocrypha.LOGGER.info(String.format(
-				"[新约] 落箭命中 %s：结算 %.2f 点（%s）、命中前血量 %.1f/%.1f、"
+				"[新约] %s %s：结算 %.2f 点（%s）、命中前血量 %.1f/%.1f、"
 						+ "速度 命中前(%.2f,%.2f,%.2f) → 击退后(%.2f,%.2f,%.2f) → 还原后(%.2f,%.2f,%.2f)、击退被抵消 %.3f",
-				victim.getName().getString(), lastArrowHitAmount, basis, healthBefore, victim.getMaxHealth(),
+				label, victim.getName().getString(), lastArrowHitAmount, basis, healthBefore,
+				victim.getMaxHealth(),
 				velocityBefore.x, velocityBefore.y, velocityBefore.z,
 				velocityKnocked.x, velocityKnocked.y, velocityKnocked.z,
 				velocityAfter.x, velocityAfter.y, velocityAfter.z,
