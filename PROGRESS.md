@@ -1,6 +1,6 @@
 # Summy Reliquary: Apocrypha — 进度与设定
 
-> 本文档是**交接与复查用的一页纸**：项目坐标、系列设定、数值口径、配置面、已完成进度、待办与验收流程。
+> 本文档是**交接与复查用的一页纸**：项目坐标、系列设定、数值口径、配置面、已完成进度、待办、准备转正与验收流程。
 > 玩法细节的完整说明见 [README](README.md)，逐轮改动见 [CHANGELOG](CHANGELOG.md)。
 
 ## 一、项目概况
@@ -188,7 +188,7 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 | --- | --- |
 | 光羽渲染观感 | 已照 SR「邦邦咔邦光环」改成**饰品渲染层**（零延迟跟随 + 无旋转仅镜像 + 满 3 对才显现）；高度/间隙两个常量待实机复检微调 |
 | 物品图标 | 5 件全用原版贴图占位；`扩展包` 目录里另有两张未命名的 32×32 PNG，待确认归属后替换 |
-| SR 真伤清帧 | 只在 Forge 47.4.23 实例验证过；**Kilt/Connector 分支未实测**（代码路径已实现） |
+| SR 真伤清帧 | 只在 Forge 47.4.23 实例验证过；**Kilt/Connector 分支未实测**（代码路径已实现）。**转正方案见 8.1** |
 | 清帧名单漂移 | SR 若新增真伤类型需登记进 `ReliquaryRef`，调试日志会给提醒 |
 | 圣心追踪 | 落箭与圣光矢都会**被 SR 圣心牵引**（owner 为玩家的 `AbstractArrow`），按既有口径接受；要排除须改 SR |
 | SR 圣光联动 | 玩家另戴 SR「圣光」时，本模组箭矢命中仍会按 SR 规则掷点出光柱（SR 的规则是"任何玩家命中"） |
@@ -196,7 +196,36 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 | 版本号 | 一直沿用 0.1.0 同名覆盖；正式发布前可考虑升版 |
 | 中文/英文 | 语言文件成对维护，改占位符时注意中英顺序一致（历史上踩过一次坑） |
 
-## 八、开发与验收流程
+## 八、准备转正（正式化前待办）
+
+> 「转正」= 把只是权宜 / 旁路的做法改成**正式做法**。本节只登记**已经决定要做、尚未做**的事；
+> 做完即从本节移除，并把结论补进 `CHANGELOG.md` 与相关小节（`七` 的清单保持原样，不搬动）。
+
+### 8.1 SR 真伤「命中后清帧」由旁路转为 SR 原生（未排期）
+
+- **来源**：2026-10-11 指定 —— 现在这件事以「SRA 侧旁路兜底」的方式实现，正式化的方向是**由 SR 本体负责**。
+- **现状**：SRA 侧由 `effect/TrueDamageFrames` 在 `LivingHurtEvent` 里按名单识别 SR 的真伤并补上「命中后清帧」
+  （Forge 上就地清零；Kilt/Connector 上登记后在 server tick 末尾清零，因为那边的事件时机早于原版写 `invulnerableTime`），
+  名单在 `integration/ReliquaryRef.TRUE_DAMAGE_MSG_IDS`（SR 的 11 个伤害类型里 10 个是真伤，`golden_razor` 是物理伤害被排除；
+  `godhead_aura` 与 `holy_light` 共用同一个 `message_id`，去重后是 9 个 id），开关是 `[general] clear_sr_iframes_after_hit`
+  （默认 true，独立于 `enable`）。SR 本体目前只在命中**前**清帧（`RevelationBeam.applyTrueDamage` 里写 `target.invulnerableTime = 0`），
+  命中后仍留 5 tick 保护帧。
+- **改法**（SR 侧做，转正后 SRA 删旁路）：
+  1. `effect/HolyLightEffect` 增一个统一的真伤判据（`isDivine || isExactDamage`，再补上 `sacrifice_self`；
+     `golden_razor` 不参与、`godhead_aura` / `holy_light` 共用 `message_id` 的去重在同一处解决）——
+     这两份名单本来就是「真伤类型」的事实来源，集中成单一入口后，SR 以后新增真伤类型不会再出现「SRA 名单漂移」。
+  2. 真伤**落地后**再清一次无敌帧；Kilt/Connector 侧沿用 SR 1.6.5 起已有的 tick 末尾钳位通道
+     （否则会被原版在 hurt 开头写入的 `invulnerableTime = 20` 覆盖）。
+  3. 新增 SR 侧配置键（暂定 `[general] clear_iframes_after_true_damage`，默认 true），语义与 SRA 现在的开关一致。
+  4. SRA 侧删掉 `effect/TrueDamageFrames`、`integration/ReliquaryRef` 的真伤名单与同名配置键；
+     README「清帧补强」与本档 3.7 改成「由 SR 本体负责」，并给旧配置键留一条迁移说明。
+- **涉及文件**：SR `effect/HolyLightEffect.java`、`ReliquaryEvents.java`、`effect/DamagePools.java`、`ReliquaryConfig.java`；
+  SRA `effect/TrueDamageFrames.java`、`integration/ReliquaryRef.java`、`config/ApocryphaConfig.java`、README / PROGRESS / CHANGELOG。
+- **验收**：① 只装 SR（不装 SRA）时，10 种真伤连续命中同一目标**每次全额结算**（不再被 5 tick 保护帧吞），
+  普通近战 / 原版箭矢 / 金刀片仍保留原版无敌帧语义；② Forge 与 Kilt/Connector 两侧行为一致；
+  ③ 关掉该配置即恢复原行为；④ SRA 删旁路后，落箭与圣光矢的清帧不受影响（那是 SRA 自己的伤害类型）。
+
+## 九、开发与验收流程
 
 1. **构建**：在源码目录执行 `gradlew build`（需 JDK 17，路径走全局 `~/.gradle/gradle.properties`）；
    产物自动复制到 `..\JAR\summy-reliquary-apocrypha\`。
