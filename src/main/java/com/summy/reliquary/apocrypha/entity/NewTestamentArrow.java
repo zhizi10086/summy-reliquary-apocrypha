@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
@@ -136,6 +137,13 @@ public class NewTestamentArrow extends AbstractArrow {
 				|| !(getOwner() instanceof ServerPlayer shooter)
 				|| !(result.getEntity() instanceof LivingEntity target)
 				|| target == shooter) {
+			// 静默丢弃是个"看不见的坑"：命中射手本人 / 命中非生物时箭会凭空消失，调试时得留痕
+			if (ApocryphaConfig.logTrigger() && !level().isClientSide()) {
+				Entity hit = result.getEntity();
+				String reason = hit == getOwner() ? "射手本人" : "非生物目标";
+				Apocrypha.LOGGER.info(String.format("[新约] 落箭丢弃：命中 %s（原因：%s）、位置 (%.2f,%.2f,%.2f)",
+						hit.getName().getString(), reason, getX(), getY(), getZ()));
+			}
 			discard();
 			return;
 		}
@@ -176,12 +184,22 @@ public class NewTestamentArrow extends AbstractArrow {
 		landed = true;
 		setDeltaMovement(Vec3.ZERO);
 		setNoGravity(true);
-		if (ApocryphaConfig.logTrigger()) {
+		// 日志只在服务端打：tick()/onHitBlock 两端都会跑，客户端副本也记会让同一次落地出现两行
+		if (ApocryphaConfig.logTrigger() && !level().isClientSide()) {
 			Apocrypha.LOGGER.info(String.format(
 					"[新约] 落箭撞方块：本 tick 起点 (%.2f,%.2f,%.2f)、撞击点 (%.2f,%.2f,%.2f)、相差 %.2f 格、方块 %s",
 					from.x, from.y, from.z, hitLocation.x, hitLocation.y, hitLocation.z, offset,
 					result.getBlockPos().toShortString()));
 		}
+	}
+
+	/**
+	 * 落箭**无视射手本人**：否则射手站在落点区里时，箭会撞到他自己、在半空被静默丢弃
+	 * （表现为"箭没落到底就不见了"）。穿过射手不会改变任何伤害口径 —— 原逻辑本来就不打射手。
+	 */
+	@Override
+	protected boolean canHitEntity(Entity target) {
+		return target != getOwner() && super.canHitEntity(target);
 	}
 
 	@Override
@@ -194,7 +212,7 @@ public class NewTestamentArrow extends AbstractArrow {
 				snapped = true;
 				Vec3 target = hitLocation.subtract(hitIncoming.scale(SURFACE_BACK_OFF));
 				setPos(target.x, target.y, target.z);
-				if (ApocryphaConfig.logTrigger()) {
+				if (ApocryphaConfig.logTrigger() && !level().isClientSide()) {
 					Apocrypha.LOGGER.info(String.format(
 							"[新约] 落箭贴地：贴地位置 (%.2f,%.2f,%.2f)、与撞击点相差 %.2f 格",
 							target.x, target.y, target.z, target.distanceTo(hitLocation)));
