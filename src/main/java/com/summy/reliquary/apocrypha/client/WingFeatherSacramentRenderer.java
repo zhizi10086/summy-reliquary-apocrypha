@@ -36,17 +36,26 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 	private static final ResourceLocation TEXTURE =
 			Apocrypha.id("textures/entity/light_feather.png");
 
-	/** 四边形边长（格）：正方形 + 整张画布铺满，才保得住贴图 20×30 内容的比例（约 1.1 格 ≈ 半身） */
-	private static final float WING_SIZE = 1.1F;
-	/** 每片沿脊柱方向内移的距离（格）：抵消贴图左侧留白，两片之间的间隙由约 0.68 格收到约 0.28 格 */
-	private static final float INNER_SHIFT = 0.2F;
+	/** 四边形边长（格）：正方形 + 整张画布铺满，才保得住贴图 20×30 内容的比例（1.25 格 ≈ 半身多一点） */
+	private static final float WING_SIZE = 1.25F;
+	/**
+	 * 每片沿脊柱方向内移的距离（格）：抵消贴图左侧留白。
+	 *
+	 * <p>可视缝隙 = 2 × (0.3125 × {@link #WING_SIZE} − 本值)；当前 2 × (0.3125×1.25 − 0.27) ≈ <b>0.24 格</b>
+	 * （放大体型前是约 0.29 格）。
+	 */
+	private static final float INNER_SHIFT = 0.27F;
 	/** 整对向玩家身后偏移的距离（格） */
 	private static final float BACK_OFFSET = 0.35F;
 	/**
-	 * 整对相对 <b>body 骨骼原点</b>（腰部，约 0.75 格高）的竖直偏移（格，<b>正值向上</b>）。
-	 * −0.13 让翼根落在背高约 0.62 格、翼尖到 1.62 格（眼睛高度）—— 这是最常调的一个数。
+	 * 翼根相对 <b>body 骨骼枢轴</b>"向下"偏移的距离（格，<b>正值向下</b>）—— 最常调的一个数。
+	 *
+	 * <p>依据：1.20.1 的 {@code HumanoidModel} 里 body 是 {@code PartPose.offset(0,0,0)}，即枢轴在
+	 * <b>肩线（世界 y ≈ 1.5 格）</b>而不是腰部；该骨骼空间里 {@code world_y = 1.501 − y_local}，
+	 * 所以 <b>+y 向下、−y 向上</b>（与 SR 光环「从头部枢轴 −0.50 正好到头顶」这条已验证的参照一致）。
+	 * 取 0.88 → 翼根落在 1.5 − 0.88 = <b>0.62 格</b>（背中段）；翼尖因体型放大约到 1.83 格。
 	 */
-	private static final float WING_HEIGHT_OFFSET = -0.13F;
+	private static final float WING_ROOT_DROP = 0.88F;
 	/** 上下浮动的幅度（格）与频率：逐帧平滑，靠回调里的 ageInTicks 驱动 */
 	private static final float BOB_AMPLITUDE = 0.05F;
 	private static final float BOB_SPEED = 0.1F;
@@ -69,8 +78,8 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 		poseStack.pushPose();
 		// 挂到躯干骨骼：跟随身体朝向、潜行前倾、骑乘偏移等（该空间里 −Y 向上、+Z 朝身后）
 		humanoid.body.translateAndRotate(poseStack);
-		// 先抬到目标高度，再退到背后
-		poseStack.translate(0.0D, -WING_HEIGHT_OFFSET, BACK_OFFSET);
+		// 先从肩线向下落到背中段（该空间 +y 向下），再退到背后
+		poseStack.translate(0.0D, WING_ROOT_DROP, BACK_OFFSET);
 		// 轻微上下浮动：相对背部上下，逐帧平滑
 		float bob = Mth.sin(ageInTicks * BOB_SPEED) * BOB_AMPLITUDE;
 		poseStack.translate(0.0D, -bob, 0.0D);
