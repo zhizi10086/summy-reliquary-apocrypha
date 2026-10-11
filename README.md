@@ -5,7 +5,7 @@
 **前置：** [Summy Reliquary](https://github.com/zhizi10086/summy-reliquary)（必需）｜ Curios 5.14.1+1.20.1（必需）｜
 Forge 1.20.1（推荐 47.4.10+）
 
-[CHANGELOG](CHANGELOG.md) | [CREDITS](CREDITS.md) | [LICENSE](LICENSE)
+[CHANGELOG](CHANGELOG.md) | [PROGRESS](PROGRESS.md) | [CREDITS](CREDITS.md) | [LICENSE](LICENSE)
 
 ## 内容
 
