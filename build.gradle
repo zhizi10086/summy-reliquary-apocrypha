@@ -49,6 +49,10 @@ minecraft {
         client {
             workingDirectory project.file('run')
             property 'forge.logging.console.level', 'debug'
+            // 开发环境里让 Mixin 把依赖模组（Curios）自带的 SRG refmap 重映射成开发映射，
+            // 否则 Curios 的 Accessor（f_xxx_ 字段）会因为找不到目标而让客户端直接崩溃
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             mods {
                 "${project.mod_id}" {
                     source sourceSets.main
@@ -58,6 +62,8 @@ minecraft {
         server {
             workingDirectory project.file('run')
             property 'forge.logging.console.level', 'debug'
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             mods {
                 "${project.mod_id}" {
                     source sourceSets.main
