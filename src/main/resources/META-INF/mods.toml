@@ -1,0 +1,45 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="Custom (non-commercial; see LICENSE)"
+issueTrackerURL="https://github.com/zhizi10086/summy-reliquary-apocrypha/issues"
+
+[[mods]]
+modId="summy_reliquary_apocrypha"
+version="${version}"
+displayName="Summy Reliquary: Apocrypha"
+authors="Summy"
+logoFile="assets/summy-reliquary-apocrypha/icon.png"
+description='''
+Summy Reliquary 的扩展包（Forge 1.20.1）。
+· 前置：Summy Reliquary（必需）+ Curios（必需）
+· 内容：新栏位「新约-光环」、饰品「新约」（弓箭命中回血 + 落箭散射真实伤害，享受 SR 的全伤害增幅与圣心追踪）
+· 粉丝二创：灵感与部分设定取自《以撒的结合》，非官方作品
+'''
+
+[[dependencies.summy_reliquary_apocrypha]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.summy_reliquary_apocrypha]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.20.2)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.summy_reliquary_apocrypha]]
+    modId="curios"
+    mandatory=true
+    versionRange="[5.4.0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.summy_reliquary_apocrypha]]
+    modId="summy_reliquary"
+    mandatory=true
+    versionRange="[1.8.5-forge,)"
+    ordering="AFTER"
+    side="BOTH"

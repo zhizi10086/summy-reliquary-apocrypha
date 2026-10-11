@@ -1,0 +1,16 @@
+{
+  "curios.identifier.new_testament_halo": "新约-光环",
+
+  "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
+
+  "item.summy-reliquary-apocrypha.new_testament": "新约",
+  "item.summy-reliquary-apocrypha.new_testament.desc.1": "「看哪，我将一切都更新了。」",
+  "item.summy-reliquary-apocrypha.new_testament.desc.2": "箭矢落处，恩典随之。",
+  "item.summy-reliquary-apocrypha.new_testament.shift.1": "弓箭命中|回复 %s 点生命",
+  "item.summy-reliquary-apocrypha.new_testament.shift.2": "命中时有 %s%% 概率在目标上方 %s 格处落下 %s~%s 支箭矢（散布 0~%s°）",
+  "item.summy-reliquary-apocrypha.new_testament.shift.3": "落箭|%s 点真实伤害",
+  "item.summy-reliquary-apocrypha.new_testament.shift.4": "落箭无视护甲、保护附魔、抗性与无敌帧",
+  "item.summy-reliquary-apocrypha.new_testament.shift.5": "落箭可享受 Summy Reliquary 的全伤害增幅，并受「圣心」的箭矢追踪牵引",
+
+  "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s 被落下的箭矢贯穿"
+}

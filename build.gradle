@@ -1,0 +1,158 @@
+// Summy Reliquary: Apocrypha —— Forge 1.20.1 扩展包
+// 说明：本工程是 Summy Reliquary（SR）的扩展模组，SR 是**硬前置**：
+//      · 编译期直接引用 libs/ 里的 SR 生产 jar（SR 不发布在任何 Maven 上）；
+//      · 开发运行期由 Gradle 把 SR 反转成 dev 映射后投放到 run/mods（照 ER-forge 已验证的写法）。
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    // Forge 1.20.1 官方工具链（与 SR 一致）
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+java {
+    toolchain {
+        // Forge 1.20.1 的目标是 Java 17；本机 JDK 由全局 ~/.gradle/gradle.properties 指定
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'MinecraftForge'
+        url = 'https://maven.minecraftforge.net/'
+    }
+    maven {
+        name = 'Curios'
+        url = 'https://maven.theillusivec4.top/'
+    }
+    // 前置模组 Summy Reliquary 只有生产 jar（不在任何 Maven 上）→ 从 libs/ 解析
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+minecraft {
+    // 与 SR 一样使用 Mojang 官方映射，保证 SR 的类 / 方法名可以直接引用
+    mappings channel: 'official', version: project.minecraft_version
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                "${project.mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+        server {
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                "${project.mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}"
+
+    // Curios：SR 与本模组共同的前置（饰品栏位与栏位面板）
+    implementation fg.deobf("top.theillusivec4.curios:curios-forge:${project.curios_version}")
+
+    // Summy Reliquary：编译期直接引用它的公开 API
+    // （生产 jar 只把原版成员名改写成 SRG 名、类名与 SR 自身成员不变，所以不必 deobf）
+    compileOnly files("libs/summy-reliquary-${project.summy_reliquary_version}.jar")
+}
+
+// ===== 开发运行期：把 SR 的生产 jar 反转成 dev 映射，投放到 run/mods =====
+// 生产 jar 用的是 SRG 成员名，dev 环境直接读会因成员名对不上而失败；
+// 这里照 ER-forge 已经跑通的写法，用专用配置生成一份 deobf 版本（不进产物、不影响 build）。
+configurations {
+    summyReliquaryDev
+}
+
+dependencies {
+    summyReliquaryDev fg.deobf("summy-reliquary:summy-reliquary:${project.summy_reliquary_version}")
+}
+
+tasks.register('copySummyReliquaryDevJar', Copy) {
+    from configurations.summyReliquaryDev
+    into layout.projectDirectory.dir('run/mods')
+}
+
+// 把 gradle.properties 里的版本号写进 mods.toml
+processResources {
+    inputs.property 'version', project.mod_version
+
+    filesMatching('META-INF/mods.toml') {
+        expand('version': project.mod_version)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 17
+    it.options.encoding = 'UTF-8'
+}
+
+// runClient / runServer 之前先把 SR 投放进 run/mods，否则 dev 环境会因为缺少硬前置而加载失败
+tasks.matching { it.name == 'runClient' || it.name == 'runServer' }.configureEach {
+    dependsOn 'copySummyReliquaryDevJar'
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title'   : project.archives_base_name,
+                'Specification-Vendor'  : 'Summy',
+                'Specification-Version' : '1',
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': project.mod_version,
+                'Implementation-Vendor' : 'Summy'
+        ])
+    }
+    from('LICENSE') {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}
+
+// 构建结束后把 reobf 后的 jar 复制到固定的发布目录（项目外的 ../JAR/summy-reliquary-apocrypha）
+tasks.named('build') {
+    doLast {
+        def releaseDir = file('../JAR/summy-reliquary-apocrypha')
+        releaseDir.mkdirs()
+        // ForgeGradle 6 的 reobfJar 没有 archiveFile 属性：优先取 output，取不到就退回约定输出目录
+        def reobfTask = tasks.named('reobfJar').get()
+        def jarFile = null
+        if (reobfTask.hasProperty('output')) {
+            def output = reobfTask.property('output')
+            if (output instanceof File) {
+                jarFile = output
+            }
+        }
+        if (jarFile == null) {
+            jarFile = file('build/reobfJar').listFiles()?.find { it.name.endsWith('.jar') }
+        }
+        if (jarFile == null || !jarFile.exists()) {
+            throw new GradleException('找不到 reobfJar 的输出 jar')
+        }
+        copy {
+            from jarFile
+            rename { "${project.archives_base_name}-${project.mod_version}.jar" }
+            into releaseDir
+        }
+    }
+}
