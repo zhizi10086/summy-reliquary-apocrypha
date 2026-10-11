@@ -2,6 +2,7 @@ package com.summy.reliquary.apocrypha;
 
 import com.summy.reliquary.apocrypha.client.NewTestamentArrowRenderer;
 import com.summy.reliquary.apocrypha.client.LightFeatherRenderer;
+import com.summy.reliquary.apocrypha.client.HolyArrowRenderer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -24,5 +25,7 @@ public final class ApocryphaClient {
 		event.registerEntityRenderer(Apocrypha.NEW_TESTAMENT_ARROW.get(), NewTestamentArrowRenderer::new);
 		// 背后的光羽（每对一个实体）
 		event.registerEntityRenderer(Apocrypha.LIGHT_FEATHER.get(), LightFeatherRenderer::new);
+		// 穿透圣光矢（光灵箭外观）
+		event.registerEntityRenderer(Apocrypha.HOLY_ARROW.get(), HolyArrowRenderer::new);
 	}
 }

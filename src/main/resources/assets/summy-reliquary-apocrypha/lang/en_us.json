@@ -3,6 +3,7 @@
   "curios.identifier.new_testament_talent": "Talent of the New Testament",
   "curios.identifier.new_testament_grace": "Grace of the New Testament",
   "curios.identifier.new_testament_blessing": "Blessing of the New Testament",
+  "curios.identifier.new_testament_revelation": "Revelation of the New Testament",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -42,5 +43,16 @@
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.4": "Falling arrow damage resolves instantly (one hit per arrow; the arrows themselves are only visual)",
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.5": "Passive: hold sneak in midair to slow the descent by %s%% (landing damage counts only −%s%% of the fall height); press jump in midair for %s extra jump(s) (an air jump clears the accumulated fall height)",
 
-  "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s was pierced by falling arrows"
+  "item.summy-reliquary-apocrypha.paired_wings": "Paired Wings Synergy",
+  "item.summy-reliquary-apocrypha.paired_wings.desc.1": "\"Can two walk together, except they be agreed?\"",
+  "item.summy-reliquary-apocrypha.paired_wings.desc.2": "Wings that beat as one reach the same mark.",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.1": "Holy arrow chance|%s%%",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "Holy arrow damage|Trigger arrow's amount + %s",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.3": "The holy arrow is fired from your eyes toward the crosshair: full-charge arrow speed, no gravity, pierces creatures endlessly, but is stopped by blocks",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.4": "While worn with the New Testament: when either effect triggers, the other always follows (after %s s)",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.5": "When both rolls succeed: %s extra holy arrow(s) and +1 falling arrow",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.6": "Holy arrows and falling arrows are both true damage: ignores armor, protection, resistance and invulnerability frames; holy arrows cause no knockback",
+
+  "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s was pierced by falling arrows",
+  "death.attack.summy-reliquary-apocrypha.holy_arrow": "%1$s was pierced by a holy arrow"
 }

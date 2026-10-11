@@ -3,6 +3,7 @@
   "curios.identifier.new_testament_talent": "新约-才能",
   "curios.identifier.new_testament_grace": "新约-恩典",
   "curios.identifier.new_testament_blessing": "新约-祝福",
+  "curios.identifier.new_testament_revelation": "新约-启示",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -42,5 +43,16 @@
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.4": "落箭伤害判定改为瞬时结算（按箭数逐笔，箭矢只作视觉）",
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.5": "被动：空中长按潜行键下落速度降低 %s%%（落地按坠落高度 −%s%% 计算伤害）；空中按跳跃键可额外跳 %s 次（二段跳会立刻清空坠落高度）",
 
-  "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s 被落下的箭矢贯穿"
+  "item.summy-reliquary-apocrypha.paired_wings": "比翼·连携",
+  "item.summy-reliquary-apocrypha.paired_wings.desc.1": "「二人若不同心，岂能同行呢？」",
+  "item.summy-reliquary-apocrypha.paired_wings.desc.2": "两翼相携，方能同赴一线。",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.1": "圣光矢触发概率|%s%%",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "圣光矢伤害|触发之箭金额 + %s",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.3": "圣光矢从眼位朝准心射出：速度等同满蓄力箭矢、无重力，可无限穿透生物，但会被方块挡下",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.4": "与「新约」同戴时：任一效果触发都会带出另一个（延迟 %s 秒）",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.5": "两次判定都成功时：圣光矢 +%s 道、新约落箭 +1 支",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.6": "圣光矢与落箭同为真实伤害：无视护甲、保护附魔、抗性与无敌帧；圣光矢不造成击退",
+
+  "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s 被落下的箭矢贯穿",
+  "death.attack.summy-reliquary-apocrypha.holy_arrow": "%1$s 被圣光矢贯穿"
 }

@@ -2,6 +2,7 @@ package com.summy.reliquary.apocrypha.effect;
 
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
+import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.entity.ThrownRazor;
 import com.summy.reliquary.entity.ThrownSpear;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,7 +32,10 @@ public final class ArrowDamageBonuses {
 		if (!(event.getSource().getDirectEntity() instanceof AbstractArrow arrow)) {
 			return;
 		}
-		if (arrow instanceof ThrownSpear || arrow instanceof ThrownRazor || arrow instanceof NewTestamentArrow) {
+		// SR 的幻影矛 / 金刀片与本模组的落箭、圣光矢都不吃这一层的"本体箭矢"加成
+		// （它们的伤害口径由 NewTestamentEffect 与各自的钉住逻辑单独决定）
+		if (arrow instanceof ThrownSpear || arrow instanceof ThrownRazor
+				|| arrow instanceof NewTestamentArrow || arrow instanceof HolyArrow) {
 			return;
 		}
 		if (!(arrow.getOwner() instanceof ServerPlayer shooter)) {

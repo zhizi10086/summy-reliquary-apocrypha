@@ -161,6 +161,33 @@
 - **配置面 22 → 23 项**：新增 `[inverse_feather_hover] air_jump_velocity`（默认 0.5，范围 0.0~4.0）。
 - 网络通道与协议版本（`"1"`）、`AirJumpMessage` 空包均**不变**；缓降、落箭、伤害口径、清帧等行为一律不动。
 
+### 新约系列 #5：比翼·连携 + 新栏位「新约-启示」+ 穿透圣光矢（同日第九轮，系列收官）
+
+- **新栏位「新约-启示」**（`new_testament_revelation`，order 19，图标用作者提供的 16×16 PNG）：只接受「比翼·连携」；
+  与系列其它栏位一样仅天使线开放（`ANGEL_SERIES_SLOTS` 追加一行，动态格数复用 SR 的 `SlotSizing.sync`）。
+  至此**新约系列 5 件全部实装**。
+- **新饰品「比翼·连携」**（`paired_wings`，装入「新约-启示」，需要天使标记）：物品图标暂用原版占位（光灵箭）。
+  弓箭命中时按配置概率（默认 **20%**）追加一支**穿透圣光矢**。
+- **穿透圣光矢**（新实体 `summy-reliquary-apocrypha:holy_arrow`）：外观是**光灵箭**（`ArrowRenderer` + spectral_arrow 贴图）；
+  从玩家眼位沿准心射出、初速 3.0 格/tick（等同满蓄力箭矢）、**无重力**、**无限穿透生物**（同一目标只吃一次，
+  照 SR 金刀片的写法自己维护 `hitEntities` 且不调用 `super.onHitEntity`），撞方块贴地停留 10 tick 后消失，寿命兜底 200 tick。
+  伤害 = **触发之箭「各类倍率后」的金额 + 6**（配置 `holy_arrow_damage_bonus`），独立真实伤害类型
+  `summy-reliquary-apocrypha:holy_arrow`（四个 `bypasses_*` 全开）+ 命中前后各清一次无敌帧 + **不造成击退**；
+  并且**钉住** —— 命中时由 LOWEST 处理器把金额改回携带值，所以不会再被 SR 的乘区放大第二次。
+  **它与 SR 的「圣光」（`holy_light` 饰品 / 命中光柱）没有任何关系。**
+- **协同触发**（仅「新约」+「比翼·连携」同戴）：两件套任意一方自然触发，另一个必定随同触发（**延迟 2 tick = 0.1 秒**）；
+  两次掷点都成功（含「圣餐之矢」的必定触发算作新约侧成功）时圣光矢 **2 道**（第 2 道带约 3° 水平偏角）+ 落箭 **+1 支**。
+  被强制带出的那一次不再掷点、也不计 +1；圣光矢自身不触发新约（不回血、不再放落箭、不递归）。
+  延迟补发用 `effect/PairedWings` 的两个小队列（射手离线 / 换维度则丢弃，服务器停止清空），
+  `ScatterVolley.enqueue(...)` 相应增加了 `delayTicks` 参数，并新增 `enqueueAt(...)` 让目标在延迟期间死亡时
+  仍能沿用它登记时的中心点把箭落下来。
+- **三处排除名单同步加上圣光矢**（否则会出真 bug）：本体命中判定、`ArrowDamageBonuses` 的 HIGHEST 增伤、
+  `SacramentArrows` 的"放箭后 40 tick 内新生成的箭"标记（不加就会被误打上圣餐之矢标记）。
+- **退出 ER 的箭矢粒子接管**：新增数据包标签 `data/enchantment_reforged/tags/entity_types/no_arrow_particles.json`
+  （ER 默认会把「继承 `AbstractArrow` 的投射物」当箭接管轨迹粒子），保持纯净的光灵箭外观；未装 ER 时该文件无副作用。
+- **配置面 23 → 25 项**：新增 `[paired_wings]`（`holy_arrow_chance_percent` 20、`holy_arrow_damage_bonus` 6.0）；
+  弹速 3.0、寿命 200 tick、协同延迟 2 tick、共同触发 +1 道/+1 支、第二道偏角 3° 均为写死的实现细节。
+
 ### 备注
 
 - 首轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步

@@ -11,6 +11,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -40,6 +41,7 @@ public final class ScatterVolley {
 	private static final class Pending {
 		private final ServerLevel level;
 		private final UUID shooter;
+		/** 目标 UUID；为 null 表示登记时就没有活目标（延迟补发时目标可能已经消失） */
 		private final UUID target;
 		// 触发瞬间的中心点（x/z 为目标中心、y 为包围盒顶部）；目标消失时沿用它
 		private final Vec3 fallbackCenter;
@@ -67,25 +69,38 @@ public final class ScatterVolley {
 		}
 	}
 
-	// 登记一批落箭；间隔配成 0 时退化为同一 tick 全部生成
+	// 登记一批落箭（立刻开始放）；间隔配成 0 时退化为同一 tick 全部生成
 	public static void enqueue(ServerLevel level, ServerPlayer shooter, LivingEntity target, int count,
-			double speedMultiplier, float pinnedDamage, boolean visualOnly) {
+			double speedMultiplier, float pinnedDamage, boolean visualOnly, int delayTicks) {
+		enqueueAt(level, shooter, target, centerOf(target), count, speedMultiplier, pinnedDamage, visualOnly,
+				delayTicks);
+	}
+
+	/**
+	 * 登记一批落箭，可以指定「延迟多少 tick 开始放」与「目标已经消失时用哪个中心点」。
+	 *
+	 * <p>延迟补发（比翼·连携的协同触发）时目标可能已经死掉，所以这里允许 {@code target == null}：
+	 * 那种情况下沿用它死前登记的中心点，仍会把箭落下来。
+	 */
+	public static void enqueueAt(ServerLevel level, ServerPlayer shooter, @Nullable LivingEntity target,
+			Vec3 fallbackCenter, int count, double speedMultiplier, float pinnedDamage, boolean visualOnly,
+			int delayTicks) {
 		if (count <= 0) {
 			return;
 		}
-		Vec3 center = centerOf(target);
 		int interval = SPAWN_INTERVAL_TICKS;
 		if (interval <= 0) {
 			for (int index = 0; index < count; index++) {
-				spawn(level, shooter, target, center, false, speedMultiplier, pinnedDamage, visualOnly);
+				spawn(level, shooter, target, fallbackCenter, false, speedMultiplier, pinnedDamage, visualOnly);
 			}
 			return;
 		}
 		if (PENDING.size() >= MAX_PENDING) {
 			return;
 		}
-		PENDING.add(new Pending(level, shooter.getUUID(), target.getUUID(), center, count, speedMultiplier,
-				pinnedDamage, visualOnly, level.getGameTime()));
+		PENDING.add(new Pending(level, shooter.getUUID(), target == null ? null : target.getUUID(), fallbackCenter,
+				count, speedMultiplier, pinnedDamage, visualOnly,
+				level.getGameTime() + Math.max(0, delayTicks)));
 	}
 
 	/**
@@ -115,9 +130,10 @@ public final class ScatterVolley {
 				iterator.remove();
 				continue;
 			}
-			LivingEntity target = pending.level.getEntity(pending.target) instanceof LivingEntity living
-					? living
-					: null;
+			LivingEntity target = pending.target != null
+					&& pending.level.getEntity(pending.target) instanceof LivingEntity living
+							? living
+							: null;
 			spawn(pending.level, shooter, target, pending.fallbackCenter, pending.spawned == 0,
 					pending.speedMultiplier, pending.pinnedDamage, pending.visualOnly);
 			pending.spawned++;
@@ -134,8 +150,8 @@ public final class ScatterVolley {
 		PENDING.clear();
 	}
 
-	// 目标当前的中心点（x/z 取实体中心、y 取包围盒顶部）
-	private static Vec3 centerOf(LivingEntity target) {
+	/** 目标当前的中心点（x/z 取实体中心、y 取包围盒顶部）；延迟补发落箭时用来登记"触发瞬间的中心点" */
+	public static Vec3 centerOf(LivingEntity target) {
 		return new Vec3(target.getX(), target.getBoundingBox().maxY, target.getZ());
 	}
 

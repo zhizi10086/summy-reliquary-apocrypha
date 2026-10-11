@@ -43,6 +43,10 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.IntValue HOVER_AIR_JUMPS;
 	private static final ForgeConfigSpec.DoubleValue HOVER_AIR_JUMP_VELOCITY;
 
+	// ===== 比翼·连携（新约系列 #5）=====
+	private static final ForgeConfigSpec.IntValue PAIRED_HOLY_CHANCE_PERCENT;
+	private static final ForgeConfigSpec.DoubleValue PAIRED_HOLY_DAMAGE_BONUS;
+
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -129,6 +133,17 @@ public final class ApocryphaConfig {
 		HOVER_AIR_JUMP_VELOCITY = builder
 				.comment("空中额外跳跃的向上初速（格/tick；原版起跳是 0.42，0.5 约可再抬升 1.5 格）")
 				.defineInRange("air_jump_velocity", 0.5D, 0.0D, 4.0D);
+		builder.pop();
+
+		builder.comment("比翼·连携（装入「新约-启示」栏位；追加穿透圣光矢，并与「新约」的落箭协同触发）")
+				.push("paired_wings");
+		PAIRED_HOLY_CHANCE_PERCENT = builder
+				.comment("弓箭命中时追加一支穿透圣光矢的概率（百分比）")
+				.defineInRange("holy_arrow_chance_percent", 20, 0, 100);
+		PAIRED_HOLY_DAMAGE_BONUS = builder
+				.comment("圣光矢的伤害加成（点）：伤害 = 触发之箭「各类倍率后」的金额 + 该值",
+						"该值会被钉住 —— 圣光矢命中时不再叠加 Summy Reliquary 的增伤乘区")
+				.defineInRange("holy_arrow_damage_bonus", 6.0D, 0.0D, 1000.0D);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -248,5 +263,17 @@ public final class ApocryphaConfig {
 	/** 空中额外跳跃的向上初速（格/tick） */
 	public static double hoverAirJumpVelocity() {
 		return HOVER_AIR_JUMP_VELOCITY.get();
+	}
+
+	// ===== 比翼·连携 =====
+
+	/** 追加穿透圣光矢的概率（百分比） */
+	public static int holyArrowChancePercent() {
+		return PAIRED_HOLY_CHANCE_PERCENT.get();
+	}
+
+	/** 圣光矢的伤害加成（点，加在触发之箭的金额上） */
+	public static double holyArrowDamageBonus() {
+		return PAIRED_HOLY_DAMAGE_BONUS.get();
 	}
 }

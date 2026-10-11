@@ -3,6 +3,7 @@ package com.summy.reliquary.apocrypha.effect;
 import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
+import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.entity.ThrownRazor;
 import com.summy.reliquary.entity.ThrownSpear;
 import com.summy.reliquary.util.CurioHelper;
@@ -79,8 +80,10 @@ public final class SacramentArrows {
 			PENDING.remove(player.getUUID());
 			return;
 		}
-		// SR 的幻影矛 / 金刀片与本模组落箭不算"弓箭射出的箭矢"
-		if (arrow instanceof ThrownSpear || arrow instanceof ThrownRazor || arrow instanceof NewTestamentArrow) {
+		// SR 的幻影矛 / 金刀片与本模组的落箭、圣光矢都不算"弓箭射出的箭矢"
+		// （否则刚射完弓的 40 tick 内，模组自己生成的圣光矢会被误打上圣餐之矢标记）
+		if (arrow instanceof ThrownSpear || arrow instanceof ThrownRazor
+				|| arrow instanceof NewTestamentArrow || arrow instanceof HolyArrow) {
 			return;
 		}
 		arrow.getPersistentData().putBoolean(MARK, true);

@@ -7,11 +7,13 @@ import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
 import com.summy.reliquary.apocrypha.effect.SacramentArrows;
 import com.summy.reliquary.apocrypha.entity.LightFeather;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
+import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.apocrypha.integration.ReliquaryRef;
 import com.summy.reliquary.apocrypha.item.NewTestamentItem;
 import com.summy.reliquary.apocrypha.item.SwiftFeatherCovenantItem;
 import com.summy.reliquary.apocrypha.item.WingFeatherSacramentItem;
 import com.summy.reliquary.apocrypha.item.InverseFeatherHoverItem;
+import com.summy.reliquary.apocrypha.item.PairedWingsItem;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import net.minecraft.core.registries.Registries;
@@ -85,6 +87,20 @@ public class Apocrypha {
 							.updateInterval(1)
 							.build(id("light_feather").toString()));
 
+	/**
+	 * 穿透圣光矢（比翼·连携）：与原版箭矢同档的同步范围。
+	 *
+	 * <p>外观是光灵箭（渲染器换贴图），飞行时无重力、无限穿透。
+	 */
+	public static final RegistryObject<EntityType<HolyArrow>> HOLY_ARROW =
+			ENTITY_TYPES.register("holy_arrow",
+					() -> EntityType.Builder
+							.<HolyArrow>of(HolyArrow::new, MobCategory.MISC)
+							.sized(0.5F, 0.5F)
+							.clientTrackingRange(4)
+							.updateInterval(20)
+							.build(id("holy_arrow").toString()));
+
 	/** 新约：装入「新约-光环」栏位的饰品（需要天使标记） */
 	public static final RegistryObject<Item> NEW_TESTAMENT =
 			ITEMS.register("new_testament", () -> new NewTestamentItem(new Item.Properties().stacksTo(1)));
@@ -104,6 +120,11 @@ public class Apocrypha {
 			ITEMS.register("inverse_feather_hover",
 					() -> new InverseFeatherHoverItem(new Item.Properties().stacksTo(1)));
 
+	/** 比翼·连携：装入「新约-启示」栏位的饰品（需要天使标记；追加穿透圣光矢 + 与新约协同） */
+	public static final RegistryObject<Item> PAIRED_WINGS =
+			ITEMS.register("paired_wings",
+					() -> new PairedWingsItem(new Item.Properties().stacksTo(1)));
+
 	/** 本模组专属创造标签页 */
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
@@ -114,6 +135,7 @@ public class Apocrypha {
 						output.accept(SWIFT_FEATHER_COVENANT.get());
 						output.accept(WING_FEATHER_SACRAMENT.get());
 						output.accept(INVERSE_FEATHER_HOVER.get());
+						output.accept(PAIRED_WINGS.get());
 					})
 					.build());
 
