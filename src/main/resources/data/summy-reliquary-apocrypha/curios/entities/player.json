@@ -4,6 +4,7 @@
     "minecraft:player"
   ],
   "slots": [
-    "new_testament_halo"
+    "new_testament_halo",
+    "new_testament_talent"
   ]
 }

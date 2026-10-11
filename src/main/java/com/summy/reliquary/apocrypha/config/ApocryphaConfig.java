@@ -25,6 +25,11 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.DoubleValue ARROW_DAMAGE;
 	private static final ForgeConfigSpec.BooleanValue LOG_TRIGGER;
 
+	// ===== 迅羽·协约（新约系列 #2；只改写「新约」的落箭参数）=====
+	private static final ForgeConfigSpec.IntValue SWIFT_CHANCE_PERCENT;
+	private static final ForgeConfigSpec.IntValue SWIFT_SPEED_BONUS_PERCENT;
+	private static final ForgeConfigSpec.IntValue SWIFT_DAMAGE_RATIO_PERCENT;
+
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -62,6 +67,20 @@ public final class ApocryphaConfig {
 		LOG_TRIGGER = builder
 				.comment("调试日志：开启后每次命中掷点、每批起点、每支落箭命中与每次清帧各记一行 INFO")
 				.define("log_trigger", false);
+		builder.pop();
+
+		builder.comment("迅羽·协约（装入「新约-才能」栏位；仅在与「新约」同戴时改写其落箭参数）")
+				.push("swift_feather_covenant");
+		SWIFT_CHANCE_PERCENT = builder
+				.comment("落箭触发概率（替换 [new_testament] scatter_chance_percent 的基础值）")
+				.defineInRange("chance_percent", 50, 0, 100);
+		SWIFT_SPEED_BONUS_PERCENT = builder
+				.comment("落箭初速加成（百分比，叠加在 scatter_initial_speed 之上）")
+				.defineInRange("speed_bonus_percent", 50, 0, 400);
+		SWIFT_DAMAGE_RATIO_PERCENT = builder
+				.comment("落箭伤害：触发之箭「各类倍率结算后」金额的百分比",
+						"该值会被钉住 —— 落箭不再叠加 SR 的七罪/七德/最终倍率乘区")
+				.defineInRange("damage_ratio_percent", 40, 0, 1000);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -115,5 +134,22 @@ public final class ApocryphaConfig {
 	/** 调试日志开关 */
 	public static boolean logTrigger() {
 		return LOG_TRIGGER.get();
+	}
+
+	// ===== 迅羽·协约 =====
+
+	/** 迅羽档的落箭触发概率（替换基础值） */
+	public static int swiftChancePercent() {
+		return SWIFT_CHANCE_PERCENT.get();
+	}
+
+	/** 迅羽档的落箭初速加成（百分比） */
+	public static int swiftSpeedBonusPercent() {
+		return SWIFT_SPEED_BONUS_PERCENT.get();
+	}
+
+	/** 迅羽档的落箭伤害系数（触发之箭金额的百分比，钉住不吃乘区） */
+	public static int swiftDamageRatioPercent() {
+		return SWIFT_DAMAGE_RATIO_PERCENT.get();
 	}
 }

@@ -1,5 +1,6 @@
 {
   "curios.identifier.new_testament_halo": "Halo of the New Testament",
+  "curios.identifier.new_testament_talent": "Talent of the New Testament",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -11,6 +12,15 @@
   "item.summy-reliquary-apocrypha.new_testament.shift.3": "Falling arrows|%s true damage",
   "item.summy-reliquary-apocrypha.new_testament.shift.4": "Falling arrows ignore armor, protection, resistance and invulnerability frames",
   "item.summy-reliquary-apocrypha.new_testament.shift.5": "Falling arrows benefit from Summy Reliquary's global damage bonuses and are guided by its Sacred Heart homing",
+
+  "item.summy-reliquary-apocrypha.swift_feather_covenant": "Swift Plume Covenant",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.desc.1": "\"They shall mount up with wings as eagles.\"",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.desc.2": "With the New Testament, the arrows fall on swift wings.",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.1": "Only takes effect while the New Testament is also worn:",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.2": "Falling arrow chance|Raised to %s%%",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.3": "Falling arrow speed|+%s%%",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.4": "Falling arrow damage|%s%% of the triggering arrow's final damage",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.5": "Falling arrow damage uses the triggering arrow's post-bonus amount and no longer gains further bonuses; still true damage ignoring invulnerability frames",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s was pierced by falling arrows"
 }

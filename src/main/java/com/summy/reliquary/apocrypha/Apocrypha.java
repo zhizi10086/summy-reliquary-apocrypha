@@ -6,6 +6,7 @@ import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
 import com.summy.reliquary.apocrypha.integration.ReliquaryRef;
 import com.summy.reliquary.apocrypha.item.NewTestamentItem;
+import com.summy.reliquary.apocrypha.item.SwiftFeatherCovenantItem;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -65,12 +66,20 @@ public class Apocrypha {
 	public static final RegistryObject<Item> NEW_TESTAMENT =
 			ITEMS.register("new_testament", () -> new NewTestamentItem(new Item.Properties().stacksTo(1)));
 
+	/** 迅羽·协约：装入「新约-才能」栏位的饰品（需要天使标记；只改写「新约」的落箭参数） */
+	public static final RegistryObject<Item> SWIFT_FEATHER_COVENANT =
+			ITEMS.register("swift_feather_covenant",
+					() -> new SwiftFeatherCovenantItem(new Item.Properties().stacksTo(1)));
+
 	/** 本模组专属创造标签页 */
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
 					.title(Component.translatable("itemGroup." + NAMESPACE + ".main"))
 					.icon(() -> new ItemStack(NEW_TESTAMENT.get()))
-					.displayItems((parameters, output) -> output.accept(NEW_TESTAMENT.get()))
+					.displayItems((parameters, output) -> {
+						output.accept(NEW_TESTAMENT.get());
+						output.accept(SWIFT_FEATHER_COVENANT.get());
+					})
 					.build());
 
 	public Apocrypha() {

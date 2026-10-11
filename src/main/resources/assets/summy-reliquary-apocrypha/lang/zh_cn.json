@@ -1,5 +1,6 @@
 {
   "curios.identifier.new_testament_halo": "新约-光环",
+  "curios.identifier.new_testament_talent": "新约-才能",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -11,6 +12,15 @@
   "item.summy-reliquary-apocrypha.new_testament.shift.3": "落箭|%s 点真实伤害",
   "item.summy-reliquary-apocrypha.new_testament.shift.4": "落箭无视护甲、保护附魔、抗性与无敌帧",
   "item.summy-reliquary-apocrypha.new_testament.shift.5": "落箭可享受 Summy Reliquary 的全伤害增幅，并受「圣心」的箭矢追踪牵引",
+
+  "item.summy-reliquary-apocrypha.swift_feather_covenant": "迅羽·协约",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.desc.1": "「如鹰展翅上腾，奔跑却不困倦。」",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.desc.2": "与新约同戴时，箭落如翼。",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.1": "仅在与「新约」同戴时生效：",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.2": "落箭触发概率|提升至 %s%%",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.3": "落箭初速|+%s%%",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.4": "落箭伤害|触发之箭最终伤害的 %s%%",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.5": "落箭伤害按触发之箭「各类倍率结算后」的金额计算，且不再叠加增益；仍为真实伤害、无视无敌帧",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s 被落下的箭矢贯穿"
 }

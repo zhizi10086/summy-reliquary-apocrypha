@@ -44,23 +44,29 @@ public final class ScatterVolley {
 		// 触发瞬间的中心点（x/z 为目标中心、y 为包围盒顶部）；目标消失时沿用它
 		private final Vec3 fallbackCenter;
 		private final int total;
+		// 本批的统一参数：初速倍率（迅羽档 > 1）与钉住的单支伤害（<= 0 表示不钉住、用配置的基础伤害）
+		private final double speedMultiplier;
+		private final float pinnedDamage;
 		private int spawned;
 		// 下一支箭的生成时刻（game time）
 		private long nextTick;
 
 		private Pending(ServerLevel level, UUID shooter, UUID target, Vec3 fallbackCenter, int total,
-				long nextTick) {
+				double speedMultiplier, float pinnedDamage, long nextTick) {
 			this.level = level;
 			this.shooter = shooter;
 			this.target = target;
 			this.fallbackCenter = fallbackCenter;
 			this.total = total;
+			this.speedMultiplier = speedMultiplier;
+			this.pinnedDamage = pinnedDamage;
 			this.nextTick = nextTick;
 		}
 	}
 
 	// 登记一批落箭；间隔配成 0 时退化为同一 tick 全部生成
-	public static void enqueue(ServerLevel level, ServerPlayer shooter, LivingEntity target, int count) {
+	public static void enqueue(ServerLevel level, ServerPlayer shooter, LivingEntity target, int count,
+			double speedMultiplier, float pinnedDamage) {
 		if (count <= 0) {
 			return;
 		}
@@ -68,14 +74,15 @@ public final class ScatterVolley {
 		int interval = SPAWN_INTERVAL_TICKS;
 		if (interval <= 0) {
 			for (int index = 0; index < count; index++) {
-				spawn(level, shooter, target, center, false);
+				spawn(level, shooter, target, center, false, speedMultiplier, pinnedDamage);
 			}
 			return;
 		}
 		if (PENDING.size() >= MAX_PENDING) {
 			return;
 		}
-		PENDING.add(new Pending(level, shooter.getUUID(), target.getUUID(), center, count, level.getGameTime()));
+		PENDING.add(new Pending(level, shooter.getUUID(), target.getUUID(), center, count, speedMultiplier,
+				pinnedDamage, level.getGameTime()));
 	}
 
 	// 服务端 tick 末尾：按间隔逐支放出
@@ -98,7 +105,8 @@ public final class ScatterVolley {
 			LivingEntity target = pending.level.getEntity(pending.target) instanceof LivingEntity living
 					? living
 					: null;
-			spawn(pending.level, shooter, target, pending.fallbackCenter, pending.spawned == 0);
+			spawn(pending.level, shooter, target, pending.fallbackCenter, pending.spawned == 0,
+					pending.speedMultiplier, pending.pinnedDamage);
 			pending.spawned++;
 			if (pending.spawned >= pending.total) {
 				iterator.remove();
@@ -120,12 +128,13 @@ public final class ScatterVolley {
 
 	// 生成一支落箭
 	private static void spawn(ServerLevel level, ServerPlayer shooter, LivingEntity target, Vec3 fallbackCenter,
-			boolean first) {
+			boolean first, double speedMultiplier, float pinnedDamage) {
 		Vec3 center = target != null ? centerOf(target) : fallbackCenter;
 		Vec3 origin = clampedOrigin(level, center);
 
 		double maxAngle = Math.toRadians(ApocryphaConfig.scatterAngleMaxDegrees());
-		double speed = ApocryphaConfig.scatterInitialSpeed();
+		// 迅羽档会提高初速（1.0 = 原样）
+		double speed = ApocryphaConfig.scatterInitialSpeed() * speedMultiplier;
 		double angle = maxAngle * level.random.nextDouble();
 		double azimuth = level.random.nextDouble() * Math.PI * 2.0D;
 		// 以竖直向下 (0, -1, 0) 为中心轴：按方位角偏出，再按偏角绕轴旋转
@@ -137,6 +146,7 @@ public final class ScatterVolley {
 		NewTestamentArrow arrow = new NewTestamentArrow(level, shooter);
 		arrow.setPos(origin.x, origin.y, origin.z);
 		arrow.setDeltaMovement(direction.scale(speed));
+		arrow.setPinnedDamage(pinnedDamage);
 		level.addFreshEntity(arrow);
 
 		// 每批只在第一支箭上记一行起点，用来核对「实际高度」是否被天花板夹紧

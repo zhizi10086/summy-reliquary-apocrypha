@@ -52,6 +52,11 @@ public class NewTestamentArrow extends AbstractArrow {
 	private int stuckTicks;
 	/** 飞行计数 */
 	private int lifeTicks;
+	/**
+	 * 钉住的单支伤害（&gt; 0 时生效）：迅羽·协约档把伤害改成「触发之箭最终伤害的 N%」，
+	 * 命中时会在 LOWEST 处理器里把事件金额改回这个值，因此不再叠加 SR 的增伤乘区。
+	 */
+	private float pinnedDamage = -1.0F;
 
 	public NewTestamentArrow(EntityType<? extends NewTestamentArrow> type, Level level) {
 		super(type, level);
@@ -69,6 +74,30 @@ public class NewTestamentArrow extends AbstractArrow {
 	@Override
 	protected ItemStack getPickupItem() {
 		return ItemStack.EMPTY;
+	}
+
+	/** 钉住的单支伤害；&lt;= 0 表示不钉住（用配置的基础伤害） */
+	public float pinnedDamage() {
+		return pinnedDamage;
+	}
+
+	public void setPinnedDamage(float value) {
+		this.pinnedDamage = value;
+	}
+
+	// 钉住值要随实体一起存取：区块卸载再加载时（或跨维度）不能丢，否则回来就变成基础伤害了
+	@Override
+	public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
+		super.addAdditionalSaveData(tag);
+		tag.putFloat("ApocryphaPinnedDamage", pinnedDamage);
+	}
+
+	@Override
+	public void readAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
+		super.readAdditionalSaveData(tag);
+		if (tag.contains("ApocryphaPinnedDamage")) {
+			pinnedDamage = tag.getFloat("ApocryphaPinnedDamage");
+		}
 	}
 
 	// ==================== 命中 ====================

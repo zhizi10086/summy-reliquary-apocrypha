@@ -30,6 +30,8 @@ public final class NewTestamentEffect {
 	// 事件是在 NewTestamentArrow.onHitEntity → hurt() 内部同步触发的，所以同一击内读它一定是本次的值；
 	// 只在服务端主线程读写，且只服务调试日志，不参与任何玩法判定。
 	private static float lastArrowHitAmount;
+	// 同上：这一击是否为「迅羽档」的钉住伤害（只影响命中行的尾注措辞）
+	private static boolean lastArrowHitPinned;
 
 	private NewTestamentEffect() {
 	}
@@ -42,7 +44,15 @@ public final class NewTestamentEffect {
 		}
 
 		// ① 本模组落箭的命中：先记下本击金额（落箭实体会在还原速度后统一打一行）；落箭自身不再触发新约
-		if (event.getSource().getDirectEntity() instanceof NewTestamentArrow) {
+		if (event.getSource().getDirectEntity() instanceof NewTestamentArrow arrow) {
+			// 钉住：迅羽档的落箭要正好等于「触发之箭最终伤害的 N%」。
+			// SR 的七罪/七德与最终倍率乘区在 NORMAL 优先级已经把它放大过，这里改回钉住值
+			// （我们排在 LOWEST，且在同优先级的 SR 处理器之前）。
+			float pinned = arrow.pinnedDamage();
+			if (pinned > 0.0F && !event.isCanceled()) {
+				event.setAmount(pinned);
+			}
+			lastArrowHitPinned = pinned > 0.0F;
 			lastArrowHitAmount = event.isCanceled() ? 0.0F : event.getAmount();
 			return;
 		}
@@ -73,9 +83,19 @@ public final class NewTestamentEffect {
 			return;
 		}
 
+		// 迅羽·协约：与「新约」同戴时改写落箭的三项参数（概率 / 初速 / 伤害口径）
+		boolean upgraded = CurioHelper.wears(shooter, Apocrypha.SWIFT_FEATHER_COVENANT.get());
+		double speedMultiplier = upgraded
+				? 1.0D + ApocryphaConfig.swiftSpeedBonusPercent() / 100.0D
+				: 1.0D;
+		// 钉住的单支伤害：以「触发之箭在各类倍率结算后」的金额为基准（<= 0 表示不钉住）
+		float pinnedDamage = upgraded
+				? (float) (event.getAmount() * ApocryphaConfig.swiftDamageRatioPercent() / 100.0D)
+				: -1.0F;
+
 		// 掷点：每命中恰好消耗一次随机数（与是否触发、是否记日志都无关）
 		double roll = level.random.nextDouble() * 100.0D;
-		int chance = ApocryphaConfig.scatterChancePercent();
+		int chance = upgraded ? ApocryphaConfig.swiftChancePercent() : ApocryphaConfig.scatterChancePercent();
 		boolean triggered = roll < chance;
 
 		// 命中回血
@@ -86,7 +106,7 @@ public final class NewTestamentEffect {
 			count = rollArrowCount(level);
 			// 听觉反馈：只发给触发者本人
 			shooter.playNotifySound(SoundEvents.ARROW_HIT, SoundSource.PLAYERS, 1.0F, 1.0F);
-			ScatterVolley.enqueue(level, shooter, target, count);
+			ScatterVolley.enqueue(level, shooter, target, count, speedMultiplier, pinnedDamage);
 		}
 		logTrigger(shooter, target, roll, chance, triggered, count);
 	}
@@ -99,6 +119,8 @@ public final class NewTestamentEffect {
 		}
 		ScatterVolley.tick(event.getServer());
 		TrueDamageFrames.tickServer();
+		// 新约系列栏位的动态格数：仅天使线开放（每秒校正一次）
+		ApocryphaSlotSizing.tickServer(event.getServer());
 	}
 
 	// 服务器停止：清空待落队列与清帧登记，避免残留到下一个存档
@@ -141,10 +163,14 @@ public final class NewTestamentEffect {
 		if (!ApocryphaConfig.logTrigger()) {
 			return;
 		}
+		// 钉住档不能写「各类倍率后」（那是被改回之前的口径），按实际来源措辞
+		String basis = lastArrowHitPinned
+				? String.format("钉住：触发箭最终伤害的 %d%%", ApocryphaConfig.swiftDamageRatioPercent())
+				: "各类倍率后";
 		Apocrypha.LOGGER.info(String.format(
-				"[新约] 落箭命中 %s：结算 %.2f 点（各类倍率后）、命中前血量 %.1f/%.1f、"
+				"[新约] 落箭命中 %s：结算 %.2f 点（%s）、命中前血量 %.1f/%.1f、"
 						+ "速度 命中前(%.2f,%.2f,%.2f) → 击退后(%.2f,%.2f,%.2f) → 还原后(%.2f,%.2f,%.2f)、击退被抵消 %.3f",
-				victim.getName().getString(), lastArrowHitAmount, healthBefore, victim.getMaxHealth(),
+				victim.getName().getString(), lastArrowHitAmount, basis, healthBefore, victim.getMaxHealth(),
 				velocityBefore.x, velocityBefore.y, velocityBefore.z,
 				velocityKnocked.x, velocityKnocked.y, velocityKnocked.z,
 				velocityAfter.x, velocityAfter.y, velocityAfter.z,

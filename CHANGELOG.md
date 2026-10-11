@@ -72,13 +72,28 @@
   0.4 强度击退，并附带水平速度减半与一点上浮 —— 每支落箭都会推一次，把目标推出后续落箭的落点。现在照 SR 神性光环
   的同一手法在结算前后保存 / 恢复目标速度，并在恢复后置 `hurtMarked = true` 让客户端同步（只在 `hurt()` 真的落地时恢复）。
 
+### 新约系列 #2：迅羽·协约 + 新栏位「新约-才能」（同日第四轮）
+
+- **新栏位「新约-才能」**（`new_testament_talent`，order 16，图标用作者提供的 16×16 PNG）：只接受「迅羽·协约」；
+  与新约系列其它栏位一样**仅天使线开放** —— 有天使标记时 1 格、否则 0 格，由本模组每秒调用 SR 的公开
+  `SlotSizing.sync(player, slot, target)` 校正（缩格前先把格内物品退回背包、满了掉脚下；登录读档窗口
+  `PlayerFlags.isDataReady` 为假时跳过，与 SR 的 SlotSizing 同口径）。栏位清单集中在
+  `ApocryphaSlots.ANGEL_SERIES_SLOTS`，后续 3 件各追加一行即可。
+- **新饰品「迅羽·协约」**（`swift_feather_covenant`，装入「新约-才能」，需要天使标记）：本身不给任何属性，
+  只在**与「新约」同戴**时改写落箭三项参数 —— 触发概率 35% → 50%、落箭初速 +50%、
+  伤害由固定 5 点改为**触发之箭最终伤害的 40%**。「最终伤害」取触发那支箭在 `LivingHurtEvent`（LOWEST）里的金额
+  （各类倍率结算后、减伤前）；该值**钉住**：落箭命中时由本模组在同一事件的 LOWEST 里把金额改回去，
+  因此不再叠加 SR 的增伤乘区。钉住值随落箭实体一起存取（`ApocryphaPinnedDamage`），区块卸载再加载不会丢。
+- **配置面 11 → 14 项**：新增 `[swift_feather_covenant]` 段（`chance_percent` / `speed_bonus_percent` /
+  `damage_ratio_percent`）。物品图标暂用原版贴图占位（`minecraft:item/feather`）。
+
 ### 备注
 
 - 本轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步。
 - 「新约」的物品贴图本轮**借原版贴图占位**（`minecraft:item/arrow`），模组图标临时复用 SR 的图标。
 - 本轮不改动前置模组 Summy Reliquary 的任何代码、版本号与 `libs/` 里的前置 jar：SR 真伤的「命中后清帧」完全由
   本模组旁路实现。
-- 已知限制：真伤不再给受害者留 5 tick 保护帧（含玩家被真伤命中时）；落箭仍会造成击退（未改动）。
+- 已知限制：真伤不再给受害者留 5 tick 保护帧（含玩家被真伤命中时）；落箭已不再击退目标（见第三轮）。
 - **配置迁移提醒**：Forge 会保留已存在的配置项，所以从上一版升级上来的 `config/summy_reliquary_apocrypha-common.toml`
   里 `scatter_spawn_height` / `scatter_initial_speed` 仍是旧值（3.0 / 0.3），需要删掉配置文件重新生成，
   或手动改成 8.0 / 1.2 —— 新默认值只对新建的配置文件生效。
