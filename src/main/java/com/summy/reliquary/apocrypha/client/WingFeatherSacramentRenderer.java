@@ -39,12 +39,16 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 	/** 四边形边长（格）：正方形 + 整张画布铺满，才保得住贴图 20×30 内容的比例（1.25 格 ≈ 半身多一点） */
 	private static final float WING_SIZE = 1.25F;
 	/**
-	 * 每片沿脊柱方向内移的距离（格）：抵消贴图左侧留白。
+	 * 两片之间的**可视缝隙**（格）—— 想调宽窄就只改这一个数。
 	 *
-	 * <p>可视缝隙 = 2 × (0.3125 × {@link #WING_SIZE} − 本值)；当前 2 × (0.3125×1.25 − 0.27) ≈ <b>0.24 格</b>
-	 * （放大体型前是约 0.29 格）。
+	 * <p>贴图内容只占画布右侧（左缘 10/32 处起），所以左右镜像后中间会自然留出空隙；
+	 * 下面用 {@link #INNER_SHIFT} 把它收窄到本值。
 	 */
-	private static final float INNER_SHIFT = 0.27F;
+	private static final float WING_GAP = 0.20F;
+	/** 贴图内容左缘在四边形内的占比（画布 32 像素里左边 10 像素是留白） */
+	private static final float TEXTURE_INNER_MARGIN = 10.0F / 32.0F;
+	/** 每片沿脊柱方向内移的距离（格）：由目标缝隙反推，公式见下 */
+	private static final float INNER_SHIFT = TEXTURE_INNER_MARGIN * WING_SIZE - WING_GAP / 2.0F;
 	/** 整对向玩家身后偏移的距离（格） */
 	private static final float BACK_OFFSET = 0.35F;
 	/**
@@ -53,9 +57,10 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 	 * <p>依据：1.20.1 的 {@code HumanoidModel} 里 body 是 {@code PartPose.offset(0,0,0)}，即枢轴在
 	 * <b>肩线（世界 y ≈ 1.5 格）</b>而不是腰部；该骨骼空间里 {@code world_y = 1.501 − y_local}，
 	 * 所以 <b>+y 向下、−y 向上</b>（与 SR 光环「从头部枢轴 −0.50 正好到头顶」这条已验证的参照一致）。
-	 * 取 0.88 → 翼根落在 1.5 − 0.88 = <b>0.62 格</b>（背中段）；翼尖因体型放大约到 1.83 格。
+	 * 取 0.85 → 翼根基准落在 1.5 − 0.85 = <b>0.65 格</b>（背中段）；叠上 ±0.05 的上下浮动后实际区间约 0.60 ~ 0.70 格
+	 * （再往上一轮，最低时偏低，故整体抬高 0.03 格）。
 	 */
-	private static final float WING_ROOT_DROP = 0.88F;
+	private static final float WING_ROOT_DROP = 0.85F;
 	/** 上下浮动的幅度（格）与频率：逐帧平滑，靠回调里的 ageInTicks 驱动 */
 	private static final float BOB_AMPLITUDE = 0.05F;
 	private static final float BOB_SPEED = 0.1F;
