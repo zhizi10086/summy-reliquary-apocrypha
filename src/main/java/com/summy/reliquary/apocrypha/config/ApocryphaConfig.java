@@ -11,6 +11,8 @@ public final class ApocryphaConfig {
 	public static final ForgeConfigSpec SPEC;
 
 	private static final ForgeConfigSpec.BooleanValue ENABLE;
+	/** 是否给 Summy Reliquary 的真伤补「命中后清帧」 */
+	private static final ForgeConfigSpec.BooleanValue CLEAR_SR_IFRAMES;
 
 	// ===== 新约 =====
 	private static final ForgeConfigSpec.DoubleValue HEAL_AMOUNT;
@@ -20,7 +22,13 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.DoubleValue SCATTER_SPAWN_HEIGHT;
 	private static final ForgeConfigSpec.DoubleValue SCATTER_ANGLE_MAX_DEGREES;
 	private static final ForgeConfigSpec.DoubleValue SCATTER_INITIAL_SPEED;
+	private static final ForgeConfigSpec.IntValue SCATTER_SPAWN_INTERVAL_TICKS;
+	private static final ForgeConfigSpec.DoubleValue SCATTER_CEILING_MARGIN;
+	private static final ForgeConfigSpec.DoubleValue SCATTER_MIN_HEIGHT;
 	private static final ForgeConfigSpec.DoubleValue ARROW_DAMAGE;
+	private static final ForgeConfigSpec.IntValue ARROW_GROUND_STICK_TICKS;
+	private static final ForgeConfigSpec.IntValue ARROW_MAX_LIFE_TICKS;
+	private static final ForgeConfigSpec.BooleanValue LOG_TRIGGER;
 
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -28,6 +36,11 @@ public final class ApocryphaConfig {
 		builder.comment("Summy Reliquary: Apocrypha 总开关").push("general");
 		ENABLE = builder.comment("是否启用本模组的玩法效果（关掉后饰品仍可佩戴，但不再触发效果）")
 				.define("enable", true);
+		CLEAR_SR_IFRAMES = builder
+				.comment("是否给 Summy Reliquary 的「无视无敌帧」真伤补上「命中后清帧」",
+						"开启后：这些真伤打完之后不会再给受害者留下无敌帧（同批多段真伤、以及随后的近战/箭矢都能全额落地）",
+						"本项独立于上面的 enable：即使玩法效果全关，补强依然生效；关掉即恢复 SR 原本的行为")
+				.define("clear_sr_iframes_after_hit", true);
 		builder.pop();
 
 		builder.comment("新约（饰品，装入「新约-光环」栏位；需要天使标记）").push("new_testament");
@@ -39,16 +52,36 @@ public final class ApocryphaConfig {
 				.defineInRange("scatter_arrow_min", 3, 1, 64);
 		SCATTER_ARROW_MAX = builder.comment("散射箭矢的最大数量（小于最小值时按最小值处理）")
 				.defineInRange("scatter_arrow_max", 5, 1, 64);
-		SCATTER_SPAWN_HEIGHT = builder.comment("生成高度：目标碰撞箱顶部往上多少格")
-				.defineInRange("scatter_spawn_height", 3.0D, 0.0D, 32.0D);
+		SCATTER_SPAWN_HEIGHT = builder
+				.comment("生成高度：目标碰撞箱顶部往上多少格（越高落点铺得越开，但需要头顶有足够空间）")
+				.defineInRange("scatter_spawn_height", 8.0D, 0.0D, 32.0D);
 		SCATTER_ANGLE_MAX_DEGREES = builder
 				.comment("散射角度上限（度）：竖直向下为 0°，每支箭在 0~该值之间随机偏转")
 				.defineInRange("scatter_angle_max_degrees", 25.0D, 0.0D, 90.0D);
-		SCATTER_INITIAL_SPEED = builder.comment("落箭的初速度（格/tick，之后按原版箭矢重力下落）")
-				.defineInRange("scatter_initial_speed", 0.3D, 0.0D, 4.0D);
+		SCATTER_INITIAL_SPEED = builder
+				.comment("落箭的初速度（格/tick，之后按原版箭矢重力下落；越大横向铺开越快，但下落时间越短）")
+				.defineInRange("scatter_initial_speed", 1.2D, 0.0D, 4.0D);
+		SCATTER_SPAWN_INTERVAL_TICKS = builder
+				.comment("错峰生成间隔（tick）：每支箭之间隔多少 tick 放出（0 = 同一 tick 全部生成）")
+				.defineInRange("scatter_spawn_interval_ticks", 2, 0, 20);
+		SCATTER_CEILING_MARGIN = builder
+				.comment("头顶有方块时的夹紧余量（格）：实际高度 = 命中点 − 该值")
+				.defineInRange("scatter_ceiling_margin", 0.5D, 0.0D, 5.0D);
+		SCATTER_MIN_HEIGHT = builder
+				.comment("夹紧后的最小生成高度（格）：头顶空间不足时也不会低于「目标顶部 + 该值」")
+				.defineInRange("scatter_min_height", 0.5D, 0.0D, 8.0D);
 		ARROW_DAMAGE = builder
 				.comment("落箭的固定伤害（真实伤害：无视护甲 / 保护附魔 / 抗性 / 无敌帧）")
 				.defineInRange("arrow_damage", 5.0D, 0.0D, 1000.0D);
+		ARROW_GROUND_STICK_TICKS = builder
+				.comment("落箭命中方块后原地贴地停留多少 tick 再消失")
+				.defineInRange("arrow_ground_stick_ticks", 10, 0, 200);
+		ARROW_MAX_LIFE_TICKS = builder
+				.comment("落箭的最长寿命（tick）：超时强制清除，避免孤儿实体堆积")
+				.defineInRange("arrow_max_life_ticks", 200, 20, 6000);
+		LOG_TRIGGER = builder
+				.comment("调试日志：开启后每次命中掷点、每批起点、每支落箭命中与每次清帧各记一行 INFO")
+				.define("log_trigger", false);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -60,6 +93,11 @@ public final class ApocryphaConfig {
 	/** 总开关 */
 	public static boolean enable() {
 		return ENABLE.get();
+	}
+
+	/** 是否给 SR 真伤补「命中后清帧」 */
+	public static boolean clearSrIframesAfterHit() {
+		return CLEAR_SR_IFRAMES.get();
 	}
 
 	public static double healAmount() {
@@ -90,7 +128,32 @@ public final class ApocryphaConfig {
 		return SCATTER_INITIAL_SPEED.get();
 	}
 
+	public static int scatterSpawnIntervalTicks() {
+		return SCATTER_SPAWN_INTERVAL_TICKS.get();
+	}
+
+	public static double scatterCeilingMargin() {
+		return SCATTER_CEILING_MARGIN.get();
+	}
+
+	public static double scatterMinHeight() {
+		return SCATTER_MIN_HEIGHT.get();
+	}
+
 	public static double arrowDamage() {
 		return ARROW_DAMAGE.get();
+	}
+
+	public static int arrowGroundStickTicks() {
+		return ARROW_GROUND_STICK_TICKS.get();
+	}
+
+	public static int arrowMaxLifeTicks() {
+		return ARROW_MAX_LIFE_TICKS.get();
+	}
+
+	/** 调试日志开关 */
+	public static boolean logTrigger() {
+		return LOG_TRIGGER.get();
 	}
 }

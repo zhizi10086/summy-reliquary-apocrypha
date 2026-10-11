@@ -12,12 +12,66 @@ Forge 1.20.1（推荐 47.4.10+）
 | 名称 | 类型 | 说明 |
 | --- | --- | --- |
 | 新约-光环 | Curios 栏位 | 本模组自己的栏位（面板里排在 SR「光环」之后），目前只接受「新约」 |
-| 新约 | 饰品（新约-光环） | **需要天使标记**才能佩戴与查阅。弓 / 弩的箭矢命中目标后：自身回复 0.5 点生命；有 35% 概率在目标碰撞箱顶部上方 3 格处散射落下 3~5 支箭矢（散布角度 0~25°），落箭固定 **5 点真实伤害**（无视护甲 / 保护附魔 / 抗性 / 无敌帧），可享受 Summy Reliquary 的全伤害增幅，并受 SR「圣心」的箭矢追踪牵引；散射触发时给佩戴者本人播一次箭矢命中音效 |
+| 新约 | 饰品（新约-光环） | **需要天使标记**才能佩戴与查阅。弓 / 弩的箭矢命中目标后：自身回复 0.5 点生命；有 35% 概率在目标碰撞箱顶部上方 8 格处**错峰落下** 3~5 支箭矢（每支间隔 2 tick、散布 0~25°），落箭固定 **5 点真实伤害**（无视护甲 / 保护附魔 / 抗性 / 无敌帧，命中前后各清一次无敌帧），可享受 Summy Reliquary 的全伤害增幅，并受 SR「圣心」的箭矢追踪牵引；散射触发时给佩戴者本人播一次箭矢命中音效 |
+
+## 散射观感
+
+- **落点宽度**：高度 8 格 + 初速 1.2 的组合下，落点半径平均约 **1.8 格**、最远约 3.6 格（旧参数是平均 0.47 / 最远 1.0，几乎砸在同一点）。
+- **角度下限仍为 0°**：所以每批箭里总有 1~2 支近乎垂直落在目标正上方 —— 这是保留「0~25° 均匀散布」的必然结果，不是 bug。
+- **戴圣心时会被收拢**：SR 的追踪每 tick 把箭的方向朝最近的敌对生物拉一半，落点会重新并到约 0.1~0.3 格。要么接受这个联动（默认），要么把落箭排除追踪（需要改 SR，本轮没做）。
+- **头顶空间**：生成高度会在每次生成前向上探一次，撞到方块就压到「命中点 − `scatter_ceiling_margin`」，且不低于「目标顶部 + `scatter_min_height`」；露天时与配置完全一致。洞穴里高度会被压低，落点自然更集中。
+
+## 清帧补强
+
+- **落箭本体**：命中前清一次（保证这一箭不被吞），`hurt()` 真的落地后再清一次（不把无敌帧留给同批其它落箭与随后落下的近战/箭矢）。只在真正打中时清。
+- **SR 的真伤**（启示之光 / 圣光 / 圣光爆发 / 神性光环 / 亚巴顿光环 / 恶魔之焰 / 狱火 / 契约献祭 / 献祭自伤）：由本模组**旁路兜底**补上「命中后清帧」，**不改动 SR 仓库**。做法是在 `LivingHurtEvent` 里按 SR 的伤害类型名单识别，Forge 上就地清零、Kilt/Connector 上登记后在 server tick 末尾清零（Kilt 的事件时机在原版写字段之前，就地写会被覆盖）。
+- **名单**：SR 的 11 个伤害类型里 10 个是真伤；`golden_razor`（金刀片，物理）被排除。`godhead_aura` 与 `holy_light` 共用同一个 `message_id`，去重后是 9 个 id，登记在 `integration/ReliquaryRef.java`。SR 若新增真伤类型，打开调试日志时会看到「清帧名单可能已漂移」的提醒。
+- **开关**：`[general] clear_sr_iframes_after_hit`（默认 true）。关掉即恢复 SR 原本「只在命中前清帧」的行为。
+- **代价**：真伤不再给受害者留 5 tick 保护帧（含玩家被真伤命中时），同 tick 内随后落下的普通伤害也会照常结算。
+- **普通攻击不受影响**：近战、原版箭矢、金刀片等仍按原版无敌帧语义处理。
+
+## 配置
+
+文件：`config/summy_reliquary_apocrypha-common.toml`（改完 Forge 会热加载，无需重启）。
+
+| 键 | 默认 | 说明 |
+| --- | --- | --- |
+| `[general] enable` | true | 玩法总开关 |
+| `[general] clear_sr_iframes_after_hit` | true | 是否给 SR 真伤补「命中后清帧」 |
+| `[new_testament] heal_amount` | 0.5 | 弓 / 弩命中后的回血 |
+| `scatter_chance_percent` | 35 | 触发落箭散射的概率（%） |
+| `scatter_arrow_min` / `scatter_arrow_max` | 3 / 5 | 每批落箭数量区间 |
+| `scatter_spawn_height` | 8.0 | 生成高度（相对目标碰撞箱顶部，格） |
+| `scatter_angle_max_degrees` | 25.0 | 散布角上限（竖直向下为 0°） |
+| `scatter_initial_speed` | 1.2 | 落箭初速（格/tick） |
+| `scatter_spawn_interval_ticks` | 2 | 错峰间隔（0 = 同一 tick 全部生成） |
+| `scatter_ceiling_margin` | 0.5 | 头顶有方块时的夹紧余量（格） |
+| `scatter_min_height` | 0.5 | 夹紧后的最小生成高度（格） |
+| `arrow_damage` | 5.0 | 落箭固定伤害（真实伤害） |
+| `arrow_ground_stick_ticks` | 10 | 命中方块后贴地停留多少 tick 再消失 |
+| `arrow_max_life_ticks` | 200 | 落箭寿命兜底（tick） |
+| `log_trigger` | false | 调试日志开关（见下） |
+
+### 调试日志
+
+把 `[new_testament] log_trigger` 改成 `true` 后，日志里会出现四类 `[新约]` 行（默认关闭时零输出）：
+
+```
+[新约] {玩家} 箭矢命中 {目标}：掷点 12.3（阈值 35）→ 未触发；回血 0.50
+[新约] {玩家} 箭矢命中 {目标}：掷点 68.1（阈值 35）→ 触发，落箭 4 支（间隔 2 tick）；回血 0.50
+[新约] 落箭起点：实际高度 8.00（配置 8.00）、中心 277.8/-55.2/7.8
+[新约] 落箭命中 {目标}：结算 5.00 点（各类倍率后）、命中前血量 20.0/20.0
+[新约] 清帧：来源 summy-reliquary.holy_light、受害者 {目标}、通道 Forge
+```
+
+- 「结算」取的是各类倍率结算后的金额 —— 戴圣心（全伤害最终倍率 +30%）时应看到约 6.5（=5×1.3）。
+- 「实际高度」用来核对天花板夹紧；洞穴里应小于配置值。
+- 一次性筛选：`Select-String -Pattern '\[新约\]' run\logs\latest.log`
 
 ## 前置与依赖
 
 - **Summy Reliquary**：本模组的所有玩法耦合都走它的公开 API（`CurioItemSupport` 的天使门槛与读档放行、
-  `ReliquaryTooltips` 的提示格式、`CurioHelper` 的佩戴判定、`PlayerFlags`、真实伤害与增伤乘区）。
+  `ReliquaryTooltips` 的提示格式、`CurioHelper` 的佩戴判定、`DamagePools.fabricSide()`、真实伤害与增伤乘区）。
 - **Curios**：栏位与栏位面板（SR 本身也硬依赖它）。
 - 开发运行期：`gradlew runClient` 会自动把 `libs/` 里的 SR jar 反转成 dev 映射并投放到 `run/mods`。
 
@@ -36,9 +90,11 @@ src/main/java/com/summy/reliquary/apocrypha/   本模组源码（包名挂在 SR
   Apocrypha.java            主入口：注册物品 / 创造页 / 实体 / 配置
   ApocryphaClient.java      客户端入口：实体渲染器
   config/                   配置（config/summy_reliquary_apocrypha-common.toml）
+  effect/NewTestamentEffect 命中判定、掷点、音效、落箭调度
+  effect/ScatterVolley      待落批次：错峰放出 + 天花板夹紧
+  effect/TrueDamageFrames   SR 真伤的「命中后清帧」旁路
   entity/                   落箭实体
-  effect/                   游戏内事件（命中判定与散射）
-  integration/ReliquaryRef  **对 SR 的唯一访问出口**（后续所有跨模组调用都从这里走）
+  integration/ReliquaryRef  **对 SR 的唯一访问出口**（含 SR 真伤名单与 Kilt/Forge 探测）
   item/                     饰品「新约」
   slot/                     栏位校验谓词
 src/main/resources/
@@ -59,15 +115,17 @@ libs/                       前置模组 Summy Reliquary 的生产 jar（**必�
 3. **用 SR 的门槛 / 提示**：佩戴门槛直接用 `CurioItemSupport.canEquipInto(context, stack, 栏位id, true)`
    （第 4 个参数 = 需要天使标记），提示行用 `ReliquaryTooltips.add / statComponent / angelLocked /
    appendAngelHint / shiftHint`；名字按派系上色用 `SinTexts.factionName(key, ReliquaryFaction.ANGEL)`。
-4. **真实伤害**：在 `data/summy-reliquary-apocrypha/damage_type/` 加类型文件，并把类型 id 追加进
+4. **真实伤害（新约定）**：在 `data/summy-reliquary-apocrypha/damage_type/` 加类型文件，并把类型 id 追加进
    `data/minecraft/tags/damage_type/bypasses_{armor,effects,enchantments,resistance}.json`；
-   落地时先把目标 `invulnerableTime = 0` 再 `hurt(...)`（SR 的 `RevelationBeam#applyTrueDamage` 就是这套口径）。
+   落地时**命中前清一次无敌帧**（保证不被吞）、`hurt()` 返回 true 时**再清一次**（真伤不留帧）。
 5. **想要 SR 的增伤**：不要自己复刻倍率。把伤害源的**造成者**设为玩家、**直接来源**设为投掷物实体，
    并且不把伤害类型写进 SR 的 `isDivine` / `isExactDamage` 名单 —— SR 的 `LivingHurtEvent`
    会自动叠加七罪 / 七德与「全伤害最终倍率」乘区。
 6. **给 SR 接入新实体**：SR 的圣心追踪筛选的是「`AbstractArrow` + owner 是该玩家」，
    所以只要你的投掷物继承 `AbstractArrow` 且 owner 设为玩家，就会自动获得追踪（不需要任何代码）；
    反之若不想被追踪，得在 SR 侧加排除（本工程的原则是**不改 SR**）。
+7. **新增「无视无敌帧」的 SR 真伤类型**：如果 SR 将来加了新的真伤类型，把它登记进
+   `ReliquaryRef.TRUE_DAMAGE_MSG_IDS`，旁路清帧才会覆盖到它（漏登记时调试日志会提醒）。
 
 ## 更新前置 jar（SR 出新版本时）
 
@@ -80,5 +138,12 @@ libs/                       前置模组 Summy Reliquary 的生产 jar（**必�
 
 - **启动就报缺少前置**：`run/mods` 里没有 SR（`gradlew runClient` 会自动投放；直接用 IDE 启动时要手动放）。
 - **装上饰品却查不到功能描述**：没有天使标记（`/summyreliquary angel grant`）。
+- **更新到本轮后落箭还是老样子（落点依旧集中）**：Forge 会**保留已存在**的配置值，旧配置文件里的
+  `scatter_spawn_height`（3.0）与 `scatter_initial_speed`（0.3）不会自动变成新默认值。
+  删掉 `config\summy_reliquary_apocrypha-common.toml` 让它重新生成，或手动把这两个值改成 8.0 / 1.2。
 - **落箭没伤害**：确认 `data/summy-reliquary-apocrypha/damage_type/new_testament_arrow.json` 与四个
   `data/minecraft/tags/damage_type/bypasses_*.json` 都在 jar 里（被打包时丢文件会退回原版魔法伤害源）。
+- **落箭看着还是集中**：确认 `scatter_spawn_height` / `scatter_initial_speed` 没被改回小值；洞穴里会被
+  天花板压回（看调试日志的「落箭起点」行）；戴圣心时会被追踪收拢（预期）。
+- **真伤还是被无敌帧吞**：确认 `[general] clear_sr_iframes_after_hit=true`；若某条 SR 真伤没生效，
+  打开 `log_trigger` 看有没有「清帧名单可能已漂移」的提醒，并按提示把类型登记进 `ReliquaryRef`。
