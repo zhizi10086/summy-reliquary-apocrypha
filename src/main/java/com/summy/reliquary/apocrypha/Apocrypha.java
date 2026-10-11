@@ -3,10 +3,13 @@ package com.summy.reliquary.apocrypha;
 import com.mojang.logging.LogUtils;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
+import com.summy.reliquary.apocrypha.effect.SacramentArrows;
+import com.summy.reliquary.apocrypha.entity.LightFeather;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
 import com.summy.reliquary.apocrypha.integration.ReliquaryRef;
 import com.summy.reliquary.apocrypha.item.NewTestamentItem;
 import com.summy.reliquary.apocrypha.item.SwiftFeatherCovenantItem;
+import com.summy.reliquary.apocrypha.item.WingFeatherSacramentItem;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -62,6 +65,22 @@ public class Apocrypha {
 							.updateInterval(20)
 							.build(id("new_testament_arrow").toString()));
 
+	/**
+	 * 光羽实体：背后悬浮的一对羽毛，**每对一个实体**。
+	 *
+	 * <p>{@code noSave()}：不写存档（重登后由每秒的管理器按计数重建），避免残留孤儿实体。
+	 */
+	public static final RegistryObject<EntityType<LightFeather>> LIGHT_FEATHER =
+			ENTITY_TYPES.register("light_feather",
+					() -> EntityType.Builder
+							.<LightFeather>of(LightFeather::new, MobCategory.MISC)
+							.sized(0.5F, 0.5F)
+							.noSave()
+							.noSummon()
+							.clientTrackingRange(10)
+							.updateInterval(2)
+							.build(id("light_feather").toString()));
+
 	/** 新约：装入「新约-光环」栏位的饰品（需要天使标记） */
 	public static final RegistryObject<Item> NEW_TESTAMENT =
 			ITEMS.register("new_testament", () -> new NewTestamentItem(new Item.Properties().stacksTo(1)));
@@ -71,6 +90,11 @@ public class Apocrypha {
 			ITEMS.register("swift_feather_covenant",
 					() -> new SwiftFeatherCovenantItem(new Item.Properties().stacksTo(1)));
 
+	/** 翼羽·圣餐：装入「新约-恩典」栏位的饰品（需要天使标记；光羽凝聚 → 圣餐之矢） */
+	public static final RegistryObject<Item> WING_FEATHER_SACRAMENT =
+			ITEMS.register("wing_feather_sacrament",
+					() -> new WingFeatherSacramentItem(new Item.Properties().stacksTo(1)));
+
 	/** 本模组专属创造标签页 */
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
@@ -79,6 +103,7 @@ public class Apocrypha {
 					.displayItems((parameters, output) -> {
 						output.accept(NEW_TESTAMENT.get());
 						output.accept(SWIFT_FEATHER_COVENANT.get());
+						output.accept(WING_FEATHER_SACRAMENT.get());
 					})
 					.build());
 
@@ -97,6 +122,8 @@ public class Apocrypha {
 		// 游戏事件总线（命中判定与散射）。显式注册，不依赖注解自动注册：
 		// 与 SR 的做法一致，避免注解扫描在这个环境里的不确定性。
 		MinecraftForge.EVENT_BUS.register(NewTestamentEffect.class);
+		// 圣餐之矢：放箭登记 + 给新生成的箭打标记 + HIGHEST 放大伤害
+		MinecraftForge.EVENT_BUS.register(SacramentArrows.class);
 
 		LOGGER.info("[Summy Reliquary: Apocrypha] 初始化完成（前置 Summy Reliquary {}、协议 {}）",
 				ReliquaryRef.version(), ReliquaryRef.protocolVersion());

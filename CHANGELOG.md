@@ -87,6 +87,25 @@
 - **配置面 11 → 14 项**：新增 `[swift_feather_covenant]` 段（`chance_percent` / `speed_bonus_percent` /
   `damage_ratio_percent`）。物品图标暂用原版贴图占位（`minecraft:item/feather`）。
 
+### 新约系列 #3：翼羽·圣餐 + 新栏位「新约-恩典」（同日第五轮）
+
+- **新栏位「新约-恩典」**（`new_testament_grace`，order 17，图标用作者提供的 16×16 PNG）：只接受「翼羽·圣餐」；
+  与系列其它栏位一样仅天使线开放（`ANGEL_SERIES_SLOTS` 追加一行，动态格数复用 SR 的 `SlotSizing.sync`）。
+  顺带确认系列剩余两件的栏位名与图标已就位：**新约-祝福 / 新约-启示**。
+- **新饰品「翼羽·圣餐」**（`wing_feather_sacrament`，装入「新约-恩典」，需要天使标记）：物品图标暂用原版占位（鞘翅）；
+  `光羽.png` 作实体贴图。与「新约」同戴时：每次治疗触发 +1 对光羽（显示上限 6 片 / 存储上限 8 片）；
+  只有片数 > 6（攒到第 4 对）时射击才消耗 1 对，把该箭变成**圣餐之矢**（伤害 +30%、必定触发新约、落箭固定 5 支、
+  打空不退还）；脱战 10 秒后每 2 秒熄一对。计数存玩家持久数据的 `summy_reliquary_apocrypha` 根下（随存档保存）。
+- **光羽实体**：新实体类型 `light_feather`（`noSave()`，重载后按计数重建）——**每对一个实体**，服务端跟随玩家背后
+  （带跟随延迟 + 上下浮动，朝向同步为身体朝向），客户端渲染器用 `光羽.png` 画两片镜像羽毛：上对贴图原样（斜向上外）、
+  中对平面内顺时针 45°（水平外张）、下对累计 90°（向下外张），`entityCutoutNoCull` 双面可见、固定在背后平面。
+- **圣餐之矢的三段实现**：`ArrowLooseEvent`（弓与弩都触发）判定门槛与消耗 → `EntityJoinLevelEvent` 给该玩家
+  时间窗内新生成的箭打上标记（Forge 持久数据，只标第一支）→ **HIGHEST** 的 `LivingHurtEvent` 放大金额 30%
+  （排在 SR 的 NORMAL 乘区之前，因此后续增伤基于放大后的值）；命中分支里跳过概率判定并固定箭数，
+  另留一个空的 `onSacramentHit(...)` 扩展点给未来的「比翼·连携」接"同时触发圣光矢"。
+- **配置面 14 → 18 项**：新增 `[wing_feather_sacrament]` 段（`decay_delay_seconds` / `decay_interval_seconds` /
+  `damage_bonus_percent` / `arrow_count`）；光羽的显示/存储上限、层高、角度、尺寸、跟随延迟均为写死的实现常量。
+
 ### 备注
 
 - 本轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步。

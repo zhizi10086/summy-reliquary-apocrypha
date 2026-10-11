@@ -30,6 +30,12 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.IntValue SWIFT_SPEED_BONUS_PERCENT;
 	private static final ForgeConfigSpec.IntValue SWIFT_DAMAGE_RATIO_PERCENT;
 
+	// ===== 翼羽·圣餐（新约系列 #3）=====
+	private static final ForgeConfigSpec.IntValue SACRAMENT_DECAY_DELAY_SECONDS;
+	private static final ForgeConfigSpec.IntValue SACRAMENT_DECAY_INTERVAL_SECONDS;
+	private static final ForgeConfigSpec.IntValue SACRAMENT_DAMAGE_BONUS_PERCENT;
+	private static final ForgeConfigSpec.IntValue SACRAMENT_ARROW_COUNT;
+
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -81,6 +87,22 @@ public final class ApocryphaConfig {
 				.comment("落箭伤害：触发之箭「各类倍率结算后」金额的百分比",
 						"该值会被钉住 —— 落箭不再叠加 SR 的七罪/七德/最终倍率乘区")
 				.defineInRange("damage_ratio_percent", 40, 0, 1000);
+		builder.pop();
+
+		builder.comment("翼羽·圣餐（装入「新约-恩典」栏位；与「新约」同戴时光羽凝聚、可化为圣餐之矢）")
+				.push("wing_feather_sacrament");
+		SACRAMENT_DECAY_DELAY_SECONDS = builder
+				.comment("脱战多久（秒，自最后一次治疗触发起算）开始逐对熄灭光羽")
+				.defineInRange("decay_delay_seconds", 10, 0, 600);
+		SACRAMENT_DECAY_INTERVAL_SECONDS = builder
+				.comment("开始熄灭后每隔多少秒熄灭 1 对")
+				.defineInRange("decay_interval_seconds", 2, 1, 600);
+		SACRAMENT_DAMAGE_BONUS_PERCENT = builder
+				.comment("圣餐之矢的伤害加成（百分比；在 SR 乘区之前放大，因此后续增伤基于放大后的值）")
+				.defineInRange("damage_bonus_percent", 30, 0, 1000);
+		SACRAMENT_ARROW_COUNT = builder
+				.comment("圣餐之矢的落箭数量（固定值，取代 3~5 的随机区间）")
+				.defineInRange("arrow_count", 5, 1, 64);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -151,5 +173,27 @@ public final class ApocryphaConfig {
 	/** 迅羽档的落箭伤害系数（触发之箭金额的百分比，钉住不吃乘区） */
 	public static int swiftDamageRatioPercent() {
 		return SWIFT_DAMAGE_RATIO_PERCENT.get();
+	}
+
+	// ===== 翼羽·圣餐 =====
+
+	/** 脱战多久开始熄灭光羽（秒） */
+	public static int sacramentDecayDelaySeconds() {
+		return SACRAMENT_DECAY_DELAY_SECONDS.get();
+	}
+
+	/** 熄灭节奏：每隔多少秒熄 1 对 */
+	public static int sacramentDecayIntervalSeconds() {
+		return SACRAMENT_DECAY_INTERVAL_SECONDS.get();
+	}
+
+	/** 圣餐之矢的伤害加成（百分比） */
+	public static int sacramentDamageBonusPercent() {
+		return SACRAMENT_DAMAGE_BONUS_PERCENT.get();
+	}
+
+	/** 圣餐之矢的落箭数量（固定值） */
+	public static int sacramentArrowCount() {
+		return SACRAMENT_ARROW_COUNT.get();
 	}
 }

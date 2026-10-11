@@ -93,22 +93,32 @@ public final class NewTestamentEffect {
 				? (float) (event.getAmount() * ApocryphaConfig.swiftDamageRatioPercent() / 100.0D)
 				: -1.0F;
 
+		// 圣餐之矢（翼羽·圣餐）：这一发被标记过 → 必定触发、落箭数量固定
+		boolean sacrament = SacramentArrows.isSacrament(event.getSource());
+
 		// 掷点：每命中恰好消耗一次随机数（与是否触发、是否记日志都无关）
 		double roll = level.random.nextDouble() * 100.0D;
 		int chance = upgraded ? ApocryphaConfig.swiftChancePercent() : ApocryphaConfig.scatterChancePercent();
-		boolean triggered = roll < chance;
+		boolean triggered = sacrament || roll < chance;
 
-		// 命中回血
+		// 命中回血（这一次就是「新约治疗触发」）
 		shooter.heal((float) ApocryphaConfig.healAmount());
+		// 翼羽·圣餐：每次治疗触发在背后凝聚一对光羽
+		if (CurioHelper.wears(shooter, Apocrypha.WING_FEATHER_SACRAMENT.get())) {
+			FeatherCharge.addPair(shooter);
+		}
 
 		int count = 0;
 		if (triggered) {
-			count = rollArrowCount(level);
+			count = sacrament ? ApocryphaConfig.sacramentArrowCount() : rollArrowCount(level);
 			// 听觉反馈：只发给触发者本人
 			shooter.playNotifySound(SoundEvents.ARROW_HIT, SoundSource.PLAYERS, 1.0F, 1.0F);
 			ScatterVolley.enqueue(level, shooter, target, count, speedMultiplier, pinnedDamage);
 		}
-		logTrigger(shooter, target, roll, chance, triggered, count);
+		if (sacrament) {
+			onSacramentHit(shooter, target);
+		}
+		logTrigger(shooter, target, roll, chance, triggered, sacrament, count);
 	}
 
 	// 服务端 tick 末尾：放出待落的箭 + 处理推迟到此刻的清帧（Kilt 侧）
@@ -121,6 +131,8 @@ public final class NewTestamentEffect {
 		TrueDamageFrames.tickServer();
 		// 新约系列栏位的动态格数：仅天使线开放（每秒校正一次）
 		ApocryphaSlotSizing.tickServer(event.getServer());
+		// 光羽：脱战衰减 + 实体实体校正（每秒一次）
+		FeatherCharge.tickServer(event.getServer());
 	}
 
 	// 服务器停止：清空待落队列与清帧登记，避免残留到下一个存档
@@ -128,6 +140,7 @@ public final class NewTestamentEffect {
 	public static void onServerStopped(ServerStoppedEvent event) {
 		ScatterVolley.clear();
 		TrueDamageFrames.clear();
+		SacramentArrows.clear();
 	}
 
 	// 本次触发的落箭支数
@@ -139,17 +152,32 @@ public final class NewTestamentEffect {
 
 	// 触发行：每次本体命中一行（含未触发的那几次），用来看 35% 是否符合预期
 	private static void logTrigger(ServerPlayer shooter, LivingEntity target, double roll, int chance,
-			boolean triggered, int count) {
+			boolean triggered, boolean sacrament, int count) {
 		if (!ApocryphaConfig.logTrigger()) {
 			return;
 		}
-		String outcome = triggered
-				? String.format("触发，落箭 %d 支（间隔 %d tick）", count,
-						ScatterVolley.SPAWN_INTERVAL_TICKS)
-				: "未触发";
+		String outcome;
+		if (sacrament) {
+			outcome = String.format("必定触发（圣餐之矢），落箭 %d 支（间隔 %d tick）", count,
+					ScatterVolley.SPAWN_INTERVAL_TICKS);
+		} else if (triggered) {
+			outcome = String.format("触发，落箭 %d 支（间隔 %d tick）", count,
+					ScatterVolley.SPAWN_INTERVAL_TICKS);
+		} else {
+			outcome = "未触发";
+		}
 		Apocrypha.LOGGER.info(String.format("[新约] %s 箭矢命中 %s：掷点 %.1f（阈值 %d）→ %s；回血 %.2f",
 				shooter.getName().getString(), target.getName().getString(), roll, chance, outcome,
 				ApocryphaConfig.healAmount()));
+	}
+
+	/**
+	 * 圣餐之矢命中后的扩展点。
+	 *
+	 * <p>TODO（比翼·连携）：那件饰品要在这里接「圣餐之矢同时触发圣光矢」——判断玩家是否佩戴它、
+	 * 然后触发对应的圣光矢逻辑即可，其它地方不需要改动。
+	 */
+	private static void onSacramentHit(ServerPlayer shooter, LivingEntity target) {
 	}
 
 	/**
