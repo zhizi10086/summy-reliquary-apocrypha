@@ -2,14 +2,14 @@ package com.summy.reliquary.apocrypha.effect;
 
 import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
-import com.summy.reliquary.apocrypha.entity.LightFeather;
+import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-
-import java.util.List;
+import net.minecraft.world.item.ItemStack;
+import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.type.inventory.IDynamicStackHandler;
 
 // 「光羽」的计数、脱战衰减与实体维护（服务端）。
 //
@@ -18,6 +18,7 @@ import java.util.List;
 //   只有攒满 6 片（3 对）时背后才出现那一对光翼（1、2 对时完全不显示），跌破门槛立刻消失；
 //   只有片数 > 6（攒到第 4 对）才允许射击时消耗 1 对；脱战（自最后一次治疗触发起）满 N 秒后每 M 秒熄 1 对。
 // 计数写在玩家 Forge 持久数据（随存档保存，键根 summy_reliquary_apocrypha），与 SR 的根键互不干扰。
+// 光翼本身没有实体：显隐状态写在「翼羽·圣餐」的堆栈 NBT 上，由客户端的 Curios 渲染层读取（见 WingFeatherSacramentRenderer）。
 public final class FeatherCharge {
 	/** 本模组在玩家持久数据里的根键 */
 	private static final String ROOT = "summy_reliquary_apocrypha";
@@ -35,8 +36,14 @@ public final class FeatherCharge {
 	public static final int CONSUME_THRESHOLD = 6;
 	/** 光翼的显现门槛（片）：攒满 3 对（6 片）时背后才出现那一对翅膀 */
 	public static final int WING_GATE_CHARGE = DISPLAY_CAP;
-	/** 唯一那对翅膀使用的层号（中层锚点：背后 0.35 格、高度 1.05 格） */
-	private static final int WING_TIER = 1;
+
+	/**
+	 * 光翼的显隐标志（写在「翼羽·圣餐」的 ItemStack NBT 上）。
+	 *
+	 * <p>为什么放在物品上：Curios 的 tick 处理会比对饰品堆栈并把变化（含 NBT）同步给客户端，
+	 * 所以客户端渲染层读这一个标志就能决定画不画，不需要额外的实体或网络包。
+	 */
+	public static final String WING_FLAG = "ApocryphaWings";
 
 	private static final int TICK_INTERVAL = 20;
 
@@ -100,7 +107,7 @@ public final class FeatherCharge {
 		}
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			tickDecay(player);
-			syncEntities(player);
+			syncWingFlag(player);
 		}
 	}
 
@@ -124,28 +131,39 @@ public final class FeatherCharge {
 				charge(player) > 0 ? ApocryphaConfig.sacramentDecayIntervalSeconds() : 0);
 	}
 
-	// 应有光翼 = 0 或 1：没到门槛就把已有的收掉，到门槛就补上（只有一对，层号固定为中层）
-	private static void syncEntities(ServerPlayer player) {
-		if (!(player.level() instanceof ServerLevel level)) {
-			return;
-		}
-		int want = visibleWings(player);
-		List<LightFeather> existing = level.getEntitiesOfClass(LightFeather.class,
-				player.getBoundingBox().inflate(8.0D),
-				feather -> player.getUUID().equals(feather.ownerId()));
-		if (want <= 0) {
-			for (LightFeather feather : existing) {
-				feather.discard();
-			}
-			return;
-		}
-		if (existing.stream().noneMatch(LightFeather::isAlive)) {
-			level.addFreshEntity(new LightFeather(level, player, WING_TIER));
-		}
+	/**
+	 * 把「该不该显示光翼」同步到「翼羽·圣餐」的堆栈 NBT 上（应有 / 没有 两个状态）。
+	 *
+	 * <p>写法：取出该槽位的堆栈副本 → 改 NBT → {@code setStackInSlot} 写回。用副本写回而不是原地改，
+	 * 是为了让 Curios 一定检测到变化并在下一 tick 把它同步给客户端。
+	 */
+	private static void syncWingFlag(ServerPlayer player) {
+		boolean want = visibleWings(player) > 0;
+		CuriosApi.getCuriosInventory(player).ifPresent(handler ->
+				handler.getStacksHandler(ApocryphaSlots.NEW_TESTAMENT_GRACE).ifPresent(stacksHandler -> {
+					IDynamicStackHandler stacks = stacksHandler.getStacks();
+					for (int index = 0; index < stacks.getSlots(); index++) {
+						ItemStack stack = stacks.getStackInSlot(index);
+						if (!stack.is(Apocrypha.WING_FEATHER_SACRAMENT.get())) {
+							continue;
+						}
+						boolean current = stack.hasTag() && stack.getTag().getBoolean(WING_FLAG);
+						if (current == want) {
+							continue;
+						}
+						ItemStack updated = stack.copy();
+						if (want) {
+							updated.getOrCreateTag().putBoolean(WING_FLAG, true);
+						} else if (updated.hasTag()) {
+							updated.getTag().remove(WING_FLAG);
+						}
+						stacks.setStackInSlot(index, updated);
+					}
+				}));
 	}
 
 	/** 立即校正（装备 / 卸下 / 指令等需要立刻反馈的场合） */
 	public static void syncNow(ServerPlayer player) {
-		syncEntities(player);
+		syncWingFlag(player);
 	}
 }

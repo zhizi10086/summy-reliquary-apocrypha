@@ -5,7 +5,6 @@ import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.ArrowDamageBonuses;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
 import com.summy.reliquary.apocrypha.effect.SacramentArrows;
-import com.summy.reliquary.apocrypha.entity.LightFeather;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
 import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.apocrypha.integration.ReliquaryRef;
@@ -69,23 +68,6 @@ public class Apocrypha {
 							.clientTrackingRange(4)
 							.updateInterval(20)
 							.build(id("new_testament_arrow").toString()));
-
-	/**
-	 * 光羽实体：背后悬浮的一对羽毛，**每对一个实体**。
-	 *
-	 * <p>{@code noSave()}：不写存档（重登后由每秒的管理器按计数重建），避免残留孤儿实体。
-	 */
-	public static final RegistryObject<EntityType<LightFeather>> LIGHT_FEATHER =
-			ENTITY_TYPES.register("light_feather",
-					() -> EntityType.Builder
-							.<LightFeather>of(LightFeather::new, MobCategory.MISC)
-							.sized(0.5F, 0.5F)
-							.noSave()
-							.noSummon()
-							.clientTrackingRange(10)
-							// 每 tick 同步位置：光羽要"贴"在玩家背后，间隔越小跟随越跟手
-							.updateInterval(1)
-							.build(id("light_feather").toString()));
 
 	/**
 	 * 穿透圣光矢（比翼·连携）：与原版箭矢同档的同步范围。
