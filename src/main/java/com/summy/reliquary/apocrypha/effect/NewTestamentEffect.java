@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
@@ -25,6 +26,11 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 //
 // 用 LOWEST 优先级：此时其它模组（含 SR）的取消与数值改写都已完成，我们只读事实、不回写伤害。
 public final class NewTestamentEffect {
+	// 调试日志用：最近一次「本模组落箭」命中在 LivingHurtEvent（LOWEST）里看到的金额（= 各类倍率结算后）。
+	// 事件是在 NewTestamentArrow.onHitEntity → hurt() 内部同步触发的，所以同一击内读它一定是本次的值；
+	// 只在服务端主线程读写，且只服务调试日志，不参与任何玩法判定。
+	private static float lastArrowHitAmount;
+
 	private NewTestamentEffect() {
 	}
 
@@ -35,9 +41,9 @@ public final class NewTestamentEffect {
 			return;
 		}
 
-		// ① 本模组落箭的命中：开关打开时记一行；落箭自身不再触发新约
+		// ① 本模组落箭的命中：先记下本击金额（落箭实体会在还原速度后统一打一行）；落箭自身不再触发新约
 		if (event.getSource().getDirectEntity() instanceof NewTestamentArrow) {
-			logArrowHit(event);
+			lastArrowHitAmount = event.isCanceled() ? 0.0F : event.getAmount();
 			return;
 		}
 
@@ -124,13 +130,24 @@ public final class NewTestamentEffect {
 				ApocryphaConfig.healAmount()));
 	}
 
-	// 命中行：每支落箭命中一行，金额取「各类倍率结算后」（含 SR 的七罪/七德与最终倍率乘区）
-	private static void logArrowHit(LivingHurtEvent event) {
-		if (!ApocryphaConfig.logTrigger() || event.isCanceled()) {
+	/**
+	 * 命中行：每支落箭命中一行（由落箭实体在 hurt() 落地、且击退已被还原之后调用，因此能给出还原后的真值）。
+	 *
+	 * <p>金额取 {@code LivingHurtEvent}（LOWEST）里那次的值 = 各类倍率结算后（含 SR 的七罪/七德与最终倍率乘区）。
+	 * 「击退被抵消」= 原版施加击退后的速度与命中前速度之差的模长 —— 非 0 就说明原版确实施加了击退、又被我们抵消掉了。
+	 */
+	public static void logArrowHit(LivingEntity victim, float healthBefore, Vec3 velocityBefore,
+			Vec3 velocityKnocked, Vec3 velocityAfter) {
+		if (!ApocryphaConfig.logTrigger()) {
 			return;
 		}
-		LivingEntity victim = event.getEntity();
-		Apocrypha.LOGGER.info(String.format("[新约] 落箭命中 %s：结算 %.2f 点（各类倍率后）、命中前血量 %.1f/%.1f",
-				victim.getName().getString(), event.getAmount(), victim.getHealth(), victim.getMaxHealth()));
+		Apocrypha.LOGGER.info(String.format(
+				"[新约] 落箭命中 %s：结算 %.2f 点（各类倍率后）、命中前血量 %.1f/%.1f、"
+						+ "速度 命中前(%.2f,%.2f,%.2f) → 击退后(%.2f,%.2f,%.2f) → 还原后(%.2f,%.2f,%.2f)、击退被抵消 %.3f",
+				victim.getName().getString(), lastArrowHitAmount, healthBefore, victim.getMaxHealth(),
+				velocityBefore.x, velocityBefore.y, velocityBefore.z,
+				velocityKnocked.x, velocityKnocked.y, velocityKnocked.z,
+				velocityAfter.x, velocityAfter.y, velocityAfter.z,
+				velocityKnocked.subtract(velocityBefore).length()));
 	}
 }
