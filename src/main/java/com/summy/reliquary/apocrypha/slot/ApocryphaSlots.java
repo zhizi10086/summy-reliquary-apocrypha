@@ -18,6 +18,8 @@ public final class ApocryphaSlots {
 	public static final String NEW_TESTAMENT_TALENT = "new_testament_talent";
 	/** 新约-恩典栏位（新约系列 #3） */
 	public static final String NEW_TESTAMENT_GRACE = "new_testament_grace";
+	/** 新约-祝福栏位（新约系列 #4） */
+	public static final String NEW_TESTAMENT_BLESSING = "new_testament_blessing";
 
 	/**
 	 * 「新约系列」的栏位：**仅天使线开放**（有天使标记时 1 格、否则 0 格）。
@@ -25,7 +27,7 @@ public final class ApocryphaSlots {
 	 * <p>后续系列饰品只需在这里追加一行，动态格数由 {@code ApocryphaSlotSizing} 统一维护。
 	 */
 	public static final List<String> ANGEL_SERIES_SLOTS =
-			List.of(NEW_TESTAMENT_HALO, NEW_TESTAMENT_TALENT, NEW_TESTAMENT_GRACE);
+			List.of(NEW_TESTAMENT_HALO, NEW_TESTAMENT_TALENT, NEW_TESTAMENT_GRACE, NEW_TESTAMENT_BLESSING);
 
 	private ApocryphaSlots() {
 	}
@@ -41,5 +43,8 @@ public final class ApocryphaSlots {
 		// 新约-恩典：只接受「翼羽·圣餐」
 		CuriosApi.registerCurioPredicate(Apocrypha.id("new_testament_grace_only"),
 				result -> result.stack().is(Apocrypha.WING_FEATHER_SACRAMENT.get()));
+		// 新约-祝福：只接受「逆羽·滞空」
+		CuriosApi.registerCurioPredicate(Apocrypha.id("new_testament_blessing_only"),
+				result -> result.stack().is(Apocrypha.INVERSE_FEATHER_HOVER.get()));
 	}
 }

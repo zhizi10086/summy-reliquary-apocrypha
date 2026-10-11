@@ -10,9 +10,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.ArrowLooseEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.HashMap;
@@ -98,22 +96,6 @@ public final class SacramentArrows {
 		return source != null
 				&& source.getDirectEntity() instanceof AbstractArrow arrow
 				&& arrow.getPersistentData().getBoolean(MARK);
-	}
-
-	/** ③ 伤害 +30%：HIGHEST —— 排在 SR 的增伤乘区（NORMAL）之前 */
-	@SubscribeEvent(priority = EventPriority.HIGHEST)
-	public static void onLivingHurt(LivingHurtEvent event) {
-		if (event.getEntity().level().isClientSide() || event.isCanceled()) {
-			return;
-		}
-		if (!isSacrament(event.getSource())) {
-			return;
-		}
-		int bonus = ApocryphaConfig.sacramentDamageBonusPercent();
-		if (bonus <= 0) {
-			return;
-		}
-		event.setAmount(event.getAmount() * (1.0F + bonus / 100.0F));
 	}
 
 	/** 服务器停止 / 换存档：清掉待匹配登记 */

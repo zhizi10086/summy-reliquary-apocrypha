@@ -36,6 +36,12 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.IntValue SACRAMENT_DAMAGE_BONUS_PERCENT;
 	private static final ForgeConfigSpec.IntValue SACRAMENT_ARROW_COUNT;
 
+	// ===== 逆羽·滞空（新约系列 #4）=====
+	private static final ForgeConfigSpec.IntValue HOVER_FALLING_DAMAGE_PERCENT;
+	private static final ForgeConfigSpec.IntValue HOVER_FALLING_CHANCE_PERCENT;
+	private static final ForgeConfigSpec.IntValue HOVER_GLIDE_REDUCTION_PERCENT;
+	private static final ForgeConfigSpec.IntValue HOVER_AIR_JUMPS;
+
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -103,6 +109,22 @@ public final class ApocryphaConfig {
 		SACRAMENT_ARROW_COUNT = builder
 				.comment("圣餐之矢的落箭数量（固定值，取代 3~5 的随机区间）")
 				.defineInRange("arrow_count", 5, 1, 64);
+		builder.pop();
+
+		builder.comment("逆羽·滞空（装入「新约-祝福」栏位；下落状态强化新约，并被动提供缓降与额外跳跃）")
+				.push("inverse_feather_hover");
+		HOVER_FALLING_DAMAGE_PERCENT = builder
+				.comment("处于下落状态时的箭矢伤害加成（百分比；与圣餐之矢的加成同轴相加）")
+				.defineInRange("falling_damage_bonus_percent", 15, 0, 1000);
+		HOVER_FALLING_CHANCE_PERCENT = builder
+				.comment("处于下落状态时的新约触发概率倍率（百分比；150 = 生效基础值 ×1.5）")
+				.defineInRange("falling_chance_percent", 150, 0, 1000);
+		HOVER_GLIDE_REDUCTION_PERCENT = builder
+				.comment("缓降：空中长按潜行键时下落速度与坠落高度的折减（百分比；75 = 只按 25% 计）")
+				.defineInRange("glide_reduction_percent", 75, 0, 100);
+		HOVER_AIR_JUMPS = builder
+				.comment("每段离地可用的额外跳跃次数（空中按跳跃键触发，落地重置）")
+				.defineInRange("air_jumps", 1, 0, 8);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -195,5 +217,27 @@ public final class ApocryphaConfig {
 	/** 圣餐之矢的落箭数量（固定值） */
 	public static int sacramentArrowCount() {
 		return SACRAMENT_ARROW_COUNT.get();
+	}
+
+	// ===== 逆羽·滞空 =====
+
+	/** 下落状态下的箭矢伤害加成（百分比） */
+	public static int hoverFallingDamageBonusPercent() {
+		return HOVER_FALLING_DAMAGE_PERCENT.get();
+	}
+
+	/** 下落状态下的触发概率倍率（百分比，150 = ×1.5） */
+	public static int hoverFallingChancePercent() {
+		return HOVER_FALLING_CHANCE_PERCENT.get();
+	}
+
+	/** 缓降的折减比例（百分比：75 = 下落速度与坠落高度只按 25% 计） */
+	public static int hoverGlideReductionPercent() {
+		return HOVER_GLIDE_REDUCTION_PERCENT.get();
+	}
+
+	/** 每段离地可用的额外跳跃次数 */
+	public static int hoverAirJumps() {
+		return HOVER_AIR_JUMPS.get();
 	}
 }

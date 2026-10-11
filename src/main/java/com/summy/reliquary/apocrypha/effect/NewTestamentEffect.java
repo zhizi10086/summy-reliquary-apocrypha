@@ -14,6 +14,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -96,9 +97,18 @@ public final class NewTestamentEffect {
 		// 圣餐之矢（翼羽·圣餐）：这一发被标记过 → 必定触发、落箭数量固定
 		boolean sacrament = SacramentArrows.isSacrament(event.getSource());
 
+		// 逆羽·滞空：命中那一刻射手仍在下落 → 触发概率倍率 +（下面）落箭伤害改为瞬时结算
+		boolean hovering = HoverFlight.wears(shooter) && HoverFlight.isFalling(shooter);
+
 		// 掷点：每命中恰好消耗一次随机数（与是否触发、是否记日志都无关）
 		double roll = level.random.nextDouble() * 100.0D;
-		int chance = upgraded ? ApocryphaConfig.swiftChancePercent() : ApocryphaConfig.scatterChancePercent();
+		double baseChance = upgraded
+				? ApocryphaConfig.swiftChancePercent()
+				: ApocryphaConfig.scatterChancePercent();
+		// 逆羽的 ×1.5 作用在"生效基础值"上（同戴迅羽 → 50% × 1.5 = 75%）
+		double chance = hovering
+				? baseChance * ApocryphaConfig.hoverFallingChancePercent() / 100.0D
+				: baseChance;
 		boolean triggered = sacrament || roll < chance;
 
 		// 命中回血（这一次就是「新约治疗触发」）
@@ -113,7 +123,12 @@ public final class NewTestamentEffect {
 			count = sacrament ? ApocryphaConfig.sacramentArrowCount() : rollArrowCount(level);
 			// 听觉反馈：只发给触发者本人
 			shooter.playNotifySound(SoundEvents.ARROW_HIT, SoundSource.PLAYERS, 1.0F, 1.0F);
-			ScatterVolley.enqueue(level, shooter, target, count, speedMultiplier, pinnedDamage);
+			if (hovering) {
+				// 逆羽·滞空：伤害在触发这一刻逐笔瞬时结算，箭矢只作视觉
+				settleInstantly(level, shooter, target, count, speedMultiplier, pinnedDamage);
+			} else {
+				ScatterVolley.enqueue(level, shooter, target, count, speedMultiplier, pinnedDamage, false);
+			}
 		}
 		if (sacrament) {
 			onSacramentHit(shooter, target);
@@ -133,6 +148,8 @@ public final class NewTestamentEffect {
 		ApocryphaSlotSizing.tickServer(event.getServer());
 		// 光羽：脱战衰减 + 实体实体校正（每秒一次）
 		FeatherCharge.tickServer(event.getServer());
+		// 逆羽·滞空：缓降 + 落地重置空中跳数（每 tick）
+		HoverFlight.tickServer(event.getServer());
 	}
 
 	// 服务器停止：清空待落队列与清帧登记，避免残留到下一个存档
@@ -141,6 +158,65 @@ public final class NewTestamentEffect {
 		ScatterVolley.clear();
 		TrueDamageFrames.clear();
 		SacramentArrows.clear();
+		HoverFlight.clear();
+	}
+
+	/** 退服：清掉该玩家的空中跳计数（只存内存，不写存档） */
+	@SubscribeEvent
+	public static void onPlayerLoggedOut(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
+		if (event.getEntity() instanceof ServerPlayer player) {
+			HoverFlight.forget(player);
+		}
+	}
+
+	/** 死亡：同样清掉空中跳计数（重生后是一段新的离地） */
+	@SubscribeEvent
+	public static void onLivingDeath(LivingDeathEvent event) {
+		if (event.getEntity() instanceof ServerPlayer player) {
+			HoverFlight.forget(player);
+		}
+	}
+
+	/**
+	 * 瞬时结算（逆羽·滞空）：按箭数逐笔当场结算，口径与物理命中完全一致
+	 * （同一真实伤害类型、命中前后各清一次无敌帧、无击退的速度还原）。
+	 *
+	 * <p>先生成一支落箭当"伤害来源"并把它作为**直接来源**：这样 SR 仍按「远程」口径处理（与物理落箭一致），
+	 * 迅羽档的钉住值也照旧生效（日志由本方法汇总成一行：×N 笔、合计多少点）。
+	 * 其余的箭交回错峰队列慢慢落下来，只作视觉。
+	 */
+	private static void settleInstantly(ServerLevel level, ServerPlayer shooter, LivingEntity target, int count,
+			double speedMultiplier, float pinnedDamage) {
+		NewTestamentArrow source = ScatterVolley.spawnOne(level, shooter, target, speedMultiplier, pinnedDamage,
+				true, true);
+		float perHit = pinnedDamage > 0.0F ? pinnedDamage : (float) ApocryphaConfig.arrowDamage();
+		int landedCount = 0;
+		double total = 0.0D;
+		for (int index = 0; index < count; index++) {
+			Vec3 velocityBefore = target.getDeltaMovement();
+			target.invulnerableTime = 0;
+			boolean landed = target.hurt(source.damageSource(level, shooter), perHit);
+			if (!landed) {
+				continue;
+			}
+			// 无击退：把速度还原并同步客户端（与物理落箭同一手法）
+			target.setDeltaMovement(velocityBefore);
+			target.hurtMarked = true;
+			target.invulnerableTime = 0;
+			landedCount++;
+			// 每笔的金额由 LOWEST 处理器写进 lastArrowHitAmount（各类倍率后 / 钉住值）
+			total += lastArrowHitAmount;
+		}
+		if (ApocryphaConfig.logTrigger()) {
+			String basis = lastArrowHitPinned
+					? String.format("钉住：触发箭最终伤害的 %d%%", ApocryphaConfig.swiftDamageRatioPercent())
+					: "各类倍率后";
+			Apocrypha.LOGGER.info(String.format("[新约] 落箭瞬时结算：%s ×%d 笔、合计 %.2f 点（口径：%s）",
+					target.getName().getString(), landedCount, total, basis));
+		}
+		if (count > 1) {
+			ScatterVolley.enqueue(level, shooter, target, count - 1, speedMultiplier, pinnedDamage, true);
+		}
 	}
 
 	// 本次触发的落箭支数
@@ -151,7 +227,7 @@ public final class NewTestamentEffect {
 	}
 
 	// 触发行：每次本体命中一行（含未触发的那几次），用来看 35% 是否符合预期
-	private static void logTrigger(ServerPlayer shooter, LivingEntity target, double roll, int chance,
+	private static void logTrigger(ServerPlayer shooter, LivingEntity target, double roll, double chance,
 			boolean triggered, boolean sacrament, int count) {
 		if (!ApocryphaConfig.logTrigger()) {
 			return;
@@ -166,7 +242,7 @@ public final class NewTestamentEffect {
 		} else {
 			outcome = "未触发";
 		}
-		Apocrypha.LOGGER.info(String.format("[新约] %s 箭矢命中 %s：掷点 %.1f（阈值 %d）→ %s；回血 %.2f",
+		Apocrypha.LOGGER.info(String.format("[新约] %s 箭矢命中 %s：掷点 %.1f（阈值 %.1f）→ %s；回血 %.2f",
 				shooter.getName().getString(), target.getName().getString(), roll, chance, outcome,
 				ApocryphaConfig.healAmount()));
 	}

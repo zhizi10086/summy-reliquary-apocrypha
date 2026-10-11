@@ -47,12 +47,14 @@ public final class ScatterVolley {
 		// 本批的统一参数：初速倍率（迅羽档 > 1）与钉住的单支伤害（<= 0 表示不钉住、用配置的基础伤害）
 		private final double speedMultiplier;
 		private final float pinnedDamage;
+		/** 纯视觉批次（瞬时结算用）：箭矢只做表现，不结算伤害 */
+		private final boolean visualOnly;
 		private int spawned;
 		// 下一支箭的生成时刻（game time）
 		private long nextTick;
 
 		private Pending(ServerLevel level, UUID shooter, UUID target, Vec3 fallbackCenter, int total,
-				double speedMultiplier, float pinnedDamage, long nextTick) {
+				double speedMultiplier, float pinnedDamage, boolean visualOnly, long nextTick) {
 			this.level = level;
 			this.shooter = shooter;
 			this.target = target;
@@ -60,13 +62,14 @@ public final class ScatterVolley {
 			this.total = total;
 			this.speedMultiplier = speedMultiplier;
 			this.pinnedDamage = pinnedDamage;
+			this.visualOnly = visualOnly;
 			this.nextTick = nextTick;
 		}
 	}
 
 	// 登记一批落箭；间隔配成 0 时退化为同一 tick 全部生成
 	public static void enqueue(ServerLevel level, ServerPlayer shooter, LivingEntity target, int count,
-			double speedMultiplier, float pinnedDamage) {
+			double speedMultiplier, float pinnedDamage, boolean visualOnly) {
 		if (count <= 0) {
 			return;
 		}
@@ -74,7 +77,7 @@ public final class ScatterVolley {
 		int interval = SPAWN_INTERVAL_TICKS;
 		if (interval <= 0) {
 			for (int index = 0; index < count; index++) {
-				spawn(level, shooter, target, center, false, speedMultiplier, pinnedDamage);
+				spawn(level, shooter, target, center, false, speedMultiplier, pinnedDamage, visualOnly);
 			}
 			return;
 		}
@@ -82,7 +85,17 @@ public final class ScatterVolley {
 			return;
 		}
 		PENDING.add(new Pending(level, shooter.getUUID(), target.getUUID(), center, count, speedMultiplier,
-				pinnedDamage, level.getGameTime()));
+				pinnedDamage, visualOnly, level.getGameTime()));
+	}
+
+	/**
+	 * 立刻生成一支落箭并把它交给调用方（瞬时结算模式用它当"伤害来源"，
+	 * 这样既保住"直接来源是箭矢 → SR 按远程口径处理"，也让钉住与日志逻辑照旧生效）。
+	 */
+	public static NewTestamentArrow spawnOne(ServerLevel level, ServerPlayer shooter, LivingEntity target,
+			double speedMultiplier, float pinnedDamage, boolean visualOnly, boolean logStart) {
+		return spawn(level, shooter, target, centerOf(target), logStart, speedMultiplier, pinnedDamage,
+				visualOnly);
 	}
 
 	// 服务端 tick 末尾：按间隔逐支放出
@@ -106,7 +119,7 @@ public final class ScatterVolley {
 					? living
 					: null;
 			spawn(pending.level, shooter, target, pending.fallbackCenter, pending.spawned == 0,
-					pending.speedMultiplier, pending.pinnedDamage);
+					pending.speedMultiplier, pending.pinnedDamage, pending.visualOnly);
 			pending.spawned++;
 			if (pending.spawned >= pending.total) {
 				iterator.remove();
@@ -127,8 +140,8 @@ public final class ScatterVolley {
 	}
 
 	// 生成一支落箭
-	private static void spawn(ServerLevel level, ServerPlayer shooter, LivingEntity target, Vec3 fallbackCenter,
-			boolean first, double speedMultiplier, float pinnedDamage) {
+	private static NewTestamentArrow spawn(ServerLevel level, ServerPlayer shooter, LivingEntity target,
+			Vec3 fallbackCenter, boolean first, double speedMultiplier, float pinnedDamage, boolean visualOnly) {
 		Vec3 center = target != null ? centerOf(target) : fallbackCenter;
 		Vec3 origin = clampedOrigin(level, center);
 
@@ -147,6 +160,7 @@ public final class ScatterVolley {
 		arrow.setPos(origin.x, origin.y, origin.z);
 		arrow.setDeltaMovement(direction.scale(speed));
 		arrow.setPinnedDamage(pinnedDamage);
+		arrow.setVisualOnly(visualOnly);
 		level.addFreshEntity(arrow);
 
 		// 每批只在第一支箭上记一行起点，用来核对「实际高度」是否被天花板夹紧
@@ -156,6 +170,7 @@ public final class ScatterVolley {
 					origin.y - center.y, ApocryphaConfig.scatterSpawnHeight(),
 					origin.x, origin.y, origin.z));
 		}
+		return arrow;
 	}
 
 	// 生成点：按配置高度向上取点，撞到方块就压到「命中点 - 夹紧余量」，且不低于「目标顶部 + 最小高度」

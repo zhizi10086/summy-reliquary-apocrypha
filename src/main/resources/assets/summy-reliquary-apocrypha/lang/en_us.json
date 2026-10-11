@@ -2,6 +2,7 @@
   "curios.identifier.new_testament_halo": "Halo of the New Testament",
   "curios.identifier.new_testament_talent": "Talent of the New Testament",
   "curios.identifier.new_testament_grace": "Grace of the New Testament",
+  "curios.identifier.new_testament_blessing": "Blessing of the New Testament",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -31,6 +32,15 @@
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.3": "Sacrament Arrow damage|+%s%%",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.4": "Sacrament Arrow falling arrows|Fixed at %s",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.5": "Sacrament Arrows always trigger the New Testament; %s s out of combat, then one pair fades every %s s",
+
+  "item.summy-reliquary-apocrypha.inverse_feather_hover": "Inverse Feather Hover",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.desc.1": "\"He makes me lie down in green pastures, He leads me beside still waters.\"",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.desc.2": "Wings grown against the wind, slowing every fall.",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.1": "While falling (airborne and descending):",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.2": "Arrow damage|+%s%%",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.3": "New Testament trigger chance|×%s%%",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.4": "Falling arrow damage resolves instantly (one hit per arrow; the arrows themselves are only visual)",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.5": "Passive: hold sneak in midair to slow the descent by %s%% (landing damage counts only −%s%% of the fall height); press jump in midair for %s extra jump(s)",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s was pierced by falling arrows"
 }

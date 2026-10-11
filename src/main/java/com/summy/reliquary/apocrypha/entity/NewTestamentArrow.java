@@ -57,6 +57,11 @@ public class NewTestamentArrow extends AbstractArrow {
 	 * 命中时会在 LOWEST 处理器里把事件金额改回这个值，因此不再叠加 SR 的增伤乘区。
 	 */
 	private float pinnedDamage = -1.0F;
+	/**
+	 * 纯视觉模式（瞬时结算用）：伤害已在触发那一刻逐笔结算过，这支箭只负责"落下来给人看"，
+	 * 命中实体时直接消失、不再结算伤害、也不记命中行。
+	 */
+	private boolean visualOnly;
 
 	public NewTestamentArrow(EntityType<? extends NewTestamentArrow> type, Level level) {
 		super(type, level);
@@ -85,11 +90,20 @@ public class NewTestamentArrow extends AbstractArrow {
 		this.pinnedDamage = value;
 	}
 
+	public boolean isVisualOnly() {
+		return visualOnly;
+	}
+
+	public void setVisualOnly(boolean value) {
+		this.visualOnly = value;
+	}
+
 	// 钉住值要随实体一起存取：区块卸载再加载时（或跨维度）不能丢，否则回来就变成基础伤害了
 	@Override
 	public void addAdditionalSaveData(net.minecraft.nbt.CompoundTag tag) {
 		super.addAdditionalSaveData(tag);
 		tag.putFloat("ApocryphaPinnedDamage", pinnedDamage);
+		tag.putBoolean("ApocryphaVisualOnly", visualOnly);
 	}
 
 	@Override
@@ -98,12 +112,18 @@ public class NewTestamentArrow extends AbstractArrow {
 		if (tag.contains("ApocryphaPinnedDamage")) {
 			pinnedDamage = tag.getFloat("ApocryphaPinnedDamage");
 		}
+		visualOnly = tag.getBoolean("ApocryphaVisualOnly");
 	}
 
 	// ==================== 命中 ====================
 
 	@Override
 	protected void onHitEntity(EntityHitResult result) {
+		// 纯视觉模式：伤害已在触发时结算过，这里只结束这支箭
+		if (visualOnly) {
+			discard();
+			return;
+		}
 		if (!(level() instanceof ServerLevel serverLevel)
 				|| !(getOwner() instanceof ServerPlayer shooter)
 				|| !(result.getEntity() instanceof LivingEntity target)
@@ -161,8 +181,11 @@ public class NewTestamentArrow extends AbstractArrow {
 	/**
 	 * 本模组命名的伤害源；数据包缺失（手动删掉了 damage_type 文件）时退回原版箭矢伤害源，
 	 * 避免抛异常把整个世界 tick 打断。
+	 *
+	 * <p>公开给瞬时结算用：逆羽·滞空要在触发那一刻以「这支箭」为直接来源逐笔结算，
+	 * 才能保住 SR 的远程口径与迅羽档的钉住逻辑。
 	 */
-	private DamageSource damageSource(ServerLevel level, ServerPlayer shooter) {
+	public DamageSource damageSource(ServerLevel level, ServerPlayer shooter) {
 		var registry = level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE);
 		var holder = registry.getHolder(
 						ResourceKey.create(Registries.DAMAGE_TYPE, Apocrypha.id("new_testament_arrow")))

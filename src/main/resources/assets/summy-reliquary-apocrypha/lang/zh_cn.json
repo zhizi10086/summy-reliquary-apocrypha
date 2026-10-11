@@ -2,6 +2,7 @@
   "curios.identifier.new_testament_halo": "新约-光环",
   "curios.identifier.new_testament_talent": "新约-才能",
   "curios.identifier.new_testament_grace": "新约-恩典",
+  "curios.identifier.new_testament_blessing": "新约-祝福",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -31,6 +32,15 @@
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.3": "圣餐之矢伤害|+%s%%",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.4": "圣餐之矢落箭|固定 %s 支",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.5": "圣餐之矢必定触发新约；脱战 %s 秒后每 %s 秒熄灭一对光羽",
+
+  "item.summy-reliquary-apocrypha.inverse_feather_hover": "逆羽·滞空",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.desc.1": "「他使我躺卧在青草地上，领我在可安歇的水边。」",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.desc.2": "羽翼逆风而生，令坠落也变得迟缓。",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.1": "处于下落状态时（不在地面且正在下落）：",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.2": "箭矢伤害|+%s%%",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.3": "新约触发概率|×%s%%",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.4": "落箭伤害判定改为瞬时结算（按箭数逐笔，箭矢只作视觉）",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.5": "被动：空中长按潜行键下落速度降低 %s%%（落地按坠落高度 −%s%% 计算伤害）；空中按跳跃键可额外跳 %s 次",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s 被落下的箭矢贯穿"
 }
