@@ -111,7 +111,8 @@ public class Apocrypha {
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
 					.title(Component.translatable("itemGroup." + NAMESPACE + ".main"))
-					.icon(() -> new ItemStack(NEW_TESTAMENT.get()))
+					// 创造页图标用「比翼·连携」（作者指定）
+					.icon(() -> new ItemStack(PAIRED_WINGS.get()))
 					.displayItems((parameters, output) -> {
 						output.accept(NEW_TESTAMENT.get());
 						output.accept(SWIFT_FEATHER_COVENANT.get());

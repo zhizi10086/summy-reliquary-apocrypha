@@ -295,6 +295,17 @@
   不再被自己的碰撞箱挡下后静默丢弃。落箭对射手本来就零伤害，所以这是**纯观感修正**，不涉及伤害/清帧口径。
 - 不改：伤害 / 清帧 / 不击退 / 寿命 200 tick / 贴地 10 tick、生成与散射、其它实体与系统。
 
+### 入库 5 件原创物品贴图 + 创造页图标改用「比翼·连携」（同日第十七轮）
+
+- **贴图入库**：新建 `assets/summy-reliquary-apocrypha/textures/item/`，把作者提供的 5 张 32×32 原图按物品 id 入库 ——
+  `new_testament.png` / `swift_feather_covenant.png` / `wing_feather_sacrament.png` / `inverse_feather_hover.png` / `paired_wings.png`
+  （逐字节原样，未做任何加工）。
+- **模型接线**：5 个 `models/item/*.json` 的 `layer0` 由原版占位贴图（箭 / 羽毛 / 鞘翅 / 幻翼膜 / 光灵箭）改为
+  `summy-reliquary-apocrypha:item/<物品id>`；`parent` 仍是 `minecraft:item/generated`。物品名与语言文件不动。
+- **创造页图标**：由「新约」改为「**比翼·连携**」（作者指定）。
+- 文档同步：README 的系列说明、`PROGRESS.md` 的图标说明与待办表（物品图标一行标记完成）、CREDITS 的「贴图」小节
+  （原"新约贴图借原版 `item/arrow`、受 EULA 约束"一条退役，改为"5 件贴图由作者提供"）。
+
 ### 备注
 
 - 首轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步

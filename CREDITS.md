@@ -27,8 +27,9 @@ and **must not be used commercially**. If any content unintentionally infringes 
 
 ## 贴图
 
-- **「新约」物品贴图**（本轮）：**直接引用 Minecraft 原版贴图** `minecraft:item/arrow`
-  （写在 `models/item/new_testament.json` 的 `layer0` 里），受 Minecraft EULA 约束；后续换原创贴图时本条失效。
+- **5 件饰品物品贴图**（`textures/item/new_testament.png`、`swift_feather_covenant.png`、`wing_feather_sacrament.png`、
+  `inverse_feather_hover.png`、`paired_wings.png`）：**由本模组作者绘制并提供**（32×32 原图，未经二次加工）。
+  创造页标签图标的图案取自「比翼·连携」。
 - **栏位图标**「新约-光环」（`textures/slot/new_testament_halo.png`）：由本模组作者提供。
 - **MOD 图标**（`assets/summy-reliquary-apocrypha/icon.png`）：**本轮临时复用**前置模组 Summy Reliquary
   的图标（`assets/summy-reliquary/icon.png`），待专属图标做好后替换。
