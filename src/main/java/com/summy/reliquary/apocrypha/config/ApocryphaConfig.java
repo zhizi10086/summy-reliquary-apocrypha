@@ -22,12 +22,7 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.DoubleValue SCATTER_SPAWN_HEIGHT;
 	private static final ForgeConfigSpec.DoubleValue SCATTER_ANGLE_MAX_DEGREES;
 	private static final ForgeConfigSpec.DoubleValue SCATTER_INITIAL_SPEED;
-	private static final ForgeConfigSpec.IntValue SCATTER_SPAWN_INTERVAL_TICKS;
-	private static final ForgeConfigSpec.DoubleValue SCATTER_CEILING_MARGIN;
-	private static final ForgeConfigSpec.DoubleValue SCATTER_MIN_HEIGHT;
 	private static final ForgeConfigSpec.DoubleValue ARROW_DAMAGE;
-	private static final ForgeConfigSpec.IntValue ARROW_GROUND_STICK_TICKS;
-	private static final ForgeConfigSpec.IntValue ARROW_MAX_LIFE_TICKS;
 	private static final ForgeConfigSpec.BooleanValue LOG_TRIGGER;
 
 	static {
@@ -61,24 +56,9 @@ public final class ApocryphaConfig {
 		SCATTER_INITIAL_SPEED = builder
 				.comment("落箭的初速度（格/tick，之后按原版箭矢重力下落；越大横向铺开越快，但下落时间越短）")
 				.defineInRange("scatter_initial_speed", 1.2D, 0.0D, 4.0D);
-		SCATTER_SPAWN_INTERVAL_TICKS = builder
-				.comment("错峰生成间隔（tick）：每支箭之间隔多少 tick 放出（0 = 同一 tick 全部生成）")
-				.defineInRange("scatter_spawn_interval_ticks", 2, 0, 20);
-		SCATTER_CEILING_MARGIN = builder
-				.comment("头顶有方块时的夹紧余量（格）：实际高度 = 命中点 − 该值")
-				.defineInRange("scatter_ceiling_margin", 0.5D, 0.0D, 5.0D);
-		SCATTER_MIN_HEIGHT = builder
-				.comment("夹紧后的最小生成高度（格）：头顶空间不足时也不会低于「目标顶部 + 该值」")
-				.defineInRange("scatter_min_height", 0.5D, 0.0D, 8.0D);
 		ARROW_DAMAGE = builder
 				.comment("落箭的固定伤害（真实伤害：无视护甲 / 保护附魔 / 抗性 / 无敌帧）")
 				.defineInRange("arrow_damage", 5.0D, 0.0D, 1000.0D);
-		ARROW_GROUND_STICK_TICKS = builder
-				.comment("落箭命中方块后原地贴地停留多少 tick 再消失")
-				.defineInRange("arrow_ground_stick_ticks", 10, 0, 200);
-		ARROW_MAX_LIFE_TICKS = builder
-				.comment("落箭的最长寿命（tick）：超时强制清除，避免孤儿实体堆积")
-				.defineInRange("arrow_max_life_ticks", 200, 20, 6000);
 		LOG_TRIGGER = builder
 				.comment("调试日志：开启后每次命中掷点、每批起点、每支落箭命中与每次清帧各记一行 INFO")
 				.define("log_trigger", false);
@@ -128,28 +108,8 @@ public final class ApocryphaConfig {
 		return SCATTER_INITIAL_SPEED.get();
 	}
 
-	public static int scatterSpawnIntervalTicks() {
-		return SCATTER_SPAWN_INTERVAL_TICKS.get();
-	}
-
-	public static double scatterCeilingMargin() {
-		return SCATTER_CEILING_MARGIN.get();
-	}
-
-	public static double scatterMinHeight() {
-		return SCATTER_MIN_HEIGHT.get();
-	}
-
 	public static double arrowDamage() {
 		return ARROW_DAMAGE.get();
-	}
-
-	public static int arrowGroundStickTicks() {
-		return ARROW_GROUND_STICK_TICKS.get();
-	}
-
-	public static int arrowMaxLifeTicks() {
-		return ARROW_MAX_LIFE_TICKS.get();
 	}
 
 	/** 调试日志开关 */

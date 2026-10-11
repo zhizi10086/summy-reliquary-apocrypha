@@ -55,13 +55,18 @@
 | `scatter_spawn_height` | 8.0 |
 | `scatter_angle_max_degrees` | 25.0 |
 | `scatter_initial_speed` | 1.2 |
-| `scatter_spawn_interval_ticks` | 2 |
-| `scatter_ceiling_margin` | 0.5 |
-| `scatter_min_height` | 0.5 |
 | `arrow_damage` | 5.0 |
-| `arrow_ground_stick_ticks` | 10 |
-| `arrow_max_life_ticks` | 200 |
 | `log_trigger` | false |
+
+### 配置面收敛与落箭去击退（同日第三轮）
+
+- **配置面 16 → 11 项**：把 5 个内部实现细节从配置回调为代码常量 —— 错峰间隔 2 tick（`ScatterVolley.SPAWN_INTERVAL_TICKS`）、
+  天花板夹紧余量 0.5 格、夹紧下限 0.5 格（`ScatterVolley` 私有常量）、命中方块后贴地停留 10 tick、寿命兜底 200 tick
+  （`NewTestamentArrow` 私有常量）。行为完全不变；旧配置文件里这几个键会在下次启动时被 Forge 清掉。
+  物品提示行也同步去掉了「间隔 N tick」那半句（中英两份语言文件与传参同步改为 5 个占位符）。
+- **落箭不再击退目标**：原版 `LivingEntity#hurt` 会按 `DamageSource.getEntity()`（也就是我们的造成者「玩家」）施加
+  0.4 强度击退，并附带水平速度减半与一点上浮 —— 每支落箭都会推一次，把目标推出后续落箭的落点。现在照 SR 神性光环
+  的同一手法在结算前后保存 / 恢复目标速度，并在恢复后置 `hurtMarked = true` 让客户端同步（只在 `hurt()` 真的落地时恢复）。
 
 ### 备注
 

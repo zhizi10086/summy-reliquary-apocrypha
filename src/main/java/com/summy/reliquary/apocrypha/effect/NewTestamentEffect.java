@@ -117,7 +117,7 @@ public final class NewTestamentEffect {
 		}
 		String outcome = triggered
 				? String.format("触发，落箭 %d 支（间隔 %d tick）", count,
-						ApocryphaConfig.scatterSpawnIntervalTicks())
+						ScatterVolley.SPAWN_INTERVAL_TICKS)
 				: "未触发";
 		Apocrypha.LOGGER.info(String.format("[新约] %s 箭矢命中 %s：掷点 %.1f（阈值 %d）→ %s；回血 %.2f",
 				shooter.getName().getString(), target.getName().getString(), roll, chance, outcome,

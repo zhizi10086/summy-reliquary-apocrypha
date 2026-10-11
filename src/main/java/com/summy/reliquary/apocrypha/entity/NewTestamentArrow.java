@@ -39,8 +39,11 @@ import net.minecraft.world.phys.Vec3;
  * <p>本实体不播放任何音效：听感反馈由 NewTestamentEffect 在散射触发时一次性给出。
  */
 public class NewTestamentArrow extends AbstractArrow {
-	// 贴地停留时长与寿命上限都走配置（见 [new_testament] arrow_ground_stick_ticks / arrow_max_life_ticks），
-	// 方便实机调参而不用重新构建。
+	// 以下两项是内部实现细节，从配置回调为硬编码（没人会去调，留在配置里只是噪音）
+	/** 命中方块后贴地停留多久（tick）再删除 */
+	private static final int GROUND_STICK_TICKS = 10;
+	/** 最长寿命（tick）：超时强制清除，避免孤儿实体堆积 */
+	private static final int MAX_LIFE_TICKS = 200;
 
 	/** 是否已经落地（命中方块） */
 	private boolean landed;
@@ -78,6 +81,9 @@ public class NewTestamentArrow extends AbstractArrow {
 			discard();
 			return;
 		}
+		// 无击退：原版 hurt 一旦落地就会按「造成者方向」施加击退，并附带水平速度减半与一点上浮。
+		// 落箭是「散射落下」的表现，把目标推走会自我拆台，所以照 SR 神性光环的同一手法在结算前后保存/恢复速度。
+		Vec3 velocity = target.getDeltaMovement();
 		// 无视无敌帧：先清零，保证这一箭不会被目标身上残留的无敌帧吞掉
 		// （伤害减免交给伤害类型的 bypasses_* 标签）
 		target.invulnerableTime = 0;
@@ -85,6 +91,9 @@ public class NewTestamentArrow extends AbstractArrow {
 		// 真伤不留帧：命中后再清一次，避免把无敌帧留给同批的其它落箭与随后落下的近战/箭矢。
 		// 只在真的打中时清 —— 被免疫/没落地时不该剥掉目标自己的保护帧。
 		if (landedHit) {
+			target.setDeltaMovement(velocity);
+			// 让客户端同步到恢复后的速度（否则本地仍会看到被推走）
+			target.hurtMarked = true;
 			target.invulnerableTime = 0;
 		}
 		discard();
@@ -102,13 +111,13 @@ public class NewTestamentArrow extends AbstractArrow {
 	public void tick() {
 		if (landed) {
 			setDeltaMovement(Vec3.ZERO);
-			if (++stuckTicks >= ApocryphaConfig.arrowGroundStickTicks()) {
+			if (++stuckTicks >= GROUND_STICK_TICKS) {
 				discard();
 			}
 			return;
 		}
 		super.tick();
-		if (++lifeTicks > ApocryphaConfig.arrowMaxLifeTicks()) {
+		if (++lifeTicks > MAX_LIFE_TICKS) {
 			discard();
 		}
 	}

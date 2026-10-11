@@ -23,6 +23,14 @@ public final class ScatterVolley {
 	// 待落批次上限（纯保险：正常一次触发只登记一条）
 	private static final int MAX_PENDING = 256;
 
+	// 以下三项是内部实现细节，从配置回调为硬编码（没人会去调，留在配置里只是噪音）
+	/** 错峰生成间隔（tick）：每支箭之间隔多少 tick 放出；触发日志里的「间隔 N tick」引用它 */
+	public static final int SPAWN_INTERVAL_TICKS = 2;
+	/** 头顶有方块时的夹紧余量（格）：实际高度 = 命中点 − 该值 */
+	private static final double CEILING_MARGIN = 0.5D;
+	/** 夹紧后的最小生成高度（格）：头顶空间不足时也不会低于「目标顶部 + 该值」 */
+	private static final double MIN_HEIGHT = 0.5D;
+
 	private static final List<Pending> PENDING = new ArrayList<>();
 
 	private ScatterVolley() {
@@ -57,7 +65,7 @@ public final class ScatterVolley {
 			return;
 		}
 		Vec3 center = centerOf(target);
-		int interval = Math.max(0, ApocryphaConfig.scatterSpawnIntervalTicks());
+		int interval = SPAWN_INTERVAL_TICKS;
 		if (interval <= 0) {
 			for (int index = 0; index < count; index++) {
 				spawn(level, shooter, target, center, false);
@@ -95,8 +103,7 @@ public final class ScatterVolley {
 			if (pending.spawned >= pending.total) {
 				iterator.remove();
 			} else {
-				pending.nextTick = pending.level.getGameTime()
-						+ Math.max(1, ApocryphaConfig.scatterSpawnIntervalTicks());
+				pending.nextTick = pending.level.getGameTime() + SPAWN_INTERVAL_TICKS;
 			}
 		}
 	}
@@ -144,15 +151,14 @@ public final class ScatterVolley {
 	// 生成点：按配置高度向上取点，撞到方块就压到「命中点 - 夹紧余量」，且不低于「目标顶部 + 最小高度」
 	private static Vec3 clampedOrigin(ServerLevel level, Vec3 center) {
 		double configured = ApocryphaConfig.scatterSpawnHeight();
-		double minHeight = ApocryphaConfig.scatterMinHeight();
+		double minHeight = MIN_HEIGHT;
 		Vec3 from = new Vec3(center.x, center.y, center.z);
 		Vec3 to = new Vec3(center.x, center.y + configured, center.z);
 		BlockHitResult hit = level.clip(new ClipContext(from, to,
 				ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
 		double height = configured;
 		if (hit.getType() == HitResult.Type.BLOCK) {
-			height = Math.max(minHeight,
-					hit.getLocation().y - center.y - ApocryphaConfig.scatterCeilingMargin());
+			height = Math.max(minHeight, hit.getLocation().y - center.y - CEILING_MARGIN);
 		}
 		return new Vec3(center.x, center.y + height, center.z);
 	}

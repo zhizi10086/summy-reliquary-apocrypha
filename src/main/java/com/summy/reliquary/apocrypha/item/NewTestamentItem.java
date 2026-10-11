@@ -93,8 +93,7 @@ public class NewTestamentItem extends Item implements ICurioItem {
 						ReliquaryTooltips.number(ApocryphaConfig.scatterChancePercent()),
 						ReliquaryTooltips.number(ApocryphaConfig.scatterSpawnHeight()),
 						min, max,
-						ReliquaryTooltips.number(ApocryphaConfig.scatterAngleMaxDegrees()),
-						ApocryphaConfig.scatterSpawnIntervalTicks())
+						ReliquaryTooltips.number(ApocryphaConfig.scatterAngleMaxDegrees()))
 				.withStyle(ChatFormatting.GRAY));
 		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
 				"item.summy-reliquary-apocrypha.new_testament.shift.3",

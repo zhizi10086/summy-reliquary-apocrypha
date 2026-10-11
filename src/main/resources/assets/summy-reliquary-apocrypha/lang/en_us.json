@@ -7,7 +7,7 @@
   "item.summy-reliquary-apocrypha.new_testament.desc.1": "\"Behold, I make all things new.\"",
   "item.summy-reliquary-apocrypha.new_testament.desc.2": "Where the arrows fall, grace follows.",
   "item.summy-reliquary-apocrypha.new_testament.shift.1": "Bow hit|Heal %s health",
-  "item.summy-reliquary-apocrypha.new_testament.shift.2": "On hit, %s%% chance to rain arrows from %s blocks above the target: %s~%s arrows, spread 0~%s°, %s tick apart",
+  "item.summy-reliquary-apocrypha.new_testament.shift.2": "On hit, %s%% chance to rain arrows from %s blocks above the target: %s~%s arrows, spread 0~%s°",
   "item.summy-reliquary-apocrypha.new_testament.shift.3": "Falling arrows|%s true damage",
   "item.summy-reliquary-apocrypha.new_testament.shift.4": "Falling arrows ignore armor, protection, resistance and invulnerability frames",
   "item.summy-reliquary-apocrypha.new_testament.shift.5": "Falling arrows benefit from Summy Reliquary's global damage bonuses and are guided by its Sacred Heart homing",
