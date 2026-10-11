@@ -143,6 +143,24 @@
 - **配置面 18 → 22 项**：新增 `[inverse_feather_hover]` 段（`falling_damage_bonus_percent` /
   `falling_chance_percent` / `glide_reduction_percent` / `air_jumps`）；空中跳初速与下落判定阈值写死。
 
+### 逆羽·滞空：二段跳改为「云朵瓶」式双端预测（同日第八轮）
+
+- **问题**：二段跳只在服务端施加向上速度、客户端没有本地预测，靠 `hurtMarked` 回推，起跳迟 1~2 tick 且要等一次
+  服务端纠偏；更要命的是客户端对**地面起跳那次按键**也会发包，服务端收到时玩家已离地，于是把「每段离地仅一次」的
+  空跳在地面跳跃时就吃掉了 —— 空中再按无效。
+- **手感（参考 Artifacts（MIT）的「云朵瓶」`CloudInABottleItem` / `CloudInABottleInputHandler` / `DoubleJumpPacket`）**：
+  新增双端共用的 `HoverFlight.jump(Player)` —— 客户端判定成立时先本地施加一次（预测，立刻起效），同时发包让服务端
+  做同样的权威施加；只改垂直速度、置 `hasImpulse`（取代语义不对的 `hurtMarked`）、并把 `fallDistance` 清零
+  （跳完不再吃刚才那段坠落伤害）。伴随 `SoundEvents.WOOL_FALL` 音效与 `ParticleTypes.POOF` 粒子（20 颗，服务端发出）；
+  音效客户端本地一次、服务端广播时**排除本人**，因此本人只听到一次；跳跃统计与 `0.05` 食物消耗只在服务端施加。
+- **输入状态机**：客户端改为两个状态位 —— `canAirJump`（落地 / 攀爬时补满、用掉后置假）与 `hasReleasedJumpKey`
+  （落地 / 攀爬时置假，**空中松开过跳跃键**才置真，用来排除地面起跳那一次按键）；创造模式飞行中不触发。
+- **服务端校验**：每玩家的内存状态由「已用次数」扩展为 `{groundedTicks, jumpsUsed}`；放行条件改为
+  `groundedTicks == 0`（即「上一 tick 末尾服务端还看到玩家站在地面」的反面）—— 用一 tick 的滞后量消除
+  「地面按键」与「刚离地」的时序竞争；另加非载具、非创造飞行两条。
+- **配置面 22 → 23 项**：新增 `[inverse_feather_hover] air_jump_velocity`（默认 0.5，范围 0.0~4.0）。
+- 网络通道与协议版本（`"1"`）、`AirJumpMessage` 空包均**不变**；缓降、落箭、伤害口径、清帧等行为一律不动。
+
 ### 备注
 
 - 首轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步

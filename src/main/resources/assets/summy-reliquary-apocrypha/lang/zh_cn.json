@@ -40,7 +40,7 @@
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.2": "箭矢伤害|+%s%%",
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.3": "新约触发概率|×%s%%",
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.4": "落箭伤害判定改为瞬时结算（按箭数逐笔，箭矢只作视觉）",
-  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.5": "被动：空中长按潜行键下落速度降低 %s%%（落地按坠落高度 −%s%% 计算伤害）；空中按跳跃键可额外跳 %s 次",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.5": "被动：空中长按潜行键下落速度降低 %s%%（落地按坠落高度 −%s%% 计算伤害）；空中按跳跃键可额外跳 %s 次（二段跳会立刻清空坠落高度）",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s 被落下的箭矢贯穿"
 }

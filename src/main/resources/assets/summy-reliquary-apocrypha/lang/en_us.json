@@ -40,7 +40,7 @@
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.2": "Arrow damage|+%s%%",
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.3": "New Testament trigger chance|×%s%%",
   "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.4": "Falling arrow damage resolves instantly (one hit per arrow; the arrows themselves are only visual)",
-  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.5": "Passive: hold sneak in midair to slow the descent by %s%% (landing damage counts only −%s%% of the fall height); press jump in midair for %s extra jump(s)",
+  "item.summy-reliquary-apocrypha.inverse_feather_hover.shift.5": "Passive: hold sneak in midair to slow the descent by %s%% (landing damage counts only −%s%% of the fall height); press jump in midair for %s extra jump(s) (an air jump clears the accumulated fall height)",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s was pierced by falling arrows"
 }

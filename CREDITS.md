@@ -40,3 +40,7 @@ and **must not be used commercially**. If any content unintentionally infringes 
 - 真实伤害的落地口径（先清零无敌帧再结算、伤害减免交给 `bypasses_*` 标签）参考 SR 的
   `com.summy.reliquary.effect.RevelationBeam#applyTrueDamage`。
 - 开发运行期消费 SR 生产 jar 的写法参考同作者的 `enchantment-reforged-forge` 工程。
+- **二段跳的手感与输入状态机**（客户端预测 + 双端施加、`hasImpulse` 同步、`fallDistance` 清零、
+  「离地后松开过跳跃键」的按下沿判定）参考 [Artifacts](https://github.com/ochotonida/artifacts)（MIT）1.20.1 分支的
+  `CloudInABottleItem` / `CloudInABottleInputHandler` / `DoubleJumpPacket`（「云朵瓶」）。本模组为独立实现，
+  未复制其代码或素材；差异见 README 的「滞空」小节（音效只响一次、服务端用一 tick 滞后量做离地判据）。

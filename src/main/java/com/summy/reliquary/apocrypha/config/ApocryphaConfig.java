@@ -41,6 +41,7 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.IntValue HOVER_FALLING_CHANCE_PERCENT;
 	private static final ForgeConfigSpec.IntValue HOVER_GLIDE_REDUCTION_PERCENT;
 	private static final ForgeConfigSpec.IntValue HOVER_AIR_JUMPS;
+	private static final ForgeConfigSpec.DoubleValue HOVER_AIR_JUMP_VELOCITY;
 
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -125,6 +126,9 @@ public final class ApocryphaConfig {
 		HOVER_AIR_JUMPS = builder
 				.comment("每段离地可用的额外跳跃次数（空中按跳跃键触发，落地重置）")
 				.defineInRange("air_jumps", 1, 0, 8);
+		HOVER_AIR_JUMP_VELOCITY = builder
+				.comment("空中额外跳跃的向上初速（格/tick；原版起跳是 0.42，0.5 约可再抬升 1.5 格）")
+				.defineInRange("air_jump_velocity", 0.5D, 0.0D, 4.0D);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -239,5 +243,10 @@ public final class ApocryphaConfig {
 	/** 每段离地可用的额外跳跃次数 */
 	public static int hoverAirJumps() {
 		return HOVER_AIR_JUMPS.get();
+	}
+
+	/** 空中额外跳跃的向上初速（格/tick） */
+	public static double hoverAirJumpVelocity() {
+		return HOVER_AIR_JUMP_VELOCITY.get();
 	}
 }
