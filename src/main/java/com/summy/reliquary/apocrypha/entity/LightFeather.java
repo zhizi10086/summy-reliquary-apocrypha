@@ -2,6 +2,9 @@ package com.summy.reliquary.apocrypha.entity;
 
 import com.summy.reliquary.apocrypha.Apocrypha;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -18,16 +21,23 @@ import java.util.UUID;
  * 渲染器按 {@link #tier()} 决定平面内旋转角（上对 0°、中对顺时针 45°、下对累计 90°）。
  */
 public class LightFeather extends Entity {
+	/**
+	 * 层号（0 上 / 1 中 / 2 下）：**必须同步给客户端** —— 渲染器要据此决定平面内旋转角
+	 * （0° / 顺时针 45° / 累计顺时针 90°）。之前只放在服务端字段里，客户端恒为 0，
+	 * 于是三对都按 0° 画、看起来"没有旋转"。
+	 */
+	private static final EntityDataAccessor<Integer> DATA_TIER =
+			SynchedEntityData.defineId(LightFeather.class, EntityDataSerializers.INT);
+
 	/** 背后的水平偏移（沿玩家朝向反方向，格） */
 	private static final double BACK_OFFSET = 0.35D;
 	/** 三层的竖直锚点高度（相对玩家脚底，格）：0 上 / 1 中 / 2 下 */
 	private static final double[] TIER_HEIGHT = {1.45D, 1.05D, 0.65D};
-	/** 跟随强度：每 tick 朝锚点插值的比例（越小越"飘"） */
-	private static final double FOLLOW_LERP = 0.25D;
+	/** 跟随强度：每 tick 朝锚点插值的比例（1.0 = 完全刚性贴合；"飘"由渲染端的上下浮动负责） */
+	private static final double FOLLOW_LERP = 1.0D;
 
-	// 服务端字段（客户端渲染用不到，所以不进同步数据）
+	// 服务端字段（不属于同步内容：只有服务端需要用它找主人）
 	private UUID ownerId;
-	private int tier;
 
 	public LightFeather(EntityType<? extends LightFeather> type, Level level) {
 		super(type, level);
@@ -38,15 +48,19 @@ public class LightFeather extends Entity {
 	public LightFeather(Level level, ServerPlayer owner, int tier) {
 		this(Apocrypha.LIGHT_FEATHER.get(), level);
 		this.ownerId = owner.getUUID();
-		this.tier = clampTier(tier);
-		Vec3 anchor = anchorOf(owner, this.tier);
+		setTier(tier);
+		Vec3 anchor = anchorOf(owner, tier());
 		this.setPos(anchor.x, anchor.y, anchor.z);
 		this.setYRot(owner.yBodyRot);
 	}
 
-	/** 第几层：0 上 / 1 中 / 2 下（渲染器据此决定旋转角） */
+	/** 第几层：0 上 / 1 中 / 2 下（同步值，客户端渲染器同样读它） */
 	public int tier() {
-		return tier;
+		return entityData.get(DATA_TIER);
+	}
+
+	public void setTier(int value) {
+		entityData.set(DATA_TIER, clampTier(value));
 	}
 
 	public UUID ownerId() {
@@ -81,7 +95,7 @@ public class LightFeather extends Entity {
 			discard(); // 主人不在了（死亡 / 退出 / 换维度）→ 自行清理
 			return;
 		}
-		Vec3 target = anchorOf(owner, tier);
+		Vec3 target = anchorOf(owner, tier());
 		Vec3 current = position();
 		Vec3 next = current.add(target.subtract(current).scale(FOLLOW_LERP));
 		setPos(next.x, next.y, next.z);
@@ -95,6 +109,7 @@ public class LightFeather extends Entity {
 
 	@Override
 	protected void defineSynchedData() {
+		entityData.define(DATA_TIER, 0);
 	}
 
 	@Override
@@ -102,7 +117,7 @@ public class LightFeather extends Entity {
 		if (tag.hasUUID("Owner")) {
 			ownerId = tag.getUUID("Owner");
 		}
-		tier = clampTier(tag.getInt("Tier"));
+		setTier(tag.getInt("Tier"));
 	}
 
 	@Override
@@ -110,7 +125,7 @@ public class LightFeather extends Entity {
 		if (ownerId != null) {
 			tag.putUUID("Owner", ownerId);
 		}
-		tag.putInt("Tier", tier);
+		tag.putInt("Tier", tier());
 	}
 
 	// ==================== 不参与任何交互 ====================

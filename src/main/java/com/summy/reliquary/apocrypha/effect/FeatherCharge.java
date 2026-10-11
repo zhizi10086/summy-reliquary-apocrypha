@@ -66,11 +66,15 @@ public final class FeatherCharge {
 	public static void addPair(ServerPlayer player) {
 		setCharge(player, charge(player) + PER_PAIR);
 		root(player).putInt(DECAY_TIMER, ApocryphaConfig.sacramentDecayDelaySeconds());
+		// 立刻把新的一对实体补上：否则要等每秒兜底扫描，表现为"过一会儿才冒出来"
+		syncNow(player);
 	}
 
 	/** 消耗 1 对（射击 / 熄灭共用） */
 	public static void consumePair(ServerPlayer player) {
 		setCharge(player, charge(player) - PER_PAIR);
+		// 立刻收掉多出来的那一对（射击消耗与脱战熄灭都要即时反馈）
+		syncNow(player);
 	}
 
 	/** 此刻应当显示的对数（未佩戴饰品时为 0 —— 计数保留，只是不显示） */

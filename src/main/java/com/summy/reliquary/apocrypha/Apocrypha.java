@@ -78,7 +78,8 @@ public class Apocrypha {
 							.noSave()
 							.noSummon()
 							.clientTrackingRange(10)
-							.updateInterval(2)
+							// 每 tick 同步位置：光羽要"贴"在玩家背后，间隔越小跟随越跟手
+							.updateInterval(1)
 							.build(id("light_feather").toString()));
 
 	/** 新约：装入「新约-光环」栏位的饰品（需要天使标记） */

@@ -34,6 +34,10 @@ public class LightFeatherRenderer extends EntityRenderer<LightFeather> {
 			Apocrypha.id("textures/entity/light_feather.png");
 	/** 每片羽毛的边长（格） */
 	private static final float FEATHER_SIZE = 0.55F;
+	/** 每片羽毛沿自身轴线（羽根 → 尖端）向外平移的距离（格）：让羽根离开躯干、尖端更外 */
+	private static final float AXIAL_OFFSET = 0.20F;
+	/** 轴线方向在局部坐标里的单位分量：(1, 1) / √2 */
+	private static final float AXIAL_UNIT = 0.70710678F;
 	/** 上下浮动的幅度（格）与频率 */
 	private static final float BOB_AMPLITUDE = 0.05F;
 	private static final float BOB_SPEED = 0.1F;
@@ -72,6 +76,8 @@ public class LightFeatherRenderer extends EntityRenderer<LightFeather> {
 		if (mirror) {
 			pose.scale(-1.0F, 1.0F, 1.0F);
 		}
+		// 沿羽毛自身轴线向外平移（镜像之后施加，所以左右两片自动对称外扩）
+		pose.translate(AXIAL_OFFSET * AXIAL_UNIT, AXIAL_OFFSET * AXIAL_UNIT, 0.0F);
 		Matrix4f matrix = pose.last().pose();
 		Matrix3f normal = pose.last().normal();
 		VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
