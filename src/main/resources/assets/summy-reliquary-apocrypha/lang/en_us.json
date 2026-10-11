@@ -14,7 +14,7 @@
   "item.summy-reliquary-apocrypha.new_testament.shift.2": "On hit, %s%% chance to rain arrows from %s blocks above the target: %s~%s arrows, spread 0~%s°",
   "item.summy-reliquary-apocrypha.new_testament.shift.3": "Falling arrows|%s true damage",
   "item.summy-reliquary-apocrypha.new_testament.shift.4": "Falling arrows ignore armor, protection, resistance and invulnerability frames",
-  "item.summy-reliquary-apocrypha.new_testament.shift.5": "Falling arrows benefit from Summy Reliquary's global damage bonuses and are guided by its Sacred Heart homing",
+  "item.summy-reliquary-apocrypha.new_testament.shift.5": "Falling arrows deal fixed damage (they take no part in Summy Reliquary's damage multipliers) and are guided by its Sacred Heart homing",
 
   "item.summy-reliquary-apocrypha.swift_feather_covenant": "Swift Plume Covenant",
   "item.summy-reliquary-apocrypha.swift_feather_covenant.desc.1": "\"They shall mount up with wings as eagles.\"",
@@ -47,7 +47,7 @@
   "item.summy-reliquary-apocrypha.paired_wings.desc.1": "\"Can two walk together, except they be agreed?\"",
   "item.summy-reliquary-apocrypha.paired_wings.desc.2": "Wings that beat as one reach the same mark.",
   "item.summy-reliquary-apocrypha.paired_wings.shift.1": "Holy arrow chance|%s%%",
-  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "Holy arrow damage|Trigger arrow's amount + %s",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "Holy arrow damage|%s%% of the trigger arrow's damage",
   "item.summy-reliquary-apocrypha.paired_wings.shift.3": "The holy arrow is fired from your eyes toward the crosshair: full-charge arrow speed, no gravity, pierces creatures endlessly, but is stopped by blocks",
   "item.summy-reliquary-apocrypha.paired_wings.shift.4": "While worn with the New Testament: when either effect triggers, the other always follows (after %s s)",
   "item.summy-reliquary-apocrypha.paired_wings.shift.5": "When both rolls succeed: %s extra holy arrow(s) and +1 falling arrow",

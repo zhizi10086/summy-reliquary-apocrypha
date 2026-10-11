@@ -87,7 +87,7 @@ public class PairedWingsItem extends Item implements ICurioItem {
 				ReliquaryTooltips.number(ApocryphaConfig.holyArrowChancePercent())));
 		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
 				"item.summy-reliquary-apocrypha.paired_wings.shift.2",
-				ReliquaryTooltips.number(ApocryphaConfig.holyArrowDamageBonus())));
+				ReliquaryTooltips.number(ApocryphaConfig.holyArrowDamageRatioPercent())));
 		lines.add(Component.translatable("item.summy-reliquary-apocrypha.paired_wings.shift.3")
 				.withStyle(ChatFormatting.GRAY));
 		lines.add(Component.translatable("item.summy-reliquary-apocrypha.paired_wings.shift.4",

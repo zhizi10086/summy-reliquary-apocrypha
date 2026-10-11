@@ -45,7 +45,7 @@ public final class ApocryphaConfig {
 
 	// ===== 比翼·连携（新约系列 #5）=====
 	private static final ForgeConfigSpec.IntValue PAIRED_HOLY_CHANCE_PERCENT;
-	private static final ForgeConfigSpec.DoubleValue PAIRED_HOLY_DAMAGE_BONUS;
+	private static final ForgeConfigSpec.IntValue PAIRED_HOLY_DAMAGE_RATIO_PERCENT;
 
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -140,10 +140,10 @@ public final class ApocryphaConfig {
 		PAIRED_HOLY_CHANCE_PERCENT = builder
 				.comment("弓箭命中时追加一支穿透圣光矢的概率（百分比）")
 				.defineInRange("holy_arrow_chance_percent", 20, 0, 100);
-		PAIRED_HOLY_DAMAGE_BONUS = builder
-				.comment("圣光矢的伤害加成（点）：伤害 = 触发之箭「各类倍率后」的金额 + 该值",
+		PAIRED_HOLY_DAMAGE_RATIO_PERCENT = builder
+				.comment("圣光矢的伤害比例（百分比）：伤害 = 触发之箭「各类倍率后」的金额 × 该比例",
 						"该值会被钉住 —— 圣光矢命中时不再叠加 Summy Reliquary 的增伤乘区")
-				.defineInRange("holy_arrow_damage_bonus", 6.0D, 0.0D, 1000.0D);
+				.defineInRange("holy_arrow_damage_ratio_percent", 100, 0, 1000);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -272,8 +272,8 @@ public final class ApocryphaConfig {
 		return PAIRED_HOLY_CHANCE_PERCENT.get();
 	}
 
-	/** 圣光矢的伤害加成（点，加在触发之箭的金额上） */
-	public static double holyArrowDamageBonus() {
-		return PAIRED_HOLY_DAMAGE_BONUS.get();
+	/** 圣光矢的伤害比例（百分比，相对触发之箭「各类倍率后」的金额） */
+	public static int holyArrowDamageRatioPercent() {
+		return PAIRED_HOLY_DAMAGE_RATIO_PERCENT.get();
 	}
 }

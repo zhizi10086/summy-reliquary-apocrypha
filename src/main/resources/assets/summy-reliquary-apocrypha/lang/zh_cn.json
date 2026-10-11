@@ -14,7 +14,7 @@
   "item.summy-reliquary-apocrypha.new_testament.shift.2": "命中时有 %s%% 概率在目标上方 %s 格处落下 %s~%s 支箭矢（散布 0~%s°）",
   "item.summy-reliquary-apocrypha.new_testament.shift.3": "落箭|%s 点真实伤害",
   "item.summy-reliquary-apocrypha.new_testament.shift.4": "落箭无视护甲、保护附魔、抗性与无敌帧",
-  "item.summy-reliquary-apocrypha.new_testament.shift.5": "落箭可享受 Summy Reliquary 的全伤害增幅，并受「圣心」的箭矢追踪牵引",
+  "item.summy-reliquary-apocrypha.new_testament.shift.5": "落箭为固定伤害（不参与 Summy Reliquary 的增伤乘区），并受「圣心」的箭矢追踪牵引",
 
   "item.summy-reliquary-apocrypha.swift_feather_covenant": "迅羽·协约",
   "item.summy-reliquary-apocrypha.swift_feather_covenant.desc.1": "「如鹰展翅上腾，奔跑却不困倦。」",
@@ -47,7 +47,7 @@
   "item.summy-reliquary-apocrypha.paired_wings.desc.1": "「二人若不同心，岂能同行呢？」",
   "item.summy-reliquary-apocrypha.paired_wings.desc.2": "两翼相携，方能同赴一线。",
   "item.summy-reliquary-apocrypha.paired_wings.shift.1": "圣光矢触发概率|%s%%",
-  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "圣光矢伤害|触发之箭金额 + %s",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "圣光矢伤害|触发之箭伤害的 %s%%",
   "item.summy-reliquary-apocrypha.paired_wings.shift.3": "圣光矢从眼位朝准心射出：速度等同满蓄力箭矢、无重力，可无限穿透生物，但会被方块挡下",
   "item.summy-reliquary-apocrypha.paired_wings.shift.4": "与「新约」同戴时：任一效果触发都会带出另一个（延迟 %s 秒）",
   "item.summy-reliquary-apocrypha.paired_wings.shift.5": "两次判定都成功时：圣光矢 +%s 道、新约落箭 +1 支",

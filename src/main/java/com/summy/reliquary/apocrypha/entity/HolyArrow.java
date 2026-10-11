@@ -36,7 +36,7 @@ import net.minecraft.world.phys.Vec3;
  *     <li>无重力（由发射方设置 {@code setNoGravity(true)}），另有寿命兜底 {@value #MAX_LIFE_TICKS} tick。</li>
  * </ul>
  *
- * <p>伤害口径：固定 {@code pinnedDamage}（= 触发之箭「各类倍率后」的金额 + 配置加成），
+ * <p>伤害口径：固定 {@code pinnedDamage}（= 触发之箭「各类倍率后」的金额 × 配置比例），
  * 伤害类型 {@code summy-reliquary-apocrypha:holy_arrow} 的四个 {@code bypasses_*} 标签全开
  * → 无视护甲 / 保护附魔 / 抗性；命中时先在 LOWEST 优先级把金额改回钉住值（不再吃第二次 SR 乘区），
  * 命中前后各清一次无敌帧，并还原目标速度实现**无击退**。

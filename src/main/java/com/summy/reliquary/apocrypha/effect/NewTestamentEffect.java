@@ -35,10 +35,10 @@ public final class NewTestamentEffect {
 	// 事件是在 NewTestamentArrow.onHitEntity → hurt() 内部同步触发的，所以同一击内读它一定是本次的值；
 	// 只在服务端主线程读写，且只服务调试日志，不参与任何玩法判定。
 	private static float lastArrowHitAmount;
-	// 同上：这一击是否为「迅羽档」的钉住伤害（只影响命中行的尾注措辞）
-	private static boolean lastArrowHitPinned;
-	// 同上：这一击是否来自「圣光矢」（钉住口径的措辞与迅羽不同）
+	// 同上：这一击是否来自「圣光矢」（只影响命中行的口径措辞）
 	private static boolean lastArrowHitHoly;
+	// 同上：这一击箭上携带的钉住值（只为日志措辞用，不参与任何玩法判定）
+	private static float lastArrowHitPinnedValue;
 
 	private NewTestamentEffect() {
 	}
@@ -96,7 +96,7 @@ public final class NewTestamentEffect {
 		float hitAmount = event.getAmount();
 
 		// 比翼·连携：圣光矢的独立掷点（各自佩戴各自掷、各自消耗一次随机数）
-		float holyDamage = hitAmount + (float) ApocryphaConfig.holyArrowDamageBonus();
+		float holyDamage = (float) (hitAmount * ApocryphaConfig.holyArrowDamageRatioPercent() / 100.0D);
 		double holyRoll = pairedWings ? level.random.nextDouble() * 100.0D : 0.0D;
 		boolean holySuccess = pairedWings && holyRoll < ApocryphaConfig.holyArrowChancePercent();
 
@@ -112,10 +112,12 @@ public final class NewTestamentEffect {
 			// 迅羽·协约：与「新约」同戴时改写落箭的三项参数（概率 / 初速 / 伤害口径）
 			boolean upgraded = CurioHelper.wears(shooter, Apocrypha.SWIFT_FEATHER_COVENANT.get());
 			speedMultiplier = upgraded ? 1.0D + ApocryphaConfig.swiftSpeedBonusPercent() / 100.0D : 1.0D;
-			// 钉住的单支伤害：以「触发之箭在各类倍率结算后」的金额为基准（<= 0 表示不钉住）
+			// 落箭的单支伤害**一律钉住**（不吃 SR 的增伤乘区）：
+			// 同戴迅羽 → 触发之箭金额 × 比例；未同戴 → 固定用 arrow_damage。
+			// 钉住值 <= 0 时才退化回"不钉住"（例如把 arrow_damage 配成 0）。
 			pinnedDamage = upgraded
 					? (float) (hitAmount * ApocryphaConfig.swiftDamageRatioPercent() / 100.0D)
-					: -1.0F;
+					: (float) ApocryphaConfig.arrowDamage();
 			// 圣餐之矢（翼羽·圣餐）：这一发被标记过 → 必定触发、落箭数量固定
 			sacrament = SacramentArrows.isSacrament(event.getSource());
 			// 逆羽·滞空：命中那一刻射手仍在下落 → 触发概率倍率 + 落箭伤害改为瞬时结算
@@ -227,9 +229,25 @@ public final class NewTestamentEffect {
 		if (pinned > 0.0F && !event.isCanceled()) {
 			event.setAmount(pinned);
 		}
-		lastArrowHitPinned = pinned > 0.0F;
 		lastArrowHitHoly = holy;
+		lastArrowHitPinnedValue = pinned;
 		lastArrowHitAmount = event.isCanceled() ? 0.0F : event.getAmount();
+	}
+
+	/**
+	 * 命中的口径说明（只服务调试日志）：本模组的落箭与圣光矢都**钉住**，不再吃 SR 的增伤乘区。
+	 *
+	 * <p>钉住值 {@code <= 0} 是"没有钉住"的退化情形（例如把 {@code arrow_damage} 配成 0），
+	 * 那时仍按"各类倍率后"措辞。
+	 */
+	private static String hitBasis(boolean holy, float pinned) {
+		if (holy) {
+			return String.format("钉住：触发箭伤害的 %d%%", ApocryphaConfig.holyArrowDamageRatioPercent());
+		}
+		if (pinned > 0.0F) {
+			return String.format("钉住：%.1f 点（不吃 SR 增伤乘区）", pinned);
+		}
+		return "各类倍率后";
 	}
 
 	/** 退服：清掉该玩家的空中跳计数（只存内存，不写存档） */
@@ -279,9 +297,7 @@ public final class NewTestamentEffect {
 			total += lastArrowHitAmount;
 		}
 		if (ApocryphaConfig.logTrigger()) {
-			String basis = lastArrowHitPinned
-					? String.format("钉住：触发箭最终伤害的 %d%%", ApocryphaConfig.swiftDamageRatioPercent())
-					: "各类倍率后";
+			String basis = hitBasis(lastArrowHitHoly, lastArrowHitPinnedValue);
 			Apocrypha.LOGGER.info(String.format("[新约] 落箭瞬时结算：%s ×%d 笔、合计 %.2f 点（口径：%s）",
 					target.getName().getString(), landedCount, total, basis));
 		}
@@ -373,14 +389,7 @@ public final class NewTestamentEffect {
 			return;
 		}
 		// 钉住档不能写「各类倍率后」（那是被改回之前的口径），按实际来源措辞
-		String basis;
-		if (lastArrowHitHoly) {
-			basis = String.format("钉住：触发箭金额 + %.1f", ApocryphaConfig.holyArrowDamageBonus());
-		} else if (lastArrowHitPinned) {
-			basis = String.format("钉住：触发箭最终伤害的 %d%%", ApocryphaConfig.swiftDamageRatioPercent());
-		} else {
-			basis = "各类倍率后";
-		}
+		String basis = hitBasis(lastArrowHitHoly, lastArrowHitPinnedValue);
 		Apocrypha.LOGGER.info(String.format(
 				"[新约] 落箭命中 %s：结算 %.2f 点（%s）、命中前血量 %.1f/%.1f、"
 						+ "速度 命中前(%.2f,%.2f,%.2f) → 击退后(%.2f,%.2f,%.2f) → 还原后(%.2f,%.2f,%.2f)、击退被抵消 %.3f",
