@@ -16,29 +16,26 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 /**
- * 光羽的渲染器：一对 = 两片镜像羽毛，构成向外张开的 V。
+ * 光羽（光翼）的渲染器：一对 = 同一张贴图的「原样 + 左右镜像」。
  *
- * <p>贴图是「左下（羽根）→ 右上（尖端）」的 45° 斜向，所以：
+ * <p>贴图是**完整的单边翅膀**（左下为翼根、右上为翼尖），所以：
  * <ul>
- *     <li><b>上对（tier 0）</b>：贴图原样 → 斜向上外 45°；</li>
- *     <li><b>中对（tier 1）</b>：平面内顺时针 45° → 水平外张；</li>
- *     <li><b>下对（tier 2）</b>：平面内累计顺时针 90° → 向下外张；</li>
- *     <li><b>左片</b> = 右片左右镜像（X 取负）后再用同一角度绘制。</li>
+ *     <li><b>不做任何旋转</b> —— 旧版那种「上 / 中 / 下三态平面内 45° 展开」与配套的沿轴外移已全部退役；</li>
+ *     <li><b>左片 = 右片左右镜像</b>（X 取负），于是两片从脊柱两侧对称地向外上方展开；</li>
+ *     <li>四边形是**正方形**（边长 {@link #WING_SIZE} 格）并铺满整张画布 —— 只有正方形才能保住贴图的自然比例
+ *     （翅膀内容在 32×32 画布里占 20×30 像素，画布左侧约 31% 的留白会成为两片之间的间隙）；</li>
+ *     <li>枢轴取四边形的**底边内侧角**（贴图里翼根那一端），所以翼根贴着身体两侧、翼尖朝斜上外。</li>
  * </ul>
  *
  * <p>整对固定在"玩家背后的竖直平面"上（随玩家身体朝向旋转），用 {@code entityCutoutNoCull} 双面可见，
- * 因此从背后看是完整的 V、从侧面看是薄的。
+ * 因此从背后看是一对完整的翅膀、从侧面看是薄的。
  */
 public class LightFeatherRenderer extends EntityRenderer<LightFeather> {
 	private static final ResourceLocation TEXTURE =
 			Apocrypha.id("textures/entity/light_feather.png");
-	/** 每片羽毛的边长（格） */
-	private static final float FEATHER_SIZE = 0.55F;
-	/** 每片羽毛沿自身轴线（羽根 → 尖端）向外平移的距离（格）：让羽根离开躯干、尖端更外 */
-	private static final float AXIAL_OFFSET = 0.20F;
-	/** 轴线方向在局部坐标里的单位分量：(1, 1) / √2 */
-	private static final float AXIAL_UNIT = 0.70710678F;
-	/** 上下浮动的幅度（格）与频率 */
+	/** 四边形的边长（格）：正方形，整张画布铺满它（约 1.1 格 ≈ 半身大小） */
+	private static final float WING_SIZE = 1.1F;
+	/** 上下浮动的幅度（格）与频率：跟随是刚性贴合，"飘"的观感只由这里负责 */
 	private static final float BOB_AMPLITUDE = 0.05F;
 	private static final float BOB_SPEED = 0.1F;
 
@@ -60,32 +57,28 @@ public class LightFeatherRenderer extends EntityRenderer<LightFeather> {
 		// 轻微的上下浮动（"随移动飘动"的观感）
 		float bob = Mth.sin((entity.tickCount + partialTick) * BOB_SPEED) * BOB_AMPLITUDE;
 		pose.translate(0.0D, bob, 0.0D);
-		// 逐层顺时针 45°：上对 0°、中对 45°、下对 90°
-		float tilt = entity.tier() * 45.0F;
-		drawFeather(pose, buffer, packedLight, tilt, false); // 右片
-		drawFeather(pose, buffer, packedLight, tilt, true);  // 左片（左右镜像）
+		drawWing(pose, buffer, packedLight, false); // 右片（贴图原样）
+		drawWing(pose, buffer, packedLight, true);  // 左片（左右镜像）
 		pose.popPose();
 	}
 
-	/** 画一片羽毛：锚点（羽根）在原点，四边形向右上铺开，贴图的对角线正好形成张开角 */
-	private static void drawFeather(PoseStack pose, MultiBufferSource buffer, int packedLight, float tilt,
-			boolean mirror) {
+	/**
+	 * 画一片翅膀：枢轴（翼根）在原点，四边形铺满整张画布、朝"右上"展开。
+	 *
+	 * <p>uv 对应关系（MC 的 v=0 是贴图顶部）：画布左下 = (0,1)、左上 = (0,0)、右上 = (1,0)、右下 = (1,1)。
+	 */
+	private static void drawWing(PoseStack pose, MultiBufferSource buffer, int packedLight, boolean mirror) {
 		pose.pushPose();
-		// MC 的 Z 轴正角是逆时针，所以要"顺时针"取负
-		pose.mulPose(Axis.ZP.rotationDegrees(-tilt));
 		if (mirror) {
 			pose.scale(-1.0F, 1.0F, 1.0F);
 		}
-		// 沿羽毛自身轴线向外平移（镜像之后施加，所以左右两片自动对称外扩）
-		pose.translate(AXIAL_OFFSET * AXIAL_UNIT, AXIAL_OFFSET * AXIAL_UNIT, 0.0F);
 		Matrix4f matrix = pose.last().pose();
 		Matrix3f normal = pose.last().normal();
 		VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
-		// 羽根在左下角（uv 0,1）、尖端在右上角（uv 1,0）
-		vertex(consumer, matrix, normal, 0.0F, -FEATHER_SIZE, packedLight, 0.0F, 1.0F);
-		vertex(consumer, matrix, normal, 0.0F, 0.0F, packedLight, 0.0F, 0.0F);
-		vertex(consumer, matrix, normal, FEATHER_SIZE, 0.0F, packedLight, 1.0F, 0.0F);
-		vertex(consumer, matrix, normal, FEATHER_SIZE, -FEATHER_SIZE, packedLight, 1.0F, 1.0F);
+		vertex(consumer, matrix, normal, 0.0F, 0.0F, packedLight, 0.0F, 1.0F);
+		vertex(consumer, matrix, normal, 0.0F, WING_SIZE, packedLight, 0.0F, 0.0F);
+		vertex(consumer, matrix, normal, WING_SIZE, WING_SIZE, packedLight, 1.0F, 0.0F);
+		vertex(consumer, matrix, normal, WING_SIZE, 0.0F, packedLight, 1.0F, 1.0F);
 		pose.popPose();
 	}
 

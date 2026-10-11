@@ -14,7 +14,8 @@ import java.util.List;
 // 「光羽」的计数、脱战衰减与实体维护（服务端）。
 //
 // 规则（与设计一致）：
-//   每次「新约治疗触发」+1 对（2 片）；显示上限 6 片（3 对）、存储上限 8 片（4 对，第 4 对只作弹药不显示）；
+//   每次「新约治疗触发」+1 对（2 片）；存储上限 8 片（4 对）；
+//   只有攒满 6 片（3 对）时背后才出现那一对光翼（1、2 对时完全不显示），跌破门槛立刻消失；
 //   只有片数 > 6（攒到第 4 对）才允许射击时消耗 1 对；脱战（自最后一次治疗触发起）满 N 秒后每 M 秒熄 1 对。
 // 计数写在玩家 Forge 持久数据（随存档保存，键根 summy_reliquary_apocrypha），与 SR 的根键互不干扰。
 public final class FeatherCharge {
@@ -32,8 +33,10 @@ public final class FeatherCharge {
 	public static final int STORE_CAP = 8;
 	/** 消耗门槛：片数必须 > 6（即攒到第 4 对）才允许消耗 */
 	public static final int CONSUME_THRESHOLD = 6;
-	/** 最多同时显示的对数 */
-	public static final int MAX_PAIRS = 3;
+	/** 光翼的显现门槛（片）：攒满 3 对（6 片）时背后才出现那一对翅膀 */
+	public static final int WING_GATE_CHARGE = DISPLAY_CAP;
+	/** 唯一那对翅膀使用的层号（中层锚点：背后 0.35 格、高度 1.05 格） */
+	private static final int WING_TIER = 1;
 
 	private static final int TICK_INTERVAL = 20;
 
@@ -77,12 +80,17 @@ public final class FeatherCharge {
 		syncNow(player);
 	}
 
-	/** 此刻应当显示的对数（未佩戴饰品时为 0 —— 计数保留，只是不显示） */
-	public static int visiblePairs(ServerPlayer player) {
+	/**
+	 * 此刻应当显示的光翼对数：**0 或 1**。
+	 *
+	 * <p>未佩戴饰品时恒为 0（计数保留、只是不显示）；即使佩戴，也要攒满 {@link #WING_GATE_CHARGE}
+	 * （3 对 / 6 片）才显现 —— 1、2 对时背后什么都看不到。
+	 */
+	public static int visibleWings(ServerPlayer player) {
 		if (!CurioHelper.wears(player, Apocrypha.WING_FEATHER_SACRAMENT.get())) {
 			return 0;
 		}
-		return Math.min(MAX_PAIRS, charge(player) / PER_PAIR);
+		return charge(player) >= WING_GATE_CHARGE ? 1 : 0;
 	}
 
 	/** 服务端每秒：推进衰减 + 校正实体 */
@@ -116,26 +124,23 @@ public final class FeatherCharge {
 				charge(player) > 0 ? ApocryphaConfig.sacramentDecayIntervalSeconds() : 0);
 	}
 
-	// 应有对数 = min(3, 片数/2)：不够就补（上 → 中 → 下），多余的就删（先删层号大的 = 先熄下对）
+	// 应有光翼 = 0 或 1：没到门槛就把已有的收掉，到门槛就补上（只有一对，层号固定为中层）
 	private static void syncEntities(ServerPlayer player) {
 		if (!(player.level() instanceof ServerLevel level)) {
 			return;
 		}
-		int want = visiblePairs(player);
+		int want = visibleWings(player);
 		List<LightFeather> existing = level.getEntitiesOfClass(LightFeather.class,
 				player.getBoundingBox().inflate(8.0D),
 				feather -> player.getUUID().equals(feather.ownerId()));
-		for (LightFeather feather : existing) {
-			if (feather.tier() >= want) {
+		if (want <= 0) {
+			for (LightFeather feather : existing) {
 				feather.discard();
 			}
+			return;
 		}
-		for (int tier = 0; tier < want; tier++) {
-			int wanted = tier;
-			boolean present = existing.stream().anyMatch(f -> f.isAlive() && f.tier() == wanted);
-			if (!present) {
-				level.addFreshEntity(new LightFeather(level, player, tier));
-			}
+		if (existing.stream().noneMatch(LightFeather::isAlive)) {
+			level.addFreshEntity(new LightFeather(level, player, WING_TIER));
 		}
 	}
 

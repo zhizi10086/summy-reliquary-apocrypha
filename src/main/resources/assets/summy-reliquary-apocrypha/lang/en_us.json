@@ -28,7 +28,7 @@
   "item.summy-reliquary-apocrypha.wing_feather_sacrament": "Wingfeather Sacrament",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.desc.1": "\"Your arrows shall be as wings, bringing down bread from heaven.\"",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.desc.2": "As the New Testament heals you, light feathers gather behind your back.",
-  "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.1": "While the New Testament is also worn: every heal trigger gathers a pair of light feathers (up to 3 pairs shown, 4 pairs stored)",
+  "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.1": "While the New Testament is also worn: every heal trigger gathers a pair of light feathers (up to 4 pairs stored); the wings only appear once 3 pairs (6 feathers) are gathered, and vanish when you drop below that",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.2": "Once the 4th pair is stored, shooting spends 1 pair to turn that arrow into a Sacrament Arrow",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.3": "Sacrament Arrow damage|+%s%%",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.4": "Sacrament Arrow falling arrows|Fixed at %s",

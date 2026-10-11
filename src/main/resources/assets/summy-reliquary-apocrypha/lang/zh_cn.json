@@ -28,7 +28,7 @@
   "item.summy-reliquary-apocrypha.wing_feather_sacrament": "翼羽·圣餐",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.desc.1": "「你的箭要如羽翼，带下天上的粮。」",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.desc.2": "新约治愈你时，光羽在你背后凝聚。",
-  "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.1": "与「新约」同戴时：每次治疗触发，背后凝聚一对光羽（最多显示 3 对，实际可存 4 对）",
+  "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.1": "与「新约」同戴时：每次治疗触发凝聚一对光羽（最多可存 4 对）；攒满 3 对（6 片）时背后才显现那一对光翼，跌破 3 对即消失",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.2": "攒到第 4 对后射击：消耗 1 对，使该箭成为圣餐之矢",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.3": "圣餐之矢伤害|+%s%%",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.4": "圣餐之矢落箭|固定 %s 支",
