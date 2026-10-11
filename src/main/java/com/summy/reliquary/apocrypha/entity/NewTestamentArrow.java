@@ -25,7 +25,7 @@ import net.minecraft.world.phys.Vec3;
  * <ul>
  *     <li>拾取权限恒为 DISALLOWED、getPickupItem() 返回空栈，不可能被捡起来复制；</li>
  *     <li>命中实体：先清零目标无敌帧，再打我们自己命名的伤害类型（真实伤害），打完立即消失；</li>
- *     <li>命中方块：原地贴地停留 GROUND_STICK_TICKS tick 后删除；</li>
+ *     <li>命中方块：**对齐到撞击点**（沿来向回退 0.05 格，同原版贴面做法）后停留 GROUND_STICK_TICKS tick 再删除；</li>
  *     <li>自管理寿命，超时强制清除，避免孤儿实体堆积。</li>
  * </ul>
  *
@@ -45,9 +45,17 @@ public class NewTestamentArrow extends AbstractArrow {
 	private static final int GROUND_STICK_TICKS = 10;
 	/** 最长寿命（tick）：超时强制清除，避免孤儿实体堆积 */
 	private static final int MAX_LIFE_TICKS = 200;
+	/** 贴地时沿来向回退的距离（格）：与原版 AbstractArrow 的贴面做法一致 */
+	private static final double SURFACE_BACK_OFF = 0.05D;
 
 	/** 是否已经落地（命中方块） */
 	private boolean landed;
+	/** 撞击点（用于贴地对齐与调试日志） */
+	private Vec3 hitLocation;
+	/** 撞击时的来向（单位向量，用于沿来向回退） */
+	private Vec3 hitIncoming = Vec3.ZERO;
+	/** 贴地对齐是否已经做过（每个实体只做一次） */
+	private boolean snapped;
 	/** 贴地停留计数 */
 	private int stuckTicks;
 	/** 飞行计数 */
@@ -157,15 +165,41 @@ public class NewTestamentArrow extends AbstractArrow {
 
 	@Override
 	protected void onHitBlock(BlockHitResult result) {
-		// 不调用 super：原版会在这里播放落地音效并写 inGround，我们只要「钉住」
+		// 不调用 super：原版会在这里播放落地音效并写 inGround，我们只要「钉住」。
+		// 位置对齐自己补：原版的位置推进发生在本 tick 的 onHit **之后**，而我们冻结速度后就不再走那段逻辑，
+		// 于是箭可能停在"撞击前"的位置、看起来悬在地面上方约一格。这里先记下撞击数据，在冻结的第一 tick 对齐。
+		Vec3 from = position();
+		hitLocation = result.getLocation();
+		Vec3 delta = hitLocation.subtract(from);
+		double offset = delta.length();
+		hitIncoming = offset > 1.0E-6D ? delta.scale(1.0D / offset) : Vec3.ZERO;
 		landed = true;
 		setDeltaMovement(Vec3.ZERO);
 		setNoGravity(true);
+		if (ApocryphaConfig.logTrigger()) {
+			Apocrypha.LOGGER.info(String.format(
+					"[新约] 落箭撞方块：本 tick 起点 (%.2f,%.2f,%.2f)、撞击点 (%.2f,%.2f,%.2f)、相差 %.2f 格、方块 %s",
+					from.x, from.y, from.z, hitLocation.x, hitLocation.y, hitLocation.z, offset,
+					result.getBlockPos().toShortString()));
+		}
 	}
 
 	@Override
 	public void tick() {
 		if (landed) {
+			// 冻结后的第一 tick：把箭对齐到撞击点（沿来向回退 0.05 格，同原版的贴面做法）。
+			// 放在这里而不是 onHitBlock 里，是因为原版的位置推进在本 tick 之后才执行；
+			// 又因为 tick() 在客户端与服务端都会跑，两端各自对齐，不依赖位置同步（箭的同步间隔是 20 tick）。
+			if (!snapped && hitLocation != null) {
+				snapped = true;
+				Vec3 target = hitLocation.subtract(hitIncoming.scale(SURFACE_BACK_OFF));
+				setPos(target.x, target.y, target.z);
+				if (ApocryphaConfig.logTrigger()) {
+					Apocrypha.LOGGER.info(String.format(
+							"[新约] 落箭贴地：贴地位置 (%.2f,%.2f,%.2f)、与撞击点相差 %.2f 格",
+							target.x, target.y, target.z, target.distanceTo(hitLocation)));
+				}
+			}
 			setDeltaMovement(Vec3.ZERO);
 			if (++stuckTicks >= GROUND_STICK_TICKS) {
 				discard();
