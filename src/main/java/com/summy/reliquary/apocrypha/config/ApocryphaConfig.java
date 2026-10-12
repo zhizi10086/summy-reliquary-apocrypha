@@ -59,6 +59,11 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_RATIO_WITH_SECOND_PERCENT;
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_DAMAGE_PERCENT_WITH_SECOND;
 	private static final ForgeConfigSpec.IntValue APOPTOSIS_WING_SECONDS;
+	private static final ForgeConfigSpec.IntValue APOPTOSIS_IDLE_CLEAR_SECONDS;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXECUTE_THRESHOLD_PERCENT;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXECUTE_DAMAGE_PERCENT_OF_MAX;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_MULTIPLIER_WITH_THIRD;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_MULTIPLIER_WITH_THIRD;
 
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -188,7 +193,7 @@ public final class ApocryphaConfig {
 		APOPTOSIS_BURST_RATIO_WITH_SECOND_PERCENT = builder
 				.comment("佩戴「坠羽」时，爆条伤害 = 本轮「推条那几刀」伤害之和 × 该比例（%）",
 						"（取代固定的 burst_damage；刀数为 hits_with_second）")
-				.defineInRange("burst_ratio_with_second_percent", 120.0D, 0.0D, 1000.0D);
+				.defineInRange("burst_ratio_with_second_percent", 60.0D, 0.0D, 1000.0D);
 		APOPTOSIS_EXTRA_DAMAGE_PERCENT_WITH_SECOND = builder
 				.comment("佩戴「坠羽」时，损伤状态期间额外附加的元素伤害比例（%）",
 						"（取代 extra_damage_percent）")
@@ -196,6 +201,21 @@ public final class ApocryphaConfig {
 		APOPTOSIS_WING_SECONDS = builder
 				.comment("「坠羽」爆条时背后展开翅膀的持续秒数（再次爆条会刷新）")
 				.defineInRange("wing_seconds", 5, 0, 600);
+		APOPTOSIS_IDLE_CLEAR_SECONDS = builder
+				.comment("连续多少秒没有被推过条就清空凋亡损伤进度（值与已累计的推条伤害一起清零；0 = 关闭）")
+				.defineInRange("idle_clear_seconds", 30, 0, 3600);
+		APOPTOSIS_EXECUTE_THRESHOLD_PERCENT = builder
+				.comment("「笞心」斩杀的血量阈值（%）：目标受伤后生命值 ≤ 最大生命 × 该值时触发斩杀")
+				.defineInRange("execute_threshold_percent", 15.0D, 0.0D, 100.0D);
+		APOPTOSIS_EXECUTE_DAMAGE_PERCENT_OF_MAX = builder
+				.comment("斩杀伤害 = 目标最大生命 × 该比例（%），作为一笔元素伤害结算")
+				.defineInRange("execute_damage_percent_of_max", 100.0D, 0.0D, 1000.0D);
+		APOPTOSIS_BURST_MULTIPLIER_WITH_THIRD = builder
+				.comment("佩戴「笞心」时，最终爆条伤害的乘数（1.5 = 固定 30 → 45、坠羽档 60% → 90%）")
+				.defineInRange("burst_multiplier_with_third", 1.5D, 0.0D, 10.0D);
+		APOPTOSIS_EXTRA_MULTIPLIER_WITH_THIRD = builder
+				.comment("佩戴「笞心」时，损伤状态附加伤害比例的乘数（1.5 = 10% → 15%、坠羽档 20% → 30%）")
+				.defineInRange("extra_multiplier_with_third", 1.5D, 0.0D, 10.0D);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -384,5 +404,30 @@ public final class ApocryphaConfig {
 	/** 「坠羽」爆条时翅膀的持续秒数 */
 	public static int apoptosisWingSeconds() {
 		return APOPTOSIS_WING_SECONDS.get();
+	}
+
+	/** 连续多少秒没有被推过条就清空凋亡损伤进度（0 = 关闭） */
+	public static int apoptosisIdleClearSeconds() {
+		return APOPTOSIS_IDLE_CLEAR_SECONDS.get();
+	}
+
+	/** 「笞心」斩杀的血量阈值（%） */
+	public static double apoptosisExecuteThresholdPercent() {
+		return APOPTOSIS_EXECUTE_THRESHOLD_PERCENT.get();
+	}
+
+	/** 斩杀伤害占目标最大生命的比例（%） */
+	public static double apoptosisExecuteDamagePercentOfMax() {
+		return APOPTOSIS_EXECUTE_DAMAGE_PERCENT_OF_MAX.get();
+	}
+
+	/** 佩戴「笞心」时最终爆条伤害的乘数 */
+	public static double apoptosisBurstMultiplierWithThird() {
+		return APOPTOSIS_BURST_MULTIPLIER_WITH_THIRD.get();
+	}
+
+	/** 佩戴「笞心」时附加伤害比例的乘数 */
+	public static double apoptosisExtraMultiplierWithThird() {
+		return APOPTOSIS_EXTRA_MULTIPLIER_WITH_THIRD.get();
 	}
 }

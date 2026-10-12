@@ -17,6 +17,7 @@ import com.summy.reliquary.apocrypha.item.InverseFeatherHoverItem;
 import com.summy.reliquary.apocrypha.item.PairedWingsItem;
 import com.summy.reliquary.apocrypha.item.FallenHeavenItem;
 import com.summy.reliquary.apocrypha.item.FallenPlumeItem;
+import com.summy.reliquary.apocrypha.item.ScourgedHeartItem;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import net.minecraft.core.registries.Registries;
@@ -121,6 +122,11 @@ public class Apocrypha {
 			ITEMS.register("fallen_plume",
 					() -> new FallenPlumeItem(new Item.Properties().stacksTo(1)));
 
+	/** 笞心：装入「殁亡之弥撒」栏位的饰品（需要恶魔标记；凋亡套系 #3，爆伤与附加 ×1.5 + 斩杀） */
+	public static final RegistryObject<Item> SCOURGED_HEART =
+			ITEMS.register("scourged_heart",
+					() -> new ScourgedHeartItem(new Item.Properties().stacksTo(1)));
+
 	/** 本模组专属创造标签页 */
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
@@ -135,6 +141,7 @@ public class Apocrypha {
 						output.accept(PAIRED_WINGS.get());
 						output.accept(FALLEN_HEAVEN.get());
 						output.accept(FALLEN_PLUME.get());
+						output.accept(SCOURGED_HEART.get());
 					})
 					.build());
 

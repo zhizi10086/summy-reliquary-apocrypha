@@ -6,6 +6,7 @@
   "curios.identifier.new_testament_revelation": "Revelation of the New Testament",
   "curios.identifier.perdition_synecdoche": "Synecdoche of Perdition",
   "curios.identifier.perdition_exegesis": "Exegesis of Perdition",
+  "curios.identifier.perdition_mass": "Mass of Perdition",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -78,6 +79,16 @@
   "item.summy-reliquary-apocrypha.fallen_plume.shift.4": "A pair of wings unfolds for %s s when the burst triggers (refreshed on every burst)",
   "item.summy-reliquary-apocrypha.fallen_plume.shift.5": "When worn with Fallen Heaven this item wins; Fallen Heaven alone stays at %s hits / %s flat damage",
   "item.summy-reliquary-apocrypha.fallen_plume.shift.6": "Elemental damage ignores armor, protection, resistance and dodge; it takes no damage bonuses",
+
+  "item.summy-reliquary-apocrypha.scourged_heart": "Scourged Heart",
+  "item.summy-reliquary-apocrypha.scourged_heart.desc.1": "\"Only under the lash is the heart seen plain.\"",
+  "item.summy-reliquary-apocrypha.scourged_heart.desc.2": "Every beat counts the strokes it has taken.",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.1": "Burst damage|final damage x %s%% (on top of the plume tier)",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.2": "Injured targets take %s x extra elemental damage",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.3": "Execution threshold|target at or below %s%% health",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.4": "The execution deals %s%% of the target's max health as elemental damage (pinned, no bonuses)",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.5": "Only damage dealt by the wearer of this item arms the execution, and it lands at most once per Injured state",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.6": "Elemental damage ignores armor, protection, resistance and dodge; it takes no damage bonuses",
 
   "message.summy-reliquary-apocrypha.apoptosis.stack": "Apoptosis Damage %s%%",
   "message.summy-reliquary-apocrypha.apoptosis.injured": "Injured %s s",

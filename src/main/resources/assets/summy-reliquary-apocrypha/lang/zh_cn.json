@@ -6,6 +6,7 @@
   "curios.identifier.new_testament_revelation": "新约-启示",
   "curios.identifier.perdition_synecdoche": "殁亡之提喻",
   "curios.identifier.perdition_exegesis": "殁亡之释经",
+  "curios.identifier.perdition_mass": "殁亡之弥撒",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -78,6 +79,16 @@
   "item.summy-reliquary-apocrypha.fallen_plume.shift.4": "损伤爆发时在背后展开翅膀 %s 秒（再次爆条刷新）",
   "item.summy-reliquary-apocrypha.fallen_plume.shift.5": "与堕天同戴时以本件为准；只戴堕天时仍是 %s 刀爆条、固定 %s 点",
   "item.summy-reliquary-apocrypha.fallen_plume.shift.6": "元素伤害无视护甲、保护附魔、抗性与闪避；不吃增伤乘区",
+
+  "item.summy-reliquary-apocrypha.scourged_heart": "笞心",
+  "item.summy-reliquary-apocrypha.scourged_heart.desc.1": "「鞭痕之上，才看得见真心。」",
+  "item.summy-reliquary-apocrypha.scourged_heart.desc.2": "每一次跳动，都在数它挨过的鞭子。",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.1": "损伤爆发|最终爆伤 ×%s%%（在坠羽档之上）",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.2": "损伤状态的附加元素伤害比例 ×%s",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.3": "斩杀阈值|目标 ≤ %s%% 生命",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.4": "斩杀一击为其最大生命的 %s%%（元素伤害，钉住不吃乘区）",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.5": "斩杀只由「佩戴本件者造成的伤害」激活，且每段损伤状态只落地一次",
+  "item.summy-reliquary-apocrypha.scourged_heart.shift.6": "元素伤害无视护甲、保护附魔、抗性与闪避；不吃增伤乘区",
 
   "message.summy-reliquary-apocrypha.apoptosis.stack": "凋亡损伤 %s%%",
   "message.summy-reliquary-apocrypha.apoptosis.injured": "损伤状态 %s 秒",

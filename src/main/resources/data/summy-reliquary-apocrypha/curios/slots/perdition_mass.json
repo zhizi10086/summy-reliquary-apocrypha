@@ -1,0 +1,8 @@
+{
+  "order": 22,
+  "size": 1,
+  "icon": "summy-reliquary-apocrypha:slot/perdition_mass",
+  "validators": [
+    "summy-reliquary-apocrypha:perdition_mass_only"
+  ]
+}
