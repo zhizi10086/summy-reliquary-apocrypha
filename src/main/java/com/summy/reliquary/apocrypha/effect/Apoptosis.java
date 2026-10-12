@@ -546,6 +546,10 @@ public final class Apoptosis {
 			if (injuredUntil > now) {
 				// 5 号件「终歌」：损伤状态期间每秒一笔「本次爆伤 × 比例」
 				payFinalSong(active.getValue(), target, data, injuredUntil, now);
+			} else if (injuredUntil > 0L) {
+				// 损伤状态刚好结束的这一刻：补上最后一笔
+				//（传 injuredUntil = now 使「已过时长」等于总时长，从而把第 `injured_seconds` 笔补齐）
+				payFinalSong(active.getValue(), target, data, now, now);
 			}
 			if (injuredUntil <= now && resistUntil <= now) {
 				// 两种状态都不在了：把过期的状态收尾（损伤状态刚结束 → 进入损伤抵抗）
