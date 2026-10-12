@@ -188,6 +188,12 @@ public final class Apoptosis {
 			push(level, attacker, target, event.getAmount());
 		}
 
+		// ②b 佩戴「枯笔」的玩家近战直击「损伤抵抗中」的目标 → 抵抗时间削减（4 号件）
+		if (event.getSource().getDirectEntity() instanceof ServerPlayer cutter && cutter != target
+				&& CurioHelper.wears(cutter, Apocrypha.WITHERED_BRUSH.get())) {
+			cutResistance(cutter, target);
+		}
+
 		// ③ 损伤状态：这一次受伤额外附加元素伤害（比例由引爆那一刻定死在目标数据里）
 		if (wasInjured) {
 			float extra = event.getAmount() * (float) (extraPercent(target) / 100.0D);
@@ -209,6 +215,31 @@ public final class Apoptosis {
 	}
 
 	/**
+	 * 抵抗削减（4 号件「枯笔」）：近战直击「损伤抵抗中」的目标，把它的抵抗到期时刻往前挪若干秒。
+	 *
+	 * <p>每刀最多减一次；减到 ≤ 现在即抵抗立刻结束（目标马上又能被推条）；不在抵抗期就什么也不做。
+	 */
+	private static void cutResistance(ServerPlayer cutter, LivingEntity target) {
+		int seconds = Math.max(0, ApocryphaConfig.apoptosisResistanceCutSecondsWithFourth());
+		if (seconds <= 0) {
+			return;
+		}
+		CompoundTag data = data(target);
+		long now = now(target);
+		long before = data.getLong(RESIST_UNTIL);
+		if (before <= now) {
+			return; // 不在抵抗期
+		}
+		long after = Math.max(now, before - seconds * 20L);
+		data.putLong(RESIST_UNTIL, after);
+		if (ApocryphaConfig.logTrigger()) {
+			Apocrypha.LOGGER.info(String.format("[凋亡] 抵抗削减：%s ← %s（抵抗 %.1f 秒 → %.1f 秒）",
+					target.getName().getString(), cutter.getName().getString(),
+					(before - now) / 20.0D, (after - now) / 20.0D));
+		}
+	}
+
+	/**
 	 * 斩杀（3 号件「笞心」）：**目标受伤后**若生命值 ≤ 最大生命 × 阈值%，补上一击「最大生命 × 比例%」的元素伤害。
 	 *
 	 * <p>激活条件：本次伤害的**造成者**是佩戴「笞心」的玩家（近战 / 弓箭 / 落箭都算）——
@@ -217,19 +248,27 @@ public final class Apoptosis {
 	 */
 	private static void tryExecute(ServerLevel level, LivingEntity target, LivingHurtEvent event) {
 		CompoundTag data = data(target);
-		if (data.getBoolean(EXECUTE_USED)) {
-			return;
-		}
 		Entity causing = event.getSource().getEntity();
 		if (!(causing instanceof ServerPlayer player)
 				|| !CurioHelper.wears(player, Apocrypha.SCOURGED_HEART.get())) {
-			return;
+			return; // 没有被佩戴笞心的人激活 —— 连判断都不做（也不记日志）
 		}
 		float maxHealth = target.getMaxHealth();
 		// 「受伤后」的血量：我们的附加伤害是嵌套即时落地的，所以读数已含那一笔；这里再扣掉本次尚未落地的金额
 		float remaining = target.getHealth() - event.getAmount();
 		double threshold = maxHealth * (ApocryphaConfig.apoptosisExecuteThresholdPercent() / 100.0D);
-		if (remaining <= 0.0F || remaining > threshold) {
+		boolean used = data.getBoolean(EXECUTE_USED);
+		String reason = used ? "本段已斩"
+				: remaining <= 0.0F ? "这一刀已致死"
+				: remaining > threshold ? "血量未达阈值" : "";
+		if (ApocryphaConfig.logTrigger()) {
+			Apocrypha.LOGGER.info(String.format(
+					"[凋亡] 斩杀判定：%s ← %s 预计血量 %.1f/%.1f（阈值 %.0f%%，本段已斩=%s）→ %s",
+					target.getName().getString(), player.getName().getString(), Math.max(0.0F, remaining), maxHealth,
+					ApocryphaConfig.apoptosisExecuteThresholdPercent(), used ? "是" : "否",
+					reason.isEmpty() ? "触发" : "未触发（" + reason + "）"));
+		}
+		if (!reason.isEmpty()) {
 			return;
 		}
 		float executeDamage = (float) (maxHealth
@@ -380,6 +419,10 @@ public final class Apoptosis {
 		if (plume) {
 			FallenPlumeWings.flash(attacker);
 		}
+		// 4 号件：爆条瞬间让目标陷入恐惧（无法移动与攻击；玩家档默认关闭）
+		if (CurioHelper.wears(attacker, Apocrypha.WITHERED_BRUSH.get())) {
+			WitheredBrush.applyFear(level, attacker, target);
+		}
 		if (ApocryphaConfig.logTrigger()) {
 			Apocrypha.LOGGER.info(String.format("[凋亡] 爆条：%s ← %s（元素伤害 %.2f 点%s%s）",
 					target.getName().getString(), attacker.getName().getString(),
@@ -482,6 +525,10 @@ public final class Apoptosis {
 						data.putDouble(PUSH_DAMAGE, 0.0D);
 						data.putLong(LAST_PUSH, 0L);
 						phaseChanged = true;
+						if (ApocryphaConfig.logTrigger()) {
+							Apocrypha.LOGGER.info(String.format("[凋亡] 进度清空（空闲 %.0f 秒）：%s",
+									idleSeconds, target.getName().getString()));
+						}
 					}
 				}
 			}

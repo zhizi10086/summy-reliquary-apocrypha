@@ -64,6 +64,9 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXECUTE_DAMAGE_PERCENT_OF_MAX;
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_MULTIPLIER_WITH_THIRD;
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_MULTIPLIER_WITH_THIRD;
+	private static final ForgeConfigSpec.IntValue APOPTOSIS_RESISTANCE_CUT_SECONDS_WITH_FOURTH;
+	private static final ForgeConfigSpec.IntValue APOPTOSIS_FEAR_SECONDS_WITH_FOURTH;
+	private static final ForgeConfigSpec.BooleanValue APOPTOSIS_FEAR_AFFECTS_PLAYERS;
 
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -216,6 +219,17 @@ public final class ApocryphaConfig {
 		APOPTOSIS_EXTRA_MULTIPLIER_WITH_THIRD = builder
 				.comment("佩戴「笞心」时，损伤状态附加伤害比例的乘数（1.5 = 10% → 15%、坠羽档 20% → 30%）")
 				.defineInRange("extra_multiplier_with_third", 1.5D, 0.0D, 10.0D);
+		APOPTOSIS_RESISTANCE_CUT_SECONDS_WITH_FOURTH = builder
+				.comment("佩戴 4 号件「枯笔」时，近战直击「损伤抵抗中」的目标会让其抵抗时间减少的秒数",
+						"（减到 0 即抵抗立刻结束）")
+				.defineInRange("resistance_cut_seconds_with_fourth", 1, 0, 100);
+		APOPTOSIS_FEAR_SECONDS_WITH_FOURTH = builder
+				.comment("佩戴「枯笔」引爆时，目标获得的恐惧持续时间（秒）：期间无法移动与攻击")
+				.defineInRange("fear_seconds_with_fourth", 1, 0, 600);
+		APOPTOSIS_FEAR_AFFECTS_PLAYERS = builder
+				.comment("恐惧是否也对玩家生效（默认 false）。",
+						"玩家档 = 移动速度与攻速归零 + 近战与右击全部封禁；可用指令 /summyapocrypha fear players <on|off> 切换")
+				.define("fear_affects_players", false);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -429,5 +443,26 @@ public final class ApocryphaConfig {
 	/** 佩戴「笞心」时附加伤害比例的乘数 */
 	public static double apoptosisExtraMultiplierWithThird() {
 		return APOPTOSIS_EXTRA_MULTIPLIER_WITH_THIRD.get();
+	}
+
+	/** 佩戴「枯笔」时每次近战直击削减的抵抗秒数 */
+	public static int apoptosisResistanceCutSecondsWithFourth() {
+		return APOPTOSIS_RESISTANCE_CUT_SECONDS_WITH_FOURTH.get();
+	}
+
+	/** 佩戴「枯笔」引爆时目标的恐惧持续秒数 */
+	public static int apoptosisFearSecondsWithFourth() {
+		return APOPTOSIS_FEAR_SECONDS_WITH_FOURTH.get();
+	}
+
+	/** 恐惧是否也对玩家生效 */
+	public static boolean apoptosisFearAffectsPlayers() {
+		return APOPTOSIS_FEAR_AFFECTS_PLAYERS.get();
+	}
+
+	/** 运行时切换「恐惧是否对玩家生效」（指令用），并立刻写回配置文件 */
+	public static void setApoptosisFearAffectsPlayers(boolean value) {
+		APOPTOSIS_FEAR_AFFECTS_PLAYERS.set(value);
+		SPEC.save();
 	}
 }

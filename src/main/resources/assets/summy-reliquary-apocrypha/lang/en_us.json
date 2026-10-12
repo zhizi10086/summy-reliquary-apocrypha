@@ -7,6 +7,7 @@
   "curios.identifier.perdition_synecdoche": "Synecdoche of Perdition",
   "curios.identifier.perdition_exegesis": "Exegesis of Perdition",
   "curios.identifier.perdition_mass": "Mass of Perdition",
+  "curios.identifier.perdition_mercy": "Mercy of Perdition",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -89,6 +90,19 @@
   "item.summy-reliquary-apocrypha.scourged_heart.shift.4": "The execution deals %s%% of the target's max health as elemental damage (pinned, no bonuses)",
   "item.summy-reliquary-apocrypha.scourged_heart.shift.5": "Only damage dealt by the wearer of this item arms the execution, and it lands at most once per Injured state",
   "item.summy-reliquary-apocrypha.scourged_heart.shift.6": "Elemental damage ignores armor, protection, resistance and dodge; it takes no damage bonuses",
+
+  "item.summy-reliquary-apocrypha.withered_brush": "Withered Brush",
+  "item.summy-reliquary-apocrypha.withered_brush.desc.1": "\"Only when the ink runs dry is the sentence finished.\"",
+  "item.summy-reliquary-apocrypha.withered_brush.desc.2": "Where the brush passes, even resistance is struck through.",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.1": "Resistance cut|-%s s per melee hit",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.2": "Burst fear|%s s",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.3": "Melee hits on a target that is resisting Apoptosis shave off its remaining resistance; at 0 the resistance ends immediately",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.4": "Targets you burst are struck with fear: they cannot move or attack (ranged included)",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.5": "Fear only affects mobs by default; use /summyapocrypha fear players on to include players",
+
+  "command.summy-reliquary-apocrypha.fear.players.on": "Apoptosis fear now affects players (movement, melee and right-click are locked)",
+  "command.summy-reliquary-apocrypha.fear.players.off": "Apoptosis fear no longer affects players (mobs only)",
+  "command.summy-reliquary-apocrypha.fear.players.query": "Apoptosis fear affects players: %s",
 
   "message.summy-reliquary-apocrypha.apoptosis.stack": "Apoptosis Damage %s%%",
   "message.summy-reliquary-apocrypha.apoptosis.injured": "Injured %s s",

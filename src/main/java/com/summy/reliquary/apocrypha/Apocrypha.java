@@ -5,6 +5,8 @@ import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.ArrowDamageBonuses;
 import com.summy.reliquary.apocrypha.effect.Apoptosis;
 import com.summy.reliquary.apocrypha.effect.FallenPlumeWings;
+import com.summy.reliquary.apocrypha.effect.WitheredBrush;
+import com.summy.reliquary.apocrypha.command.ApocryphaCommand;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
 import com.summy.reliquary.apocrypha.effect.SacramentArrows;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
@@ -18,6 +20,7 @@ import com.summy.reliquary.apocrypha.item.PairedWingsItem;
 import com.summy.reliquary.apocrypha.item.FallenHeavenItem;
 import com.summy.reliquary.apocrypha.item.FallenPlumeItem;
 import com.summy.reliquary.apocrypha.item.ScourgedHeartItem;
+import com.summy.reliquary.apocrypha.item.WitheredBrushItem;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import net.minecraft.core.registries.Registries;
@@ -127,6 +130,11 @@ public class Apocrypha {
 			ITEMS.register("scourged_heart",
 					() -> new ScourgedHeartItem(new Item.Properties().stacksTo(1)));
 
+	/** 枯笔：装入「殁亡之悲悯」栏位的饰品（需要恶魔标记；凋亡套系 #4，抵抗削减 + 恐惧） */
+	public static final RegistryObject<Item> WITHERED_BRUSH =
+			ITEMS.register("withered_brush",
+					() -> new WitheredBrushItem(new Item.Properties().stacksTo(1)));
+
 	/** 本模组专属创造标签页 */
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
@@ -142,6 +150,7 @@ public class Apocrypha {
 						output.accept(FALLEN_HEAVEN.get());
 						output.accept(FALLEN_PLUME.get());
 						output.accept(SCOURGED_HEART.get());
+						output.accept(WITHERED_BRUSH.get());
 					})
 					.build());
 
@@ -168,6 +177,10 @@ public class Apocrypha {
 		MinecraftForge.EVENT_BUS.register(Apoptosis.class);
 		// 凋亡 #2「坠羽」：爆条时在引爆者背后展开的翅膀（标志写进饰品 NBT，客户端用 Curios 渲染层画）
 		MinecraftForge.EVENT_BUS.register(FallenPlumeWings.class);
+		// 凋亡 #4「枯笔」：恐惧（生物冻结 / 玩家定身与封禁近战·右击）
+		MinecraftForge.EVENT_BUS.register(WitheredBrush.class);
+		// 本模组的指令（/summyapocrypha fear players <on|off>）
+		MinecraftForge.EVENT_BUS.register(ApocryphaCommand.class);
 		// 本模组自己的网络通道（协议 "1"：目前只有"空中按下跳跃键"一条 C2S 包）
 		ApocryphaNetworking.register();
 

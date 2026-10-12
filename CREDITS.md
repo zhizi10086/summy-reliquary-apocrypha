@@ -33,7 +33,7 @@ and **must not be used commercially**. If any content unintentionally infringes 
 - **栏位图标**「新约-光环」（`textures/slot/new_testament_halo.png`）：由本模组作者提供。
 - **恶魔线（凋亡）暂用占位**：物品贴图借原版 —— 堕天 `minecraft:block/wither_rose`（凋灵玫瑰在 1.20.1 只有方块贴图）、
   坠羽 `minecraft:item/phantom_membrane`、笞心 `minecraft:item/heart_of_the_sea`
-  （后续 2 件计划沿用 `item/ink_sac` / `item/goat_horn`）；
+  、枯笔 `minecraft:item/ink_sac`（后续 1 件计划沿用 `item/goat_horn`）；
   栏位图标按顺序借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示）；
   「坠羽」爆条时的翅膀贴图暂用光羽的 `light_feather.png`。作者素材到位后逐项替换。
 - **MOD 图标**（`assets/summy-reliquary-apocrypha/icon.png`）：**本轮临时复用**前置模组 Summy Reliquary

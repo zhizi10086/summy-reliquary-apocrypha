@@ -1,0 +1,8 @@
+{
+  "order": 23,
+  "size": 1,
+  "icon": "summy-reliquary-apocrypha:slot/perdition_mercy",
+  "validators": [
+    "summy-reliquary-apocrypha:perdition_mercy_only"
+  ]
+}

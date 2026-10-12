@@ -7,6 +7,7 @@
   "curios.identifier.perdition_synecdoche": "殁亡之提喻",
   "curios.identifier.perdition_exegesis": "殁亡之释经",
   "curios.identifier.perdition_mass": "殁亡之弥撒",
+  "curios.identifier.perdition_mercy": "殁亡之悲悯",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -89,6 +90,19 @@
   "item.summy-reliquary-apocrypha.scourged_heart.shift.4": "斩杀一击为其最大生命的 %s%%（元素伤害，钉住不吃乘区）",
   "item.summy-reliquary-apocrypha.scourged_heart.shift.5": "斩杀只由「佩戴本件者造成的伤害」激活，且每段损伤状态只落地一次",
   "item.summy-reliquary-apocrypha.scourged_heart.shift.6": "元素伤害无视护甲、保护附魔、抗性与闪避；不吃增伤乘区",
+
+  "item.summy-reliquary-apocrypha.withered_brush": "枯笔",
+  "item.summy-reliquary-apocrypha.withered_brush.desc.1": "「墨尽处，罪状才写得完。」",
+  "item.summy-reliquary-apocrypha.withered_brush.desc.2": "笔锋所至，连抵抗也被一并划去。",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.1": "抵抗削减|每次近战命中 −%s 秒",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.2": "损伤爆发恐惧|%s 秒",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.3": "近战命中「损伤抵抗中」的目标时，把它的抵抗剩余时间削掉一截；减到 0 即抵抗立刻结束",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.4": "引爆时目标陷入恐惧：期间无法移动、无法攻击（远程也发不出来）",
+  "item.summy-reliquary-apocrypha.withered_brush.shift.5": "恐惧默认只对生物生效；要让玩家也生效请用 /summyapocrypha fear players on",
+
+  "command.summy-reliquary-apocrypha.fear.players.on": "凋亡恐惧现在对玩家生效（移动与近战/右击被封禁）",
+  "command.summy-reliquary-apocrypha.fear.players.off": "凋亡恐惧不再对玩家生效（只影响生物）",
+  "command.summy-reliquary-apocrypha.fear.players.query": "凋亡恐惧对玩家生效：%s",
 
   "message.summy-reliquary-apocrypha.apoptosis.stack": "凋亡损伤 %s%%",
   "message.summy-reliquary-apocrypha.apoptosis.injured": "损伤状态 %s 秒",
