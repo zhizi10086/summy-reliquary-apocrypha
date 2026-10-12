@@ -21,6 +21,7 @@ import com.summy.reliquary.apocrypha.item.FallenHeavenItem;
 import com.summy.reliquary.apocrypha.item.FallenPlumeItem;
 import com.summy.reliquary.apocrypha.item.ScourgedHeartItem;
 import com.summy.reliquary.apocrypha.item.WitheredBrushItem;
+import com.summy.reliquary.apocrypha.item.FinalSongItem;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import net.minecraft.core.registries.Registries;
@@ -135,6 +136,11 @@ public class Apocrypha {
 			ITEMS.register("withered_brush",
 					() -> new WitheredBrushItem(new Item.Properties().stacksTo(1)));
 
+	/** 终歌：装入「殁亡之终歌」栏位的饰品（需要恶魔标记；凋亡套系 #5 收官，每秒灼伤 + 减疗 80% + 受伤 +10%） */
+	public static final RegistryObject<Item> FINAL_SONG =
+			ITEMS.register("final_song",
+					() -> new FinalSongItem(new Item.Properties().stacksTo(1)));
+
 	/** 本模组专属创造标签页 */
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
@@ -151,6 +157,7 @@ public class Apocrypha {
 						output.accept(FALLEN_PLUME.get());
 						output.accept(SCOURGED_HEART.get());
 						output.accept(WITHERED_BRUSH.get());
+						output.accept(FINAL_SONG.get());
 					})
 					.build());
 

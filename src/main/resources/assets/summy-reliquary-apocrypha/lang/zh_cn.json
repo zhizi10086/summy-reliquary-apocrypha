@@ -8,6 +8,7 @@
   "curios.identifier.perdition_exegesis": "殁亡之释经",
   "curios.identifier.perdition_mass": "殁亡之弥撒",
   "curios.identifier.perdition_mercy": "殁亡之悲悯",
+  "curios.identifier.perdition_requiem": "殁亡之终歌",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -99,6 +100,15 @@
   "item.summy-reliquary-apocrypha.withered_brush.shift.3": "近战命中「损伤抵抗中」的目标时，把它的抵抗剩余时间削掉一截；减到 0 即抵抗立刻结束",
   "item.summy-reliquary-apocrypha.withered_brush.shift.4": "引爆时目标陷入恐惧：期间无法移动、无法攻击（远程也发不出来）",
   "item.summy-reliquary-apocrypha.withered_brush.shift.5": "恐惧默认只对生物生效；要让玩家也生效请用 /summyapocrypha fear players on",
+
+  "item.summy-reliquary-apocrypha.final_song": "终歌",
+  "item.summy-reliquary-apocrypha.final_song.desc.1": "「歌止之时，遗骸尚未冷。」",
+  "item.summy-reliquary-apocrypha.final_song.desc.2": "唱到最后一个音，连伤口也随节拍张合。",
+  "item.summy-reliquary-apocrypha.final_song.shift.1": "损伤状态每秒|本次爆伤 × %s%%",
+  "item.summy-reliquary-apocrypha.final_song.shift.2": "损伤状态减疗|%s%%",
+  "item.summy-reliquary-apocrypha.final_song.shift.3": "损伤状态目标受伤|+%s%%",
+  "item.summy-reliquary-apocrypha.final_song.shift.4": "每秒一笔，损伤状态持续 5 秒即共 5 笔；这三项都只由佩戴者引爆的那一刻开启",
+  "item.summy-reliquary-apocrypha.final_song.shift.5": "「受伤」只放大非本模组的伤害：元素伤害仍按钉住值结算",
 
   "command.summy-reliquary-apocrypha.fear.players.on": "凋亡恐惧现在对玩家生效（移动与近战/右击被封禁）",
   "command.summy-reliquary-apocrypha.fear.players.off": "凋亡恐惧不再对玩家生效（只影响生物）",

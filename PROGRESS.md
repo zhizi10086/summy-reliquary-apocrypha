@@ -24,16 +24,16 @@
 
 | # | 栏位 id（order） | 饰品 id | 效果要点 |
 | --- | --- | --- | --- |
-| 1 | `new_testament_halo`（15） | `new_testament`「新约」 | 弓/弩箭矢命中：回血 0.5；35% 落箭散射（见下节） |
-| 2 | `new_testament_talent`（16） | `swift_feather_covenant`「迅羽·协约」 | 与「新约」同戴时改写落箭：概率 → 50%、初速 +50%、伤害 → 触发箭最终伤害的 40% |
-| 3 | `new_testament_grace`（17） | `wing_feather_sacrament`「翼羽·圣餐」 | 每次治疗触发生成一对光羽；攒到第 4 对后射击消耗 1 对 → **圣餐之矢**（本体箭 +30%、必定触发新约、落箭固定 5 支） |
-| 4 | `new_testament_blessing`（18） | `inverse_feather_hover`「逆羽·滞空」 | 下落中：本体箭 +15%、触发概率 ×1.5、落箭伤害**瞬时结算**；被动缓降（潜行键）与二段跳（跳跃键） |
-| 5 | `new_testament_revelation`（19） | `paired_wings`「比翼·连携」 | 20% 追加**穿透圣光矢**；与「新约」同戴时两者**永远协同触发** |
+| 1 | `new_testament_halo`（80） | `new_testament`「新约」 | 弓/弩箭矢命中：回血 0.5；35% 落箭散射（见下节） |
+| 2 | `new_testament_talent`（81） | `swift_feather_covenant`「迅羽·协约」 | 与「新约」同戴时改写落箭：概率 → 50%、初速 +50%、伤害 → 触发箭最终伤害的 40% |
+| 3 | `new_testament_grace`（82） | `wing_feather_sacrament`「翼羽·圣餐」 | 每次治疗触发生成一对光羽；攒到第 4 对后射击消耗 1 对 → **圣餐之矢**（本体箭 +30%、必定触发新约、落箭固定 5 支） |
+| 4 | `new_testament_blessing`（83） | `inverse_feather_hover`「逆羽·滞空」 | 下落中：本体箭 +15%、触发概率 ×1.5、落箭伤害**瞬时结算**；被动缓降（潜行键）与二段跳（跳跃键） |
+| 5 | `new_testament_revelation`（84） | `paired_wings`「比翼·连携」 | 20% 追加**穿透圣光矢**；与「新约」同戴时两者**永远协同触发** |
 
 物品图标**由作者提供并已入库**（`textures/item/<物品id>.png`，32×32 原图；`models/item/*.json` 的 `layer0` 指向它们）；
 **创造页图标用「比翼·连携」**。栏位图标同样由作者提供（16×16 PNG）。
 
-### 恶魔线：凋亡系列（5 件，第 1~4 件已实装）
+### 恶魔线：凋亡系列（5 件，已全部实装）
 
 与天使线对称：全部**需要恶魔标记**（走 `CurioItemSupport.canEquipInto` 的自定义门槛重载，第 5 个参数传
 `PlayerFlags::isDemon` +「需要恶魔标记」），对应栏位**仅恶魔线开放**（与天使线一样每秒 `SlotSizing.sync` 动态 0/1 格，
@@ -48,11 +48,14 @@
 
 | # | 栏位 id（order） | 饰品 id | 效果要点 | 状态 |
 | --- | --- | --- | --- | --- |
-| 1 | `perdition_synecdoche`（20） | `fallen_heaven`「堕天」 | 近战直击推「凋亡损伤条」（每次 +1/6 条）；满条**爆条**（30 点元素伤害）→ 目标进入**损伤状态**（受伤附加 10% 元素伤害、治疗 −50%、条在 5 秒内线性回退到 0）→ **损伤抵抗** 5 秒 | **已实装** |
-| 2 | `perdition_exegesis`（21） | `fallen_plume`「坠羽」 | 4 刀满（每次 +1/4 条）；爆伤 = 本轮**推条那几刀伤害之和 × 60%**；损伤状态附加 20%；爆条时引爆者背后展开翅膀 5 秒（刷新） | **已实装** |
-| 3 | `perdition_mass`（22） | `scourged_heart`「笞心」 | 最终爆伤 ×1.5、附加比例 ×1.5；**斩杀**：目标受伤后生命 ≤15% 时补一击「最大生命 100%」元素伤害，每段损伤状态只落地一次、且只由佩戴笞心者的伤害激活 | **已实装** |
-| 4 | `perdition_mercy`（23） | `withered_brush`「枯笔」 | 近战直击「损伤抵抗中」的目标 → 抵抗 −1 秒（减到 0 立即结束）；引爆时目标获 1 秒恐惧（**无法移动 + 无法攻击**；玩家档默认关，指令可开） | **已实装** |
-| 5 | `perdition_requiem`（24） | `final_song`「终歌」 | 损伤状态中的目标每秒受「爆伤 × 5%」的元素伤害；减疗 50% → 80%；受到所有伤害 +10% | 待做 |
+| 1 | `perdition_synecdoche`（90） | `fallen_heaven`「堕天」 | 近战直击推「凋亡损伤条」（每次 +1/6 条）；满条**爆条**（30 点元素伤害）→ 目标进入**损伤状态**（受伤附加 10% 元素伤害、治疗 −50%、条在 5 秒内线性回退到 0）→ **损伤抵抗** 5 秒 | **已实装** |
+| 2 | `perdition_exegesis`（91） | `fallen_plume`「坠羽」 | 4 刀满（每次 +1/4 条）；爆伤 = 本轮**推条那几刀伤害之和 × 60%**；损伤状态附加 20%；爆条时引爆者背后展开翅膀 5 秒（刷新） | **已实装** |
+| 3 | `perdition_mass`（92） | `scourged_heart`「笞心」 | 最终爆伤 ×1.5、附加比例 ×1.5；**斩杀**：目标受伤后生命 ≤15% 时补一击「最大生命 100%」元素伤害，每段损伤状态只落地一次、且只由佩戴笞心者的伤害激活 | **已实装** |
+| 4 | `perdition_mercy`（93） | `withered_brush`「枯笔」 | 近战直击「损伤抵抗中」的目标 → 抵抗 −1 秒（减到 0 立即结束）；引爆时目标获 1 秒恐惧（**无法移动 + 无法攻击**；玩家档默认关，指令可开） | **已实装** |
+| 5 | `perdition_requiem`（94） | `final_song`「终歌」 | 引爆开启：损伤状态**每秒**受「本次爆伤 × 5%」的元素伤害（共 5 笔）、减疗提升到 80%、目标受到的（非元素）伤害 +10% | **已实装** |
+
+> **栏位位置**：SR 的栏位是 `10/20/30/40/50/60/70`；本模组两套整体排在它之后 —— 新约 `80~84`、凋亡 `90~94`，
+> 各自连续、互不穿插、无并列（历史上凋亡第 1 格 20 曾与 SR `stomach(20)` 并列，导致排序不稳定）。改 `order` 不影响已装配物品。
 
 ## 三、核心机制与数值口径（当前定稿）
 
@@ -160,6 +163,12 @@ SR 若新增真伤类型，打开调试日志时会看到「清帧名单可能�
   **生物**每 tick（服务器 tick 末尾）清攻击目标 / 中立仇恨 + 停寻路 + 水平速度清零（垂直分量保留）；**玩家**（`fear_affects_players`，
   默认 false，指令热切换）挂两条 `MULTIPLY_TOTAL −1` 的 transient 修饰符（移动速度、攻速归零）并拦 `AttackEntityEvent` 与
   `PlayerInteractEvent.RightClickItem/RightClickBlock`；到期 / 死亡 / 登出 / 停机都会摘掉修饰符。
+- **终歌（第 5 件）**：同样在爆条那一刻由引爆者佩戴决定并写进目标状态 ——
+  ① `apoptosis_burst_damage` 记下**本次爆伤**，损伤状态期间**每满 1 秒**结算一笔「爆伤 × `burst_percent_per_second_with_fifth`（5%）」的
+  元素伤害（`apoptosis_song_ticks_paid` 记已付笔数，用「已过秒数 − 已付笔数」补结算，5 秒共 5 笔）；
+  ② `apoptosis_heal_reduction` 写减疗比例（50 → `heal_reduction_percent_with_fifth` 80），`LivingHealEvent` 改读它；
+  ③ `apoptosis_damage_taken_bonus` 写受伤加成（`damage_taken_bonus_percent_with_fifth` 10%），在 LOWEST 把它乘进事件金额 ——
+  **本模组的元素伤害在 `①` 分支就 return 了，所以仍按钉住值结算**。三项都随状态结束（含空闲清空 / 读档过期）清理。
 - **坠羽的爆条翅膀**：爆条且引爆者戴坠羽时，`effect/FallenPlumeWings` 给其坠羽堆栈写 NBT 标志
   （`ApocryphaDemonWings`，与光羽的 `ApocryphaWings` 分开）+ 记剩余 tick（`wing_seconds` × 20），
   每 tick 递减、到期清标志；登出 / 停机立刻清。客户端由同一套 Curios 渲染层读取，尺寸 1.35 / 背后偏移 0.42（与光翼错开）。
@@ -185,7 +194,7 @@ SR 若新增真伤类型，打开调试日志时会看到「清帧名单可能�
 落箭瞬时结算汇总行、二段跳行、清帧行。关闭时零输出。口径文本：落箭 =「钉住：N 点（不吃 SR 增伤乘区）」，
 圣光矢 =「钉住：触发箭伤害的 100%」；恶魔线另输出 `[凋亡]` 行（爆条、元素伤害（爆条 / 附加），含发出值与钉住后值）。
 
-## 四、配置面（`config/summy_reliquary_apocrypha-common.toml`，共 44 项）
+## 四、配置面（`config/summy_reliquary_apocrypha-common.toml`，共 47 项）
 
 | 段 | 键 | 默认 | 说明 |
 | --- | --- | --- | --- |
@@ -232,14 +241,16 @@ SR 若新增真伤类型，打开调试日志时会看到「清帧名单可能�
 | | `resistance_cut_seconds_with_fourth` | 1 | 佩戴枯笔时每次近战直击削减的抵抗秒数 |
 | | `fear_seconds_with_fourth` | 1 | 佩戴枯笔引爆时目标的恐惧秒数 |
 | | `fear_affects_players` | false | 恐惧是否也对玩家生效（指令热切换） |
+| | `burst_percent_per_second_with_fifth` | 5.0 | 终歌：损伤状态每秒结算「本次爆伤 × 该比例%」 |
+| | `heal_reduction_percent_with_fifth` | 80.0 | 终歌：损伤状态的减疗比例提升到该值（%） |
+| | `damage_taken_bonus_percent_with_fifth` | 10.0 | 终歌：损伤状态目标的受伤加成（%） |
 
 **写死的实现细节**（不进配置）：错峰间隔 2 tick、天花板夹紧余量/下限 0.5 格、贴地停留 10 tick、寿命 200 tick、
 光羽显示/存储上限与层高角度尺寸、下落判定阈值 0、圣光矢初速 3.0 与协同延迟 2 tick、共同触发 +1 道/+1 支、第二道偏角 3°、
 凋亡条尺寸与位置（0.90 × 0.10 格、碰撞箱顶部 +0.55 格）、5 条刻度切 6 段、三段配色与脉动（0.5 秒周期）、
 抵抗期倒计时细条、玩家侧 Boss 条（`NOTCHED_6`）、同步节流 5 tick、恶魔翅膀的尺寸与背后偏移（1.35 / 0.42 格）。
 
-**5 件那轮要加的键**（已定稿、实现时追加）：每秒 5%、减疗 80%、受伤 +10%。
-（2 号件四键、3 号件五键、4 号件三键都已落地。）
+**凋亡五件的配置键已全部落地**（2 号件四键、3 号件五键、4 号件三键、5 号件三键），套系收官。
 
 ## 五、代码与资源清单
 
@@ -252,7 +263,7 @@ client/HolyArrowRenderer           圣光矢渲染（光灵箭贴图）
 client/WingFeatherSacramentRenderer 光翼 / 恶魔翅膀渲染层（Curios，挂在玩家模型躯干骨骼上；按物品切参数与标志）
 client/ApoptosisBarRenderer        凋亡损伤头顶条（billboard、不穿墙、纯代码）
 client/ApoptosisBarState           凋亡条的客户端缓存（本地逐 tick 衰减）
-config/ApocryphaConfig             44 项配置
+config/ApocryphaConfig             47 项配置
 command/ApocryphaCommand           本模组指令（/summyapocrypha fear players on|off）
 effect/Apoptosis                   凋亡核心：推条 / 爆条 / 损伤状态 / 抵抗 / 元素伤害钉住 / 玩家 Boss 条
 effect/FallenPlumeWings            「坠羽」爆条时背后展开的翅膀（写饰品 NBT 标志 + 到期清标志）
@@ -268,14 +279,14 @@ effect/TrueDamageFrames            SR 真伤命中后清帧旁路
 effect/ApocryphaSlotSizing         新约系列与凋亡系列栏位的动态格数（每秒）
 entity/NewTestamentArrow           落箭实体（钉住 / 视觉标记 / 无击退）
 entity/HolyArrow                   穿透圣光矢实体
-item/*                             9 件饰品（门槛 + 提示；含恶魔线「堕天」「坠羽」「笞心」「枯笔」）
+item/*                             10 件饰品（门槛 + 提示；含恶魔线五件与天使线五件）
 integration/ReliquaryRef           对 SR 的唯一访问出口（真伤名单、Kilt/Forge 探测）
 net/*                              网络通道（协议 "2"）：AirJumpMessage（C2S）+ ApoptosisBarMessage（S2C）
 slot/ApocryphaSlots                栏位 id 常量、天使线与恶魔线列表、校验谓词
 ```
 
-数据与资源：9 个栏位 json + `curios/entities/player.json`（挂 9 栏位）、3 个伤害类型 + 4 个 `bypasses_*` 标签追加、
-2 个 ER 标签（实体标签 `no_arrow_particles` + 伤害类型标签 `no_dodge`）、9 张栏位图标（16×16）、9 个物品模型 json、中英语言文件。
+数据与资源：10 个栏位 json + `curios/entities/player.json`（挂 10 栏位）、3 个伤害类型 + 4 个 `bypasses_*` 标签追加、
+2 个 ER 标签（实体标签 `no_arrow_particles` + 伤害类型标签 `no_dodge`）、10 张栏位图标（16×16）、10 个物品模型 json、中英语言文件。
 
 ## 六、进度
 
@@ -287,9 +298,11 @@ slot/ApocryphaSlots                栏位 id 常量、天使线与恶魔线列�
 → **恶魔线第二轮：A 口径（损伤状态不再累计）+ 贴图占位修复 + 饰品「坠羽」（4 刀 / 比例爆伤 / 附加 20% / 爆条展翅）**。
 → **恶魔线第三轮：状态改绝对时间（读档自愈）+ 2 号件比例降到 60% + 30 秒空闲清空 + 饰品「笞心」（系数 ×1.5 + 斩杀）**。
 → **恶魔线第四轮：日志补全（空闲清空 / 斩杀判定 / 抵抗削减 / 恐惧）+ 饰品「枯笔」（抵抗削减 + 恐惧）与首条指令**。
+→ **恶魔线第五轮（收官）：栏位位置整理（新约 80~84 / 凋亡 90~94）+ 饰品「终歌」（每秒灼伤 + 减疗 80% + 受伤 +10%）**。
+→ 修复：空闲清空日志的格式符崩服（%.0f 打印 int）。
 
 **当前状态**：新约系列 5 件全部实装并通过实机验收（概率、箭数、起点高度、钉住值、协同交叉账目、无击退、二段跳均以日志核对过）；
-恶魔线第 1~4 件与核心机制已实现（待实机验收）；ER 侧同时加了 `#enchantment_reforged:no_dodge` 伤害类型标签判断（版本号不升，单独提交）。
+恶魔线 5 件与核心机制已全部实现（待实机验收）；ER 侧同时加了 `#enchantment_reforged:no_dodge` 伤害类型标签判断（版本号不升，单独提交）。
 jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 
 ## 七、待办与已知问题
@@ -298,7 +311,7 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 | --- | --- |
 | 光羽渲染观感 | 已照 SR「邦邦咔邦光环」改成**饰品渲染层**（零延迟跟随 + 无旋转仅镜像 + 满 3 对才显现）；高度/间隙两个常量待实机复检微调 |
 | 物品图标 | **已完成**：5 件物品贴图由作者提供并入库（`textures/item/<id>.png`，32×32），创造页图标改用「比翼·连携」；`扩展包` 里的源文件已全部用掉，无遗留未命名素材 |
-| 凋亡 5 件 | **待做**：效果已定稿（见「二」的恶魔线表）——终歌（损伤状态每秒 5% 爆伤 + 减疗 80% + 受伤 +10%） |
+| 凋亡 5 件 | **已完成**：五件全部实装、栏位与新约并列排布完成；套系收官（后续若作者给恶魔线专属美术，替换物品贴图与翅膀贴图即可） |
 | 恶魔线素材 | **待作者提供**：当前栏位图标借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示）、物品贴图借原版（`block/wither_rose` / `item/phantom_membrane` / `item/heart_of_the_sea` / `item/ink_sac` / `item/goat_horn`）、坠羽的翅膀贴图暂用光羽 `light_feather.png` |
 | 凋亡头顶条美术（可选） | 现在是纯代码绘制、已可用；若作者要换美术，按 **64×16 PNG**（上行＝底槽、下行＝满填充、左右各 1px 描边）提供，代码按 `u ∈ [0, 比例]` 裁切 |
 | SR 真伤清帧 | 只在 Forge 47.4.23 实例验证过；**Kilt/Connector 分支未实测**（代码路径已实现）。**转正方案见 8.1** |
@@ -343,7 +356,7 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 1. **构建**：在源码目录执行 `gradlew build`（需 JDK 17，路径走全局 `~/.gradle/gradle.properties`）；
    产物自动复制到 `..\JAR\summy-reliquary-apocrypha\`。
 2. **冒烟**：`gradlew runServer`（`run/mods` 里会自动投放 SR 的 dev 映射 jar）；
-   期望 `Loaded 26 curio slots`（SRA 占 9 个）、配置 44 项、零 ERROR / 异常。
+   期望 `Loaded 27 curio slots`（SRA 占 10 个）、配置 47 项、零 ERROR / 异常。
 3. **实机**：把 jar 拷进实例 `mods`（同名覆盖）→ 启动 → 用 `/summyreliquary angel grant` / `demon grant` 取得对应标记。
 4. **验收**：先在实例配置里把 `[new_testament] log_trigger` 改成 `true`，按动作打一遍，再把
    `E:\MC\PCL2快照版\.minecraft\versions\1.20.1-Forge_47.4.23-test\logs\latest.log` 交给验收方核对，

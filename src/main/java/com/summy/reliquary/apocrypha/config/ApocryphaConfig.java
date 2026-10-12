@@ -67,6 +67,9 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.IntValue APOPTOSIS_RESISTANCE_CUT_SECONDS_WITH_FOURTH;
 	private static final ForgeConfigSpec.IntValue APOPTOSIS_FEAR_SECONDS_WITH_FOURTH;
 	private static final ForgeConfigSpec.BooleanValue APOPTOSIS_FEAR_AFFECTS_PLAYERS;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_PERCENT_PER_SECOND_WITH_FIFTH;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_HEAL_REDUCTION_PERCENT_WITH_FIFTH;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_DAMAGE_TAKEN_BONUS_PERCENT_WITH_FIFTH;
 
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -230,6 +233,16 @@ public final class ApocryphaConfig {
 				.comment("恐惧是否也对玩家生效（默认 false）。",
 						"玩家档 = 移动速度与攻速归零 + 近战与右击全部封禁；可用指令 /summyapocrypha fear players <on|off> 切换")
 				.define("fear_affects_players", false);
+		APOPTOSIS_BURST_PERCENT_PER_SECOND_WITH_FIFTH = builder
+				.comment("佩戴 5 号件「终歌」时，损伤状态期间每秒结算的元素伤害 = 本次爆伤 × 该比例（%）")
+				.defineInRange("burst_percent_per_second_with_fifth", 5.0D, 0.0D, 100.0D);
+		APOPTOSIS_HEAL_REDUCTION_PERCENT_WITH_FIFTH = builder
+				.comment("佩戴「终歌」时，损伤状态的减疗比例提升到的值（%，取代 heal_reduction_percent）")
+				.defineInRange("heal_reduction_percent_with_fifth", 80.0D, 0.0D, 100.0D);
+		APOPTOSIS_DAMAGE_TAKEN_BONUS_PERCENT_WITH_FIFTH = builder
+				.comment("佩戴「终歌」时，损伤状态的目标受到的所有伤害提升的比例（%）",
+						"（只作用于非本模组元素伤害；元素伤害仍按钉住值结算）")
+				.defineInRange("damage_taken_bonus_percent_with_fifth", 10.0D, 0.0D, 1000.0D);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -464,5 +477,20 @@ public final class ApocryphaConfig {
 	public static void setApoptosisFearAffectsPlayers(boolean value) {
 		APOPTOSIS_FEAR_AFFECTS_PLAYERS.set(value);
 		SPEC.save();
+	}
+
+	/** 佩戴「终歌」时每秒结算的爆伤比例（%） */
+	public static double apoptosisBurstPercentPerSecondWithFifth() {
+		return APOPTOSIS_BURST_PERCENT_PER_SECOND_WITH_FIFTH.get();
+	}
+
+	/** 佩戴「终歌」时损伤状态的减疗比例（%） */
+	public static double apoptosisHealReductionPercentWithFifth() {
+		return APOPTOSIS_HEAL_REDUCTION_PERCENT_WITH_FIFTH.get();
+	}
+
+	/** 佩戴「终歌」时损伤状态目标的受伤加成（%） */
+	public static double apoptosisDamageTakenBonusPercentWithFifth() {
+		return APOPTOSIS_DAMAGE_TAKEN_BONUS_PERCENT_WITH_FIFTH.get();
 	}
 }

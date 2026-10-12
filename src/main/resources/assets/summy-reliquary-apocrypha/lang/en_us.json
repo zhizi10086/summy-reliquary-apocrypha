@@ -8,6 +8,7 @@
   "curios.identifier.perdition_exegesis": "Exegesis of Perdition",
   "curios.identifier.perdition_mass": "Mass of Perdition",
   "curios.identifier.perdition_mercy": "Mercy of Perdition",
+  "curios.identifier.perdition_requiem": "Requiem of Perdition",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -99,6 +100,15 @@
   "item.summy-reliquary-apocrypha.withered_brush.shift.3": "Melee hits on a target that is resisting Apoptosis shave off its remaining resistance; at 0 the resistance ends immediately",
   "item.summy-reliquary-apocrypha.withered_brush.shift.4": "Targets you burst are struck with fear: they cannot move or attack (ranged included)",
   "item.summy-reliquary-apocrypha.withered_brush.shift.5": "Fear only affects mobs by default; use /summyapocrypha fear players on to include players",
+
+  "item.summy-reliquary-apocrypha.final_song": "Final Song",
+  "item.summy-reliquary-apocrypha.final_song.desc.1": "\"When the song ends, the corpse is still warm.\"",
+  "item.summy-reliquary-apocrypha.final_song.desc.2": "Sung to the last note, even the wound opens and closes in time.",
+  "item.summy-reliquary-apocrypha.final_song.shift.1": "Per second while Injured|this burst x %s%%",
+  "item.summy-reliquary-apocrypha.final_song.shift.2": "Healing reduction while Injured|%s%%",
+  "item.summy-reliquary-apocrypha.final_song.shift.3": "Damage taken by the Injured target|+%s%%",
+  "item.summy-reliquary-apocrypha.final_song.shift.4": "One hit per second, so five over the 5 s Injured state; all three effects are armed by the wearer at the moment of the burst",
+  "item.summy-reliquary-apocrypha.final_song.shift.5": "The damage bonus only amplifies damage from outside this mod: elemental damage is still settled at its pinned value",
 
   "command.summy-reliquary-apocrypha.fear.players.on": "Apoptosis fear now affects players (movement, melee and right-click are locked)",
   "command.summy-reliquary-apocrypha.fear.players.off": "Apoptosis fear no longer affects players (mobs only)",

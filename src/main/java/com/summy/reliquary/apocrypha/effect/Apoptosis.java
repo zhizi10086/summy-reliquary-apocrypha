@@ -82,6 +82,14 @@ public final class Apoptosis {
 	private static final String LAST_PUSH = "apoptosis_last_push";
 	/** 本段损伤状态是否已经斩杀过（每段状态只落地一次） */
 	private static final String EXECUTE_USED = "apoptosis_execute_used";
+	/** 本次损伤爆发的实际结算值：5 号件（终歌）的每秒灼伤与日志要用它 */
+	private static final String BURST_DAMAGE = "apoptosis_burst_damage";
+	/** 本段损伤状态的减疗比例（%）：爆条那一刻由引爆者的佩戴决定 */
+	private static final String HEAL_REDUCTION = "apoptosis_heal_reduction";
+	/** 本段损伤状态目标的受伤加成（%）：爆条那一刻由引爆者的佩戴决定 */
+	private static final String DAMAGE_TAKEN_BONUS = "apoptosis_damage_taken_bonus";
+	/** 本段损伤状态里「终歌灼伤」已经结算过几笔（每秒一笔，最多 `injured_seconds` 笔） */
+	private static final String SONG_TICKS_PAID = "apoptosis_song_ticks_paid";
 
 	/** 本模组元素伤害类型的 id：钉住与「防递归」判定都用它 */
 	private static final String ELEMENT_ID = "summy-reliquary-apocrypha.apoptosis_element";
@@ -178,6 +186,11 @@ public final class Apoptosis {
 		// 取「触发那一刻」的损伤状态快照：这一刀若正好推满触发爆条，它本身不该再吃附加伤害
 		// （损伤状态是爆条之后才开始的，口径与天使线「在下落状态的那一刻判定」一致）
 		boolean wasInjured = isInjured(target);
+		// 终歌（5 号件）：本段损伤状态的目标受到的最终伤害 +N%（元素伤害在 ① 里已经钉住，不受影响）
+		double takenBonus = damageTakenBonusPercent(target);
+		if (takenBonus > 0.0D) {
+			event.setAmount((float) (event.getAmount() * (1.0D + takenBonus / 100.0D)));
+		}
 		// 读档 / 长时间离线后残留的状态或进度：只要目标被碰过，就重新纳入计时表（自愈 + 让头顶条重新同步）
 		resumeIfCarrying(level, target);
 
@@ -299,6 +312,18 @@ public final class Apoptosis {
 				: ApocryphaConfig.apoptosisExtraDamagePercent();
 	}
 
+	/** 本段损伤状态的减疗比例（%）：爆条时写死，读不到就退回配置默认值 */
+	private static double healReductionPercent(LivingEntity target) {
+		CompoundTag data = data(target);
+		return data.contains(HEAL_REDUCTION) ? data.getDouble(HEAL_REDUCTION)
+				: ApocryphaConfig.apoptosisHealReductionPercent();
+	}
+
+	/** 本段损伤状态目标的受伤加成（%）：爆条时写死，没写过就是 0 */
+	private static double damageTakenBonusPercent(LivingEntity target) {
+		return data(target).getDouble(DAMAGE_TAKEN_BONUS);
+	}
+
 	@SubscribeEvent
 	public static void onLivingHeal(LivingHealEvent event) {
 		if (!(event.getEntity().level() instanceof ServerLevel) || !ApocryphaConfig.enable()) {
@@ -307,7 +332,8 @@ public final class Apoptosis {
 		if (!isInjured(event.getEntity())) {
 			return;
 		}
-		double factor = 1.0D - ApocryphaConfig.apoptosisHealReductionPercent() / 100.0D;
+		// 减疗比例取「本段损伤状态写下的值」：只戴堕天 50%，戴终歌 80%
+		double factor = 1.0D - healReductionPercent(event.getEntity()) / 100.0D;
 		float clamped = (float) Math.max(0.0D, Math.min(1.0D, factor));
 		event.setAmount(event.getAmount() * clamped);
 	}
@@ -392,6 +418,7 @@ public final class Apoptosis {
 		long now = now(target);
 		boolean plume = CurioHelper.wears(attacker, Apocrypha.FALLEN_PLUME.get());
 		boolean third = CurioHelper.wears(attacker, Apocrypha.SCOURGED_HEART.get());
+		boolean fifth = CurioHelper.wears(attacker, Apocrypha.FINAL_SONG.get());
 		double burstDamage = plume
 				? pushDamage * (ApocryphaConfig.apoptosisBurstRatioWithSecondPercent() / 100.0D)
 				: ApocryphaConfig.apoptosisBurstDamage();
@@ -413,6 +440,15 @@ public final class Apoptosis {
 		data.putDouble(PUSH_DAMAGE, 0.0D);
 		data.putLong(LAST_PUSH, now);
 		data.putBoolean(EXECUTE_USED, false);
+		// 5 号件「终歌」：本次爆伤（供每秒灼伤与日志）、减疗比例、受伤加成
+		data.putDouble(BURST_DAMAGE, burstDamage);
+		data.putDouble(HEAL_REDUCTION, fifth
+				? ApocryphaConfig.apoptosisHealReductionPercentWithFifth()
+				: ApocryphaConfig.apoptosisHealReductionPercent());
+		data.putDouble(DAMAGE_TAKEN_BONUS, fifth
+				? ApocryphaConfig.apoptosisDamageTakenBonusPercentWithFifth()
+				: 0.0D);
+		data.putInt(SONG_TICKS_PAID, 0);
 		markActive(level, target);
 		sync(target);
 		// 2 号件：爆条瞬间在引爆者背后展开翅膀（再次爆条刷新计时）
@@ -424,13 +460,17 @@ public final class Apoptosis {
 			WitheredBrush.applyFear(level, attacker, target);
 		}
 		if (ApocryphaConfig.logTrigger()) {
-			Apocrypha.LOGGER.info(String.format("[凋亡] 爆条：%s ← %s（元素伤害 %.2f 点%s%s）",
+			Apocrypha.LOGGER.info(String.format("[凋亡] 爆条：%s ← %s（元素伤害 %.2f 点%s%s%s）",
 					target.getName().getString(), attacker.getName().getString(),
 					burstDamage,
 					plume ? String.format("，口径：坠羽 %d 刀推条之和 %.2f × %.0f%%、附加 %.0f%%",
 							requiredHits(attacker), pushDamage,
 							ApocryphaConfig.apoptosisBurstRatioWithSecondPercent(), extraPercent) : "",
-					third ? String.format("，笞心 ×%.1f", ApocryphaConfig.apoptosisBurstMultiplierWithThird()) : ""));
+					third ? String.format("，笞心 ×%.1f", ApocryphaConfig.apoptosisBurstMultiplierWithThird()) : "",
+					fifth ? String.format("，终歌：每秒 %.0f%%、减疗 %.0f%%、受伤 +%.0f%%",
+							ApocryphaConfig.apoptosisBurstPercentPerSecondWithFifth(),
+							ApocryphaConfig.apoptosisHealReductionPercentWithFifth(),
+							ApocryphaConfig.apoptosisDamageTakenBonusPercentWithFifth()) : ""));
 		}
 		dealElementDamage(level, attacker, target, (float) burstDamage, "爆条");
 	}
@@ -503,6 +543,10 @@ public final class Apoptosis {
 			boolean phaseChanged = false;
 			long injuredUntil = data.getLong(INJURED_UNTIL);
 			long resistUntil = data.getLong(RESIST_UNTIL);
+			if (injuredUntil > now) {
+				// 5 号件「终歌」：损伤状态期间每秒一笔「本次爆伤 × 比例」
+				payFinalSong(active.getValue(), target, data, injuredUntil, now);
+			}
 			if (injuredUntil <= now && resistUntil <= now) {
 				// 两种状态都不在了：把过期的状态收尾（损伤状态刚结束 → 进入损伤抵抗）
 				if (injuredUntil > 0L) {
@@ -510,6 +554,7 @@ public final class Apoptosis {
 					data.putDouble(VALUE, 0.0D);
 					data.putDouble(PUSH_DAMAGE, 0.0D);
 					data.putBoolean(EXECUTE_USED, false);
+					clearBurstSnapshot(data);
 					data.putLong(RESIST_UNTIL,
 							now + Math.max(0, ApocryphaConfig.apoptosisResistanceSeconds()) * 20L);
 					phaseChanged = true;
@@ -524,6 +569,7 @@ public final class Apoptosis {
 						data.putDouble(VALUE, 0.0D);
 						data.putDouble(PUSH_DAMAGE, 0.0D);
 						data.putLong(LAST_PUSH, 0L);
+						clearBurstSnapshot(data);
 						phaseChanged = true;
 						if (ApocryphaConfig.logTrigger()) {
 							// 注意：idleSeconds 是 int，这里只能用 %d（用 %.0f 会抛 IllegalFormatConversionException 并崩服）
@@ -550,6 +596,40 @@ public final class Apoptosis {
 
 	private static void markActive(ServerLevel level, LivingEntity target) {
 		ACTIVE.put(target.getUUID(), level);
+	}
+
+	/**
+	 * 终歌灼伤：损伤状态期间**每满 1 秒**结算一笔「本次爆伤 × `burst_percent_per_second_with_fifth`%」的元素伤害。
+	 *
+	 * <p>用「已过秒数 − 已付笔数」补结算：卡顿、读档、跨维度都不会漏发或多发（正常情况下每 tick 最多 1 笔）。
+	 * 这笔伤害没有攻击者（引爆者不一定在线），因此算作无主的元素伤害。
+	 */
+	private static void payFinalSong(ServerLevel level, LivingEntity target, CompoundTag data, long injuredUntil,
+			long now) {
+		double perSecond = data.getDouble(BURST_DAMAGE)
+				* (ApocryphaConfig.apoptosisBurstPercentPerSecondWithFifth() / 100.0D);
+		if (perSecond <= 0.0D) {
+			return;
+		}
+		int total = injuredTotalTicks();
+		int elapsed = (int) Math.max(0L, Math.min(total, total - (injuredUntil - now)));
+		int due = elapsed / 20;
+		int paid = data.getInt(SONG_TICKS_PAID);
+		if (due <= paid) {
+			return;
+		}
+		data.putInt(SONG_TICKS_PAID, due);
+		for (int index = paid; index < due; index++) {
+			dealElementDamage(level, null, target, (float) perSecond, "终歌灼伤");
+		}
+	}
+
+	/** 本段损伤状态的快照（爆伤 / 减疗 / 受伤加成 / 灼伤笔数）：状态结束时清掉 */
+	private static void clearBurstSnapshot(CompoundTag data) {
+		data.putDouble(BURST_DAMAGE, 0.0D);
+		data.putDouble(HEAL_REDUCTION, 0.0D);
+		data.putDouble(DAMAGE_TAKEN_BONUS, 0.0D);
+		data.putInt(SONG_TICKS_PAID, 0);
 	}
 
 	private static void sync(LivingEntity target) {

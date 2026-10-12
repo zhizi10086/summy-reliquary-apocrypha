@@ -1,0 +1,8 @@
+{
+  "order": 94,
+  "size": 1,
+  "icon": "summy-reliquary-apocrypha:slot/perdition_requiem",
+  "validators": [
+    "summy-reliquary-apocrypha:perdition_requiem_only"
+  ]
+}
