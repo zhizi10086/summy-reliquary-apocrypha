@@ -526,7 +526,8 @@ public final class Apoptosis {
 						data.putLong(LAST_PUSH, 0L);
 						phaseChanged = true;
 						if (ApocryphaConfig.logTrigger()) {
-							Apocrypha.LOGGER.info(String.format("[凋亡] 进度清空（空闲 %.0f 秒）：%s",
+							// 注意：idleSeconds 是 int，这里只能用 %d（用 %.0f 会抛 IllegalFormatConversionException 并崩服）
+							Apocrypha.LOGGER.info(String.format("[凋亡] 进度清空（空闲 %d 秒）：%s",
 									idleSeconds, target.getName().getString()));
 						}
 					}
