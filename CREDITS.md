@@ -36,6 +36,9 @@ and **must not be used commercially**. If any content unintentionally infringes 
 
 ## 代码参考
 
+- **凋亡的「不可闪避」**：ER（Enchantment Reforged）一侧新增的 `#enchantment_reforged:no_dodge` 伤害类型标签判断
+  （`EnchantmentEffects#rollNimbleSteps` 接收 `DamageSource`、命中标签即不闪避；mixin 相应传 `source`），
+  标签内容由本模组提供（`data/enchantment_reforged/tags/damage_type/no_dodge.json`，未装 ER 时该文件无副作用）。
 - 自定义投掷物（`NewTestamentArrow`）的结构与「命中后贴地停留再删除」的做法参考了 SR 的
   `com.summy.reliquary.entity.ThrownSpear` / `ThrownRazor`。
 - 真实伤害的落地口径（先清零无敌帧再结算、伤害减免交给 `bypasses_*` 标签）参考 SR 的

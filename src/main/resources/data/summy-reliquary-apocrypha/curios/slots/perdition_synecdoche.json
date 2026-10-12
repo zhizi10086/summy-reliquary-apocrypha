@@ -1,0 +1,8 @@
+{
+  "order": 20,
+  "size": 1,
+  "icon": "summy-reliquary-apocrypha:slot/perdition_synecdoche",
+  "validators": [
+    "summy-reliquary-apocrypha:perdition_synecdoche_only"
+  ]
+}

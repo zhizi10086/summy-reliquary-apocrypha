@@ -306,6 +306,37 @@
 - 文档同步：README 的系列说明、`PROGRESS.md` 的图标说明与待办表（物品图标一行标记完成）、CREDITS 的「贴图」小节
   （原"新约贴图借原版 `item/arrow`、受 EULA 约束"一条退役，改为"5 件贴图由作者提供"）。
 
+### 恶魔线第一轮：凋亡核心机制 + 栏位「殁亡之提喻」+ 饰品「堕天」（同日第十八轮）
+
+恶魔线套系「**凋亡**」与天使线「新约」对称，共 5 件；本轮先落地**核心机制 + 第 1 件**，2~5 件随后逐件跟进。
+
+- **新栏位「殁亡之提喻」**（`perdition_synecdoche`，order 20、1 格、只接受「堕天」）：与天使线同款，
+  每秒由 SR 的 `SlotSizing.sync` 按恶魔标记动态校正 0/1 格（`ApocryphaSlots.DEMON_SERIES_SLOTS`，后续 4 件各追加一行）。
+- **新饰品「堕天」**（`fallen_heaven`）：门槛＝**恶魔标记**（`CurioItemSupport.canEquipInto` 的自定义门槛重载 +
+  `ReliquaryTooltips.demonLocked / appendDemonHint`），物品名按恶魔派系上色；提示行数值全部取配置。
+- **凋亡损伤条（核心循环，`effect/Apoptosis`）**：佩戴者**近战直击**为目标 +`bar_max / hits_base`（默认 100 / 6 ≈ 16.67）；
+  满 100 触发**爆条**（`burst_damage` = 30 点元素伤害）→ 条**置满**并进入**损伤状态** `injured_seconds`（5 秒），
+  期间条按同一速率**线性回退到 0**、目标每次受伤额外附加 `extra_damage_percent`（10%）的元素伤害、
+  治疗经 `LivingHealEvent` 静默缩放 `heal_reduction_percent`（50%）→ 归零后进入**损伤抵抗** `resistance_seconds`（5 秒，
+  期间不累积）。弓箭 / 投掷物 / 落箭 / 宠物不推条（判据是"直接来源为玩家本人"）。
+- **元素伤害类型** `summy-reliquary-apocrypha:apoptosis_element`：四个 `bypasses_*` 标签全开（无视护甲 / 保护附魔 / 抗性 / 效果），
+  命中前后各清一次无敌帧、结算前后还原目标速度（**无击退**）；金额**钉住**（LOWEST 改回固定值），
+  因此不吃 SR 的七罪七德与全伤害乘区，但"伤害减免"类效果照常生效；伤害源**直接来源留空、造成者＝玩家**
+  （避免 SR 把它当成玩家近战命中去做圣光等掷点）。
+- **不吃闪避**：该类型挂进 `#enchantment_reforged:no_dodge` 伤害类型标签（数据驱动，未装 ER 时无副作用）；
+  ER 侧新增该标签判断 + mixin 传递 `DamageSource`（独立提交，版本号不升）。
+- **目标头顶条**（`client/ApoptosisBarRenderer`，纯代码不需要贴图）：**正对相机**（含俯仰）、与名称牌一致**不穿墙**、
+  平滑填充 + 5 条刻度竖线切出 6 段、三段配色（累积 `#7A1220` / 损伤 `#E0203A` 脉动 / 抵抗 `#5A6B7A` 显示倒计时）。
+- **玩家自身**：受害者是玩家时改用**原版 Boss 条**（`NOTCHED_6`，紫→红→白，名称带百分比 / 剩余秒），零自定义渲染；
+  状态结束 / 死亡 / 登出 / 换维度都移除。
+- **网络**：协议 `"1"` → **`"2"`**，新增一条 S2C 包 `ApoptosisBarMessage`（层数 / 状态变化时发给能看到该目标的玩家，
+  另有 5 tick 节流补发；客户端收到后自己逐 tick 衰减，退出世界清缓存）。
+- **配置**：新增 `[apoptosis]` 段 7 键（`bar_max` 100 / `hits_base` 6 / `burst_damage` 30 / `extra_damage_percent` 10 /
+  `heal_reduction_percent` 50 / `injured_seconds` 5 / `resistance_seconds` 5），配置面 **25 → 32 项**。
+- **素材按约定先用占位**：栏位图标借用新约套「新约-光环」那张，物品贴图借用原版 `minecraft:item/wither_rose`
+  （恶魔线素材到位后替换）。
+- 不改：天使线 5 件与落箭 / 圣光矢 / 光翼 / 二段跳的全部既有行为；不改 SR；版本仍 0.1.0，jar 同名覆盖。
+
 ### 备注
 
 - 首轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步

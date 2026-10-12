@@ -29,6 +29,11 @@ public final class ApocryphaSlotSizing {
 			for (String slotId : ApocryphaSlots.ANGEL_SERIES_SLOTS) {
 				SlotSizing.sync(player, slotId, target);
 			}
+			// 凋亡系列（恶魔线）：按恶魔标记给 1 格、否则 0 格
+			int demonTarget = PlayerFlags.isDemon(player) ? 1 : 0;
+			for (String slotId : ApocryphaSlots.DEMON_SERIES_SLOTS) {
+				SlotSizing.sync(player, slotId, demonTarget);
+			}
 		}
 	}
 }

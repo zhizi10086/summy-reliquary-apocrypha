@@ -4,6 +4,7 @@
   "curios.identifier.new_testament_grace": "Grace of the New Testament",
   "curios.identifier.new_testament_blessing": "Blessing of the New Testament",
   "curios.identifier.new_testament_revelation": "Revelation of the New Testament",
+  "curios.identifier.perdition_synecdoche": "Synecdoche of Perdition",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -54,5 +55,20 @@
   "item.summy-reliquary-apocrypha.paired_wings.shift.6": "Holy arrows and falling arrows are both true damage: ignores armor, protection, resistance and invulnerability frames; holy arrows cause no knockback",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s was pierced by falling arrows",
-  "death.attack.summy-reliquary-apocrypha.holy_arrow": "%1$s was pierced by a holy arrow"
+  "death.attack.summy-reliquary-apocrypha.holy_arrow": "%1$s was pierced by a holy arrow",
+  "death.attack.summy-reliquary-apocrypha.apoptosis_element": "%1$s was consumed by apoptotic elemental damage",
+  "death.attack.summy-reliquary-apocrypha.apoptosis_element.player": "%1$s was consumed by %2$s's apoptosis",
+
+  "item.summy-reliquary-apocrypha.fallen_heaven": "Fallen Heaven",
+  "item.summy-reliquary-apocrypha.fallen_heaven.desc.1": "\"I beheld Satan as lightning fall from heaven.\"",
+  "item.summy-reliquary-apocrypha.fallen_heaven.desc.2": "Wings burned to ash; nothing left but the fall.",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.1": "Melee hits stack Apoptosis Damage on the target (plus 1/%s each; bursts at %s points)",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.2": "Burst elemental damage|%s",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.3": "The target is then Injured for %s s: incoming damage adds %s%% elemental damage, healing −%s%%",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.4": "Afterwards it resists Apoptosis for %s s (no stacking)",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.5": "Elemental damage ignores armor, protection, resistance and dodge; it takes no damage bonuses",
+
+  "message.summy-reliquary-apocrypha.apoptosis.stack": "Apoptosis Damage %s%%",
+  "message.summy-reliquary-apocrypha.apoptosis.injured": "Injured %s s",
+  "message.summy-reliquary-apocrypha.apoptosis.resist": "Apoptosis Resist %s s"
 }

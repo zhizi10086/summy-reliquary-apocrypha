@@ -47,6 +47,15 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.IntValue PAIRED_HOLY_CHANCE_PERCENT;
 	private static final ForgeConfigSpec.IntValue PAIRED_HOLY_DAMAGE_RATIO_PERCENT;
 
+	// ===== 凋亡（恶魔线 #1：核心机制 + 堕天）=====
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BAR_MAX;
+	private static final ForgeConfigSpec.IntValue APOPTOSIS_HITS_BASE;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_DAMAGE;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_DAMAGE_PERCENT;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_HEAL_REDUCTION_PERCENT;
+	private static final ForgeConfigSpec.IntValue APOPTOSIS_INJURED_SECONDS;
+	private static final ForgeConfigSpec.IntValue APOPTOSIS_RESISTANCE_SECONDS;
+
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
@@ -144,6 +153,31 @@ public final class ApocryphaConfig {
 				.comment("圣光矢的伤害比例（百分比）：伤害 = 触发之箭「各类倍率后」的金额 × 该比例",
 						"该值会被钉住 —— 圣光矢命中时不再叠加 Summy Reliquary 的增伤乘区")
 				.defineInRange("holy_arrow_damage_ratio_percent", 100, 0, 1000);
+		builder.pop();
+
+		builder.comment("凋亡（恶魔线套系；装入「殁亡之提喻」栏位的「堕天」开启核心机制）").push("apoptosis");
+		APOPTOSIS_BAR_MAX = builder
+				.comment("凋亡损伤条的总点数（满值即触发爆条）")
+				.defineInRange("bar_max", 100.0D, 1.0D, 10000.0D);
+		APOPTOSIS_HITS_BASE = builder
+				.comment("未佩戴 2 号件（坠羽）时，打满损伤条需要的近战次数：每次攻击推 bar_max / 该值",
+						"（2 号件那轮会再加一个键，把该值改成 4）")
+				.defineInRange("hits_base", 6, 1, 100);
+		APOPTOSIS_BURST_DAMAGE = builder
+				.comment("损伤爆发的元素伤害（点；元素伤害无视护甲/保护/抗性，且不吃增伤乘区）")
+				.defineInRange("burst_damage", 30.0D, 0.0D, 10000.0D);
+		APOPTOSIS_EXTRA_DAMAGE_PERCENT = builder
+				.comment("损伤状态期间，目标每次受伤额外附加的元素伤害（百分比，按该次伤害计算）")
+				.defineInRange("extra_damage_percent", 10.0D, 0.0D, 1000.0D);
+		APOPTOSIS_HEAL_REDUCTION_PERCENT = builder
+				.comment("损伤状态期间目标的治疗削减（百分比，静默缩放 LivingHealEvent）")
+				.defineInRange("heal_reduction_percent", 50.0D, 0.0D, 100.0D);
+		APOPTOSIS_INJURED_SECONDS = builder
+				.comment("损伤状态持续秒数（条在这个时间内从满线性回退到 0）")
+				.defineInRange("injured_seconds", 5, 1, 600);
+		APOPTOSIS_RESISTANCE_SECONDS = builder
+				.comment("损伤抵抗持续秒数（期间不再累积凋亡损伤）")
+				.defineInRange("resistance_seconds", 5, 0, 600);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -275,5 +309,42 @@ public final class ApocryphaConfig {
 	/** 圣光矢的伤害比例（百分比，相对触发之箭「各类倍率后」的金额） */
 	public static int holyArrowDamageRatioPercent() {
 		return PAIRED_HOLY_DAMAGE_RATIO_PERCENT.get();
+	}
+
+	// ===== 凋亡（恶魔线 #1） =====
+
+	/** 凋亡损伤条的总点数 */
+	public static double apoptosisBarMax() {
+		return APOPTOSIS_BAR_MAX.get();
+	}
+
+	/** 打满损伤条需要的近战次数（每次推 bar_max / 该值） */
+	public static int apoptosisHitsBase() {
+		return APOPTOSIS_HITS_BASE.get();
+	}
+
+	/** 损伤爆发的元素伤害 */
+	public static double apoptosisBurstDamage() {
+		return APOPTOSIS_BURST_DAMAGE.get();
+	}
+
+	/** 损伤状态期间附加的元素伤害（百分比） */
+	public static double apoptosisExtraDamagePercent() {
+		return APOPTOSIS_EXTRA_DAMAGE_PERCENT.get();
+	}
+
+	/** 损伤状态期间的治疗削减（百分比） */
+	public static double apoptosisHealReductionPercent() {
+		return APOPTOSIS_HEAL_REDUCTION_PERCENT.get();
+	}
+
+	/** 损伤状态持续秒数 */
+	public static int apoptosisInjuredSeconds() {
+		return APOPTOSIS_INJURED_SECONDS.get();
+	}
+
+	/** 损伤抵抗持续秒数 */
+	public static int apoptosisResistanceSeconds() {
+		return APOPTOSIS_RESISTANCE_SECONDS.get();
 	}
 }

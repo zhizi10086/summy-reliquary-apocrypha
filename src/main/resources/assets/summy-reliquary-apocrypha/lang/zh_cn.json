@@ -4,6 +4,7 @@
   "curios.identifier.new_testament_grace": "新约-恩典",
   "curios.identifier.new_testament_blessing": "新约-祝福",
   "curios.identifier.new_testament_revelation": "新约-启示",
+  "curios.identifier.perdition_synecdoche": "殁亡之提喻",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -54,5 +55,20 @@
   "item.summy-reliquary-apocrypha.paired_wings.shift.6": "圣光矢与落箭同为真实伤害：无视护甲、保护附魔、抗性与无敌帧；圣光矢不造成击退",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s 被落下的箭矢贯穿",
-  "death.attack.summy-reliquary-apocrypha.holy_arrow": "%1$s 被圣光矢贯穿"
+  "death.attack.summy-reliquary-apocrypha.holy_arrow": "%1$s 被圣光矢贯穿",
+  "death.attack.summy-reliquary-apocrypha.apoptosis_element": "%1$s 被凋亡的元素伤害吞噬",
+  "death.attack.summy-reliquary-apocrypha.apoptosis_element.player": "%1$s 在 %2$s 的凋亡下溃散",
+
+  "item.summy-reliquary-apocrypha.fallen_heaven": "堕天",
+  "item.summy-reliquary-apocrypha.fallen_heaven.desc.1": "「我曾看见你从天上坠落，像闪电一样。」",
+  "item.summy-reliquary-apocrypha.fallen_heaven.desc.2": "羽翼焚尽，唯余坠落。",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.1": "近战命中为敌人叠加凋亡损伤（每次 +1/%s，满 %s 点触发爆条）",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.2": "损伤爆发的元素伤害|%s 点",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.3": "随后进入损伤状态（%s 秒）：受伤额外附加 %s%% 元素伤害、治疗 −%s%%",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.4": "结束后进入损伤抵抗 %s 秒（期间不再累积凋亡损伤）",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.5": "元素伤害无视护甲、保护附魔、抗性与闪避；不吃增伤乘区",
+
+  "message.summy-reliquary-apocrypha.apoptosis.stack": "凋亡损伤 %s%%",
+  "message.summy-reliquary-apocrypha.apoptosis.injured": "损伤状态 %s 秒",
+  "message.summy-reliquary-apocrypha.apoptosis.resist": "损伤抵抗 %s 秒"
 }

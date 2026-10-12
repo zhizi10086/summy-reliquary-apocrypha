@@ -3,6 +3,7 @@ package com.summy.reliquary.apocrypha;
 import com.mojang.logging.LogUtils;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.ArrowDamageBonuses;
+import com.summy.reliquary.apocrypha.effect.Apoptosis;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
 import com.summy.reliquary.apocrypha.effect.SacramentArrows;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
@@ -13,6 +14,7 @@ import com.summy.reliquary.apocrypha.item.SwiftFeatherCovenantItem;
 import com.summy.reliquary.apocrypha.item.WingFeatherSacramentItem;
 import com.summy.reliquary.apocrypha.item.InverseFeatherHoverItem;
 import com.summy.reliquary.apocrypha.item.PairedWingsItem;
+import com.summy.reliquary.apocrypha.item.FallenHeavenItem;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import net.minecraft.core.registries.Registries;
@@ -107,6 +109,11 @@ public class Apocrypha {
 			ITEMS.register("paired_wings",
 					() -> new PairedWingsItem(new Item.Properties().stacksTo(1)));
 
+	/** 堕天：装入「殁亡之提喻」栏位的饰品（需要恶魔标记；开启凋亡套系的核心机制） */
+	public static final RegistryObject<Item> FALLEN_HEAVEN =
+			ITEMS.register("fallen_heaven",
+					() -> new FallenHeavenItem(new Item.Properties().stacksTo(1)));
+
 	/** 本模组专属创造标签页 */
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
@@ -119,6 +126,7 @@ public class Apocrypha {
 						output.accept(WING_FEATHER_SACRAMENT.get());
 						output.accept(INVERSE_FEATHER_HOVER.get());
 						output.accept(PAIRED_WINGS.get());
+						output.accept(FALLEN_HEAVEN.get());
 					})
 					.build());
 
@@ -141,11 +149,13 @@ public class Apocrypha {
 		MinecraftForge.EVENT_BUS.register(SacramentArrows.class);
 		// 箭矢伤害加成（圣餐之矢 +N% 与 逆羽·滞空 +M% 同轴相加）
 		MinecraftForge.EVENT_BUS.register(ArrowDamageBonuses.class);
+		// 凋亡（恶魔线）：损伤条状态机、元素伤害钉住、减疗与玩家侧 Boss 条
+		MinecraftForge.EVENT_BUS.register(Apoptosis.class);
 		// 本模组自己的网络通道（协议 "1"：目前只有"空中按下跳跃键"一条 C2S 包）
 		ApocryphaNetworking.register();
 
-		LOGGER.info("[Summy Reliquary: Apocrypha] 初始化完成（前置 Summy Reliquary {}、协议 {}）",
-				ReliquaryRef.version(), ReliquaryRef.protocolVersion());
+		LOGGER.info("[Summy Reliquary: Apocrypha] 初始化完成（前置 Summy Reliquary {}、本模组协议 {}、SR 协议 {}）",
+				ReliquaryRef.version(), ApocryphaNetworking.protocolVersion(), ReliquaryRef.protocolVersion());
 	}
 
 	/** 构造本模组命名空间下的标识符 */
