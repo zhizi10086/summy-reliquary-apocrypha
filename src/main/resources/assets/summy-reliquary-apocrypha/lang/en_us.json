@@ -5,6 +5,7 @@
   "curios.identifier.new_testament_blessing": "Blessing of the New Testament",
   "curios.identifier.new_testament_revelation": "Revelation of the New Testament",
   "curios.identifier.perdition_synecdoche": "Synecdoche of Perdition",
+  "curios.identifier.perdition_exegesis": "Exegesis of Perdition",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -65,8 +66,18 @@
   "item.summy-reliquary-apocrypha.fallen_heaven.shift.1": "Melee hits stack Apoptosis Damage on the target (plus 1/%s each; bursts at %s points)",
   "item.summy-reliquary-apocrypha.fallen_heaven.shift.2": "Burst elemental damage|%s",
   "item.summy-reliquary-apocrypha.fallen_heaven.shift.3": "The target is then Injured for %s s: incoming damage adds %s%% elemental damage, healing −%s%%",
-  "item.summy-reliquary-apocrypha.fallen_heaven.shift.4": "Afterwards it resists Apoptosis for %s s (no stacking)",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.4": "Neither the Injured state nor the following Resist (%s s) stacks or re-bursts; stacking restarts from zero afterwards",
   "item.summy-reliquary-apocrypha.fallen_heaven.shift.5": "Elemental damage ignores armor, protection, resistance and dodge; it takes no damage bonuses",
+
+  "item.summy-reliquary-apocrypha.fallen_plume": "Fallen Plume",
+  "item.summy-reliquary-apocrypha.fallen_plume.desc.1": "\"Where the feathers fall, only ash remains.\"",
+  "item.summy-reliquary-apocrypha.fallen_plume.desc.2": "Every fallen feather remembers one descent.",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.1": "Apoptosis bursts after only %s melee hits (+1/that many each; replaces 6)",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.2": "Burst elemental damage|sum of the stacking hits x %s%%",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.3": "Injured targets take %s%% extra elemental damage (replaces the base value)",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.4": "A pair of wings unfolds for %s s when the burst triggers (refreshed on every burst)",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.5": "When worn with Fallen Heaven this item wins; Fallen Heaven alone stays at %s hits / %s flat damage",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.6": "Elemental damage ignores armor, protection, resistance and dodge; it takes no damage bonuses",
 
   "message.summy-reliquary-apocrypha.apoptosis.stack": "Apoptosis Damage %s%%",
   "message.summy-reliquary-apocrypha.apoptosis.injured": "Injured %s s",

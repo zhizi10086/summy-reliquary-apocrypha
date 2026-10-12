@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.effect.FeatherCharge;
+import com.summy.reliquary.apocrypha.effect.FallenPlumeWings;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -33,8 +34,13 @@ import top.theillusivec4.curios.api.client.ICurioRenderer;
  * <p>★ 实机观感调节区：只改下面这几个常量即可挪动 / 收放翅膀。
  */
 public class WingFeatherSacramentRenderer implements ICurioRenderer {
-	private static final ResourceLocation TEXTURE =
+	/** 光翼（翼羽·圣餐）的贴图 */
+	private static final ResourceLocation ANGEL_TEXTURE =
 			Apocrypha.id("textures/entity/light_feather.png");
+	/**
+	 * 恶魔翅膀（坠羽）的贴图 —— **本轮仍是占位**：直接复用光羽那张，等恶魔线美术到位后只改这一行。
+	 */
+	private static final ResourceLocation DEMON_TEXTURE = ANGEL_TEXTURE;
 
 	/** 四边形边长（格）：正方形 + 整张画布铺满，才保得住贴图 20×30 内容的比例（1.25 格 ≈ 半身多一点） */
 	private static final float WING_SIZE = 1.25F;
@@ -47,10 +53,23 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 	private static final float WING_GAP = 0.20F;
 	/** 贴图内容左缘在四边形内的占比（画布 32 像素里左边 10 像素是留白） */
 	private static final float TEXTURE_INNER_MARGIN = 10.0F / 32.0F;
-	/** 每片沿脊柱方向内移的距离（格）：由目标缝隙反推，公式见下 */
-	private static final float INNER_SHIFT = TEXTURE_INNER_MARGIN * WING_SIZE - WING_GAP / 2.0F;
+	/**
+	 * 每片沿脊柱方向内移的距离（格）：由目标缝隙反推。
+	 *
+	 * <p>尺寸是参数（两件饰品各一套），所以这个值必须跟着尺寸一起算。
+	 */
+	private static float innerShift(float size) {
+		return TEXTURE_INNER_MARGIN * size - WING_GAP / 2.0F;
+	}
 	/** 整对向玩家身后偏移的距离（格） */
 	private static final float BACK_OFFSET = 0.35F;
+	/**
+	 * 恶魔翅膀（坠羽）用的差异参数：尺寸略大、离背略远。
+	 *
+	 * <p>两件饰品可以同时佩戴，参数错开才不会让两对翅膀共面闪烁。
+	 */
+	private static final float DEMON_WING_SIZE = 1.35F;
+	private static final float DEMON_BACK_OFFSET = 0.42F;
 	/**
 	 * 翼根相对 <b>body 骨骼枢轴</b>"向下"偏移的距离（格，<b>正值向下</b>）—— 最常调的一个数。
 	 *
@@ -70,26 +89,33 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 			PoseStack poseStack, RenderLayerParent<T, M> renderLayerParent, MultiBufferSource buffer, int light,
 			float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float netHeadYaw,
 			float headPitch) {
-		// 只有攒满 3 对（6 片）时服务端才会把标志写进饰品 NBT；没有标志就不画
+		// 两件饰品共用这一套渲染：光翼看「攒满 3 对」的标志，恶魔翅膀（坠羽）看爆条时写的标志
+		boolean demon = stack.is(Apocrypha.FALLEN_PLUME.get());
+		String flag = demon ? FallenPlumeWings.FLAG : FeatherCharge.WING_FLAG;
 		CompoundTag tag = stack.getTag();
-		if (tag == null || !tag.getBoolean(FeatherCharge.WING_FLAG)) {
+		if (tag == null || !tag.getBoolean(flag)) {
 			return;
 		}
 		// 只有人形模型（玩家、僵尸这类）才有躯干骨骼
 		if (!(renderLayerParent.getModel() instanceof HumanoidModel<?> humanoid)) {
 			return;
 		}
+		// 恶魔翅膀尺寸略大、离背略远（两件同戴时不会共面闪烁）；贴图本轮都是光羽那张（恶魔线美术待补）
+		float size = demon ? DEMON_WING_SIZE : WING_SIZE;
+		float backOffset = demon ? DEMON_BACK_OFFSET : BACK_OFFSET;
+		ResourceLocation texture = demon ? DEMON_TEXTURE : ANGEL_TEXTURE;
+		float shift = innerShift(size);
 
 		poseStack.pushPose();
 		// 挂到躯干骨骼：跟随身体朝向、潜行前倾、骑乘偏移等（该空间里 −Y 向上、+Z 朝身后）
 		humanoid.body.translateAndRotate(poseStack);
 		// 先从肩线向下落到背中段（该空间 +y 向下），再退到背后
-		poseStack.translate(0.0D, WING_ROOT_DROP, BACK_OFFSET);
+		poseStack.translate(0.0D, WING_ROOT_DROP, backOffset);
 		// 轻微上下浮动：相对背部上下，逐帧平滑
 		float bob = Mth.sin(ageInTicks * BOB_SPEED) * BOB_AMPLITUDE;
 		poseStack.translate(0.0D, -bob, 0.0D);
-		drawWing(poseStack, buffer, light, false); // 右片（贴图原样）
-		drawWing(poseStack, buffer, light, true);  // 左片（左右镜像）
+		drawWing(poseStack, buffer, light, false, texture, size, shift); // 右片（贴图原样）
+		drawWing(poseStack, buffer, light, true, texture, size, shift);  // 左片（左右镜像）
 		poseStack.popPose();
 	}
 
@@ -99,20 +125,21 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 	 * <p>uv 对应：枢轴一角取 (0,1)、沿 −Y 到顶边取 (0,0)、顶边外角 (1,0)、外下角 (1,1)
 	 * —— v=0 是贴图顶部，所以画出来是正的。
 	 */
-	private static void drawWing(PoseStack poseStack, MultiBufferSource buffer, int light, boolean mirror) {
+	private static void drawWing(PoseStack poseStack, MultiBufferSource buffer, int light, boolean mirror,
+			ResourceLocation texture, float size, float shift) {
 		poseStack.pushPose();
 		if (mirror) {
 			poseStack.scale(-1.0F, 1.0F, 1.0F);
 		}
 		// 镜像之后施加同一个内移，两片会自动对称地朝脊柱收拢
-		poseStack.translate(-INNER_SHIFT, 0.0D, 0.0D);
+		poseStack.translate(-shift, 0.0D, 0.0D);
 		Matrix4f matrix = poseStack.last().pose();
 		Matrix3f normal = poseStack.last().normal();
-		VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
+		VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
 		vertex(consumer, matrix, normal, 0.0F, 0.0F, light, 0.0F, 1.0F);
-		vertex(consumer, matrix, normal, 0.0F, -WING_SIZE, light, 0.0F, 0.0F);
-		vertex(consumer, matrix, normal, WING_SIZE, -WING_SIZE, light, 1.0F, 0.0F);
-		vertex(consumer, matrix, normal, WING_SIZE, 0.0F, light, 1.0F, 1.0F);
+		vertex(consumer, matrix, normal, 0.0F, -size, light, 0.0F, 0.0F);
+		vertex(consumer, matrix, normal, size, -size, light, 1.0F, 0.0F);
+		vertex(consumer, matrix, normal, size, 0.0F, light, 1.0F, 1.0F);
 		poseStack.popPose();
 	}
 

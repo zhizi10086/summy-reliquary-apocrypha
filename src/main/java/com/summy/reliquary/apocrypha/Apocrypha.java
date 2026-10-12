@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.ArrowDamageBonuses;
 import com.summy.reliquary.apocrypha.effect.Apoptosis;
+import com.summy.reliquary.apocrypha.effect.FallenPlumeWings;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
 import com.summy.reliquary.apocrypha.effect.SacramentArrows;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
@@ -15,6 +16,7 @@ import com.summy.reliquary.apocrypha.item.WingFeatherSacramentItem;
 import com.summy.reliquary.apocrypha.item.InverseFeatherHoverItem;
 import com.summy.reliquary.apocrypha.item.PairedWingsItem;
 import com.summy.reliquary.apocrypha.item.FallenHeavenItem;
+import com.summy.reliquary.apocrypha.item.FallenPlumeItem;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import net.minecraft.core.registries.Registries;
@@ -114,6 +116,11 @@ public class Apocrypha {
 			ITEMS.register("fallen_heaven",
 					() -> new FallenHeavenItem(new Item.Properties().stacksTo(1)));
 
+	/** 坠羽：装入「殁亡之释经」栏位的饰品（需要恶魔标记；凋亡套系 #2，4 刀爆条 + 比例爆伤 + 爆条展翅） */
+	public static final RegistryObject<Item> FALLEN_PLUME =
+			ITEMS.register("fallen_plume",
+					() -> new FallenPlumeItem(new Item.Properties().stacksTo(1)));
+
 	/** 本模组专属创造标签页 */
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
@@ -127,6 +134,7 @@ public class Apocrypha {
 						output.accept(INVERSE_FEATHER_HOVER.get());
 						output.accept(PAIRED_WINGS.get());
 						output.accept(FALLEN_HEAVEN.get());
+						output.accept(FALLEN_PLUME.get());
 					})
 					.build());
 
@@ -151,6 +159,8 @@ public class Apocrypha {
 		MinecraftForge.EVENT_BUS.register(ArrowDamageBonuses.class);
 		// 凋亡（恶魔线）：损伤条状态机、元素伤害钉住、减疗与玩家侧 Boss 条
 		MinecraftForge.EVENT_BUS.register(Apoptosis.class);
+		// 凋亡 #2「坠羽」：爆条时在引爆者背后展开的翅膀（标志写进饰品 NBT，客户端用 Curios 渲染层画）
+		MinecraftForge.EVENT_BUS.register(FallenPlumeWings.class);
 		// 本模组自己的网络通道（协议 "1"：目前只有"空中按下跳跃键"一条 C2S 包）
 		ApocryphaNetworking.register();
 

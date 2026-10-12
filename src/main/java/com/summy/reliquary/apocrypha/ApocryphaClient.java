@@ -34,5 +34,8 @@ public final class ApocryphaClient {
 		// 光翼：照 SR「邦邦咔邦光环」的做法，用 Curios 的渲染回调画在玩家模型的躯干骨骼上（零延迟跟随）
 		CuriosRendererRegistry.register(Apocrypha.WING_FEATHER_SACRAMENT.get(),
 				WingFeatherSacramentRenderer::new);
+		// 恶魔翅膀（坠羽）：同一套渲染层，参数与标志都按物品切换（见渲染器里的 demon 分支）
+		CuriosRendererRegistry.register(Apocrypha.FALLEN_PLUME.get(),
+				WingFeatherSacramentRenderer::new);
 	}
 }

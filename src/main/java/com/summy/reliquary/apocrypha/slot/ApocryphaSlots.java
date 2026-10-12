@@ -24,6 +24,8 @@ public final class ApocryphaSlots {
 	public static final String NEW_TESTAMENT_REVELATION = "new_testament_revelation";
 	/** 殁亡之提喻栏位（凋亡系列 #1，恶魔线） */
 	public static final String PERDITION_SYNECDOCHE = "perdition_synecdoche";
+	/** 殁亡之释经栏位（凋亡系列 #2，恶魔线） */
+	public static final String PERDITION_EXEGESIS = "perdition_exegesis";
 
 	/**
 	 * 「新约系列」的栏位：**仅天使线开放**（有天使标记时 1 格、否则 0 格）。
@@ -39,7 +41,7 @@ public final class ApocryphaSlots {
 	 *
 	 * <p>与 {@link #ANGEL_SERIES_SLOTS} 同款处理，后续 4 件各追加一行。
 	 */
-	public static final List<String> DEMON_SERIES_SLOTS = List.of(PERDITION_SYNECDOCHE);
+	public static final List<String> DEMON_SERIES_SLOTS = List.of(PERDITION_SYNECDOCHE, PERDITION_EXEGESIS);
 
 	private ApocryphaSlots() {
 	}
@@ -64,5 +66,8 @@ public final class ApocryphaSlots {
 		// 殁亡之提喻：只接受「堕天」
 		CuriosApi.registerCurioPredicate(Apocrypha.id("perdition_synecdoche_only"),
 				result -> result.stack().is(Apocrypha.FALLEN_HEAVEN.get()));
+		// 殁亡之释经：只接受「坠羽」
+		CuriosApi.registerCurioPredicate(Apocrypha.id("perdition_exegesis_only"),
+				result -> result.stack().is(Apocrypha.FALLEN_PLUME.get()));
 	}
 }

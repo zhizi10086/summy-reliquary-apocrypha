@@ -5,6 +5,7 @@
   "curios.identifier.new_testament_blessing": "新约-祝福",
   "curios.identifier.new_testament_revelation": "新约-启示",
   "curios.identifier.perdition_synecdoche": "殁亡之提喻",
+  "curios.identifier.perdition_exegesis": "殁亡之释经",
 
   "itemGroup.summy-reliquary-apocrypha.main": "Summy Reliquary: Apocrypha",
 
@@ -65,8 +66,18 @@
   "item.summy-reliquary-apocrypha.fallen_heaven.shift.1": "近战命中为敌人叠加凋亡损伤（每次 +1/%s，满 %s 点触发爆条）",
   "item.summy-reliquary-apocrypha.fallen_heaven.shift.2": "损伤爆发的元素伤害|%s 点",
   "item.summy-reliquary-apocrypha.fallen_heaven.shift.3": "随后进入损伤状态（%s 秒）：受伤额外附加 %s%% 元素伤害、治疗 −%s%%",
-  "item.summy-reliquary-apocrypha.fallen_heaven.shift.4": "结束后进入损伤抵抗 %s 秒（期间不再累积凋亡损伤）",
+  "item.summy-reliquary-apocrypha.fallen_heaven.shift.4": "损伤状态与随后的损伤抵抗（%s 秒）期间都不再累积、也不再爆条；抵抗结束后从零重新累计",
   "item.summy-reliquary-apocrypha.fallen_heaven.shift.5": "元素伤害无视护甲、保护附魔、抗性与闪避；不吃增伤乘区",
+
+  "item.summy-reliquary-apocrypha.fallen_plume": "坠羽",
+  "item.summy-reliquary-apocrypha.fallen_plume.desc.1": "「翎羽坠处，尽是灰烬。」",
+  "item.summy-reliquary-apocrypha.fallen_plume.desc.2": "每一片落羽，都记着一次坠落。",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.1": "凋亡损伤只需 %s 刀就能爆条（每刀 +1/该值，取代堕天的 6 刀）",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.2": "损伤爆发|推条那几刀的伤害之和 × %s%%",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.3": "损伤状态期间的附加元素伤害提升至 %s%%（取代堕天那一档）",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.4": "损伤爆发时在背后展开翅膀 %s 秒（再次爆条刷新）",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.5": "与堕天同戴时以本件为准；只戴堕天时仍是 %s 刀爆条、固定 %s 点",
+  "item.summy-reliquary-apocrypha.fallen_plume.shift.6": "元素伤害无视护甲、保护附魔、抗性与闪避；不吃增伤乘区",
 
   "message.summy-reliquary-apocrypha.apoptosis.stack": "凋亡损伤 %s%%",
   "message.summy-reliquary-apocrypha.apoptosis.injured": "损伤状态 %s 秒",

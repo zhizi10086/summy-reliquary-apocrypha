@@ -337,6 +337,30 @@
   （恶魔线素材到位后替换）。
 - 不改：天使线 5 件与落箭 / 圣光矢 / 光翼 / 二段跳的全部既有行为；不改 SR；版本仍 0.1.0，jar 同名覆盖。
 
+### 恶魔线第二轮：A 口径 + 贴图占位修复 + 饰品「坠羽」（同日第十九轮）
+
+- **口径改动（A 方案，两件共用）**：`effect/Apoptosis` 的推条早退条件由「抵抗期不累计」扩为
+  「**损伤状态与抵抗期都不累计、也不能再次爆条**」。一次循环固定为「攒满 → 爆条 → 5 秒损伤状态
+  （条从满线性回退到 0）→ 5 秒抵抗 → 从零重新攒」，即一次爆条后 10 秒内同一目标不会再爆条；
+  损伤状态的附加伤害与减疗表现不变。
+- **贴图占位修复**：`models/item/fallen_heaven.json` 的 `layer0` 由 `minecraft:item/wither_rose` 改为
+  **`minecraft:block/wither_rose`** —— 凋灵玫瑰在 1.20.1 只有方块贴图，之前物品渲染成黑紫块
+  （客户端日志有 `Missing textures in model ...`）。其余占位（幻翼膜 / 海洋之心 / 墨囊 / 山羊角）均为标准物品贴图，无需改动。
+- **新栏位「殁亡之释经」**（`perdition_exegesis`，order 21、1 格、只接受「坠羽」）：加入恶魔线列表与玩家栏位表；
+  图标按约定借新约套「新约-才能」那张（拷成 `textures/slot/perdition_exegesis.png`）。
+- **新饰品「坠羽」**（`fallen_plume`，恶魔门槛）：凋亡损伤 **4 刀**爆条；爆条伤害不再是固定值，改为
+  **本轮推条那几刀伤害之和 × 120%**（金额取 `LivingHurtEvent` 那一刻的值，含 SR 乘区）；损伤状态的附加提升至 **20%**；
+  爆条瞬间在**引爆者**背后展开翅膀 **5 秒**（再次爆条刷新）。与「堕天」同戴时**以本件为准**。
+  推条判定相应放宽为「佩戴堕天或坠羽」；爆伤口径与附加比例在爆条那一刻由引爆者的佩戴决定并写进目标数据
+  （新增持久数据键 `apoptosis_push_damage` / `apoptosis_extra_percent`）。
+- **爆条翅膀**：新增 `effect/FallenPlumeWings` —— 显隐标志写在坠羽堆栈 NBT 上（键 `ApocryphaDemonWings`，
+  与光羽的 `ApocryphaWings` 分开），客户端复用同一套 Curios 渲染层（恶魔翅膀用尺寸 1.35 / 背后偏移 0.42 与光翼错开，
+  贴图暂用光羽 `light_feather.png` 占位）；登出 / 停机立刻清标志。
+- **配置**：`[apoptosis]` 新增 `hits_with_second` 4 / `burst_ratio_with_second_percent` 120 /
+  `extra_damage_percent_with_second` 20 / `wing_seconds` 5，配置面 **32 → 36 项**。
+- 文档：README 凋亡小节补 A 口径、坠羽口径、翅膀与「素材借用表（含凋灵玫瑰走方块贴图这个坑）」；PROGRESS 同步；
+  CREDITS 记恶魔线贴图暂借原版与栏位图标暂借新约套。
+
 ### 备注
 
 - 首轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步

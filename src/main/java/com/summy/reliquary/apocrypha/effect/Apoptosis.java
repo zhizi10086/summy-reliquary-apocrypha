@@ -38,9 +38,14 @@ import java.util.UUID;
 /**
  * 恶魔线「凋亡」套系的核心机制（服务端）：凋亡损伤条、爆条、损伤状态、损伤抵抗、元素伤害。
  *
- * <p>**循环**：佩戴「堕天」的玩家用**近战直击**命中目标 → 损伤值 +`bar_max / hits_base`（默认 100 / 6）；
- * 满 `bar_max` → **爆条**（元素伤害）→ 条置满并随**损伤状态**（默认 5 秒）线性回退到 0 ——
- * 期间目标每次受伤额外附加元素伤害、治疗被削减；条归 0 后进入**损伤抵抗**（默认 5 秒，期间不再累积）。
+ * <p>**循环**：佩戴「堕天」或「坠羽」的玩家用**近战直击**命中目标 → 损伤值 +`bar_max / 刀数`
+ * （堕天 6 刀、坠羽 4 刀）；满 `bar_max` → **爆条**（元素伤害）→ 条置满并随**损伤状态**（默认 5 秒）
+ * 线性回退到 0 —— 期间目标每次受伤额外附加元素伤害、治疗被削减；条归 0 后进入**损伤抵抗**（默认 5 秒）。
+ * **损伤状态与损伤抵抗期间都不再累积损伤值**，所以一次爆条后 10 秒内同一目标不会再爆条。
+ *
+ * <p>**两件饰品的差别**（口径全部由「引爆者」的佩戴决定，并落到目标状态上）：戴「坠羽」时爆伤改为
+ * 「本轮推条那几刀伤害之和 × 比例」、附加比例换成坠羽那一档，且爆条瞬间在引爆者背后展开翅膀
+ * （见 {@link FallenPlumeWings}）；只戴「堕天」时是固定的 {@code burst_damage} 与基础附加比例。
  *
  * <p>**元素伤害**：独立伤害类型，自带四个 {@code bypasses_*} 标签（无视护甲 / 保护附魔 / 抗性 / 效果），
  * 并且金额**钉住** —— 在 {@link LivingHurtEvent}（LOWEST）把金额改回我们发出的固定值，因此不吃
@@ -55,6 +60,10 @@ public final class Apoptosis {
 	private static final String VALUE = "apoptosis_value";
 	private static final String INJURED = "apoptosis_injured_ticks";
 	private static final String RESIST = "apoptosis_resist_ticks";
+	/** 本轮累计里「推条那几刀」的伤害之和：2 号件（坠羽）的爆伤口径要用它 */
+	private static final String PUSH_DAMAGE = "apoptosis_push_damage";
+	/** 本段损伤状态的附加伤害比例（%）：爆条那一刻由引爆者的佩戴决定并写下来 */
+	private static final String EXTRA_PERCENT = "apoptosis_extra_percent";
 
 	/** 本模组元素伤害类型的 id：钉住与「防递归」判定都用它 */
 	private static final String ELEMENT_ID = "summy-reliquary-apocrypha.apoptosis_element";
@@ -130,19 +139,32 @@ public final class Apoptosis {
 		// （损伤状态是爆条之后才开始的，口径与天使线「在下落状态的那一刻判定」一致）
 		boolean wasInjured = isInjured(target);
 
-		// ② 佩戴「堕天」的玩家近战直击 → 推条
+		// ② 佩戴「堕天」或「坠羽」的玩家近战直击 → 推条
 		//（弓箭 / 投掷物 / 落箭 / 宠物：直接来源都不是玩家本人，天然被排除）
 		if (event.getSource().getDirectEntity() instanceof ServerPlayer attacker && attacker != target
-				&& CurioHelper.wears(attacker, Apocrypha.FALLEN_HEAVEN.get())) {
-			push(level, attacker, target);
+				&& wearsElementCurio(attacker)) {
+			push(level, attacker, target, event.getAmount());
 		}
 
-		// ③ 损伤状态：这一次受伤额外附加元素伤害
+		// ③ 损伤状态：这一次受伤额外附加元素伤害（比例由引爆那一刻定死在目标数据里）
 		if (wasInjured) {
-			float extra = event.getAmount() * (float) (ApocryphaConfig.apoptosisExtraDamagePercent() / 100.0D);
+			float extra = event.getAmount() * (float) (extraPercent(target) / 100.0D);
 			Entity causing = event.getSource().getEntity();
 			dealElementDamage(level, causing instanceof ServerPlayer player ? player : null, target, extra, "附加");
 		}
+	}
+
+	/** 是否佩戴恶魔线「凋亡」的两件之一（堕天 / 坠羽）—— 两件都能推条 */
+	private static boolean wearsElementCurio(ServerPlayer player) {
+		return CurioHelper.wears(player, Apocrypha.FALLEN_HEAVEN.get())
+				|| CurioHelper.wears(player, Apocrypha.FALLEN_PLUME.get());
+	}
+
+	/** 本段损伤状态的附加伤害比例（%）：爆条时写死，读不到就退回配置默认值 */
+	private static double extraPercent(LivingEntity target) {
+		CompoundTag data = data(target);
+		return data.contains(EXTRA_PERCENT) ? data.getDouble(EXTRA_PERCENT)
+				: ApocryphaConfig.apoptosisExtraDamagePercent();
 	}
 
 	@SubscribeEvent
@@ -195,17 +217,20 @@ public final class Apoptosis {
 
 	// ==================== 推条 / 爆条 ====================
 
-	private static void push(ServerLevel level, ServerPlayer attacker, LivingEntity target) {
+	private static void push(ServerLevel level, ServerPlayer attacker, LivingEntity target, float hitDamage) {
 		CompoundTag data = data(target);
-		if (data.getInt(RESIST) > 0) {
-			// 损伤抵抗：不再累积
+		// 损伤状态与损伤抵抗一样：期间既不累计、也不能再次爆条（一次爆条后 10 秒内同一目标不会再爆）
+		if (data.getInt(RESIST) > 0 || data.getInt(INJURED) > 0) {
 			return;
 		}
 		double barMax = Math.max(1.0D, ApocryphaConfig.apoptosisBarMax());
-		double gain = barMax / Math.max(1, ApocryphaConfig.apoptosisHitsBase());
+		double gain = barMax / requiredHits(attacker);
 		double next = data.getDouble(VALUE) + gain;
+		// 先把这一刀的金额记进本轮累计：2 号件（坠羽）的爆伤就是这几刀之和 × 比例
+		double pushDamage = data.getDouble(PUSH_DAMAGE) + Math.max(0.0F, hitDamage);
+		data.putDouble(PUSH_DAMAGE, pushDamage);
 		if (next >= barMax - 1.0E-6D) {
-			burst(level, attacker, target, barMax);
+			burst(level, attacker, target, barMax, pushDamage);
 			return;
 		}
 		data.putDouble(VALUE, next);
@@ -213,20 +238,51 @@ public final class Apoptosis {
 		sync(target);
 	}
 
-	private static void burst(ServerLevel level, ServerPlayer attacker, LivingEntity target, double barMax) {
+	/** 打满损伤条需要的近战次数：佩戴「坠羽」时为 hits_with_second（4），否则为 hits_base（6） */
+	private static int requiredHits(ServerPlayer attacker) {
+		return CurioHelper.wears(attacker, Apocrypha.FALLEN_PLUME.get())
+				? Math.max(1, ApocryphaConfig.apoptosisHitsWithSecond())
+				: Math.max(1, ApocryphaConfig.apoptosisHitsBase());
+	}
+
+	/**
+	 * 爆条：口径（刀数 / 爆伤 / 附加比例）全部由**引爆者**的佩戴决定，并把附加比例落到目标状态上。
+	 *
+	 * <p>戴「坠羽」→ 爆伤 = 本轮推条伤害之和 × 比例（取代固定的 burst_damage）、附加比例取坠羽那一档；
+	 * 只戴「堕天」→ 固定 burst_damage 与基础附加比例（行为与数值与增加坠羽之前完全一致）。
+	 */
+	private static void burst(ServerLevel level, ServerPlayer attacker, LivingEntity target, double barMax,
+			double pushDamage) {
 		CompoundTag data = data(target);
+		boolean plume = CurioHelper.wears(attacker, Apocrypha.FALLEN_PLUME.get());
+		double burstDamage = plume
+				? pushDamage * (ApocryphaConfig.apoptosisBurstRatioWithSecondPercent() / 100.0D)
+				: ApocryphaConfig.apoptosisBurstDamage();
+		double extraPercent = plume
+				? ApocryphaConfig.apoptosisExtraDamagePercentWithSecond()
+				: ApocryphaConfig.apoptosisExtraDamagePercent();
 		// 条置满，并在损伤状态期间线性回退到 0
 		data.putDouble(VALUE, barMax);
 		data.putInt(INJURED, ApocryphaConfig.apoptosisInjuredSeconds() * 20);
 		data.putInt(RESIST, 0);
+		// 本段损伤状态的附加比例定下来；本轮推条累计清零（下一轮重新攒）
+		data.putDouble(EXTRA_PERCENT, extraPercent);
+		data.putDouble(PUSH_DAMAGE, 0.0D);
 		markActive(level, target);
 		sync(target);
-		if (ApocryphaConfig.logTrigger()) {
-			Apocrypha.LOGGER.info(String.format("[凋亡] 爆条：%s ← %s（元素伤害 %.2f 点）",
-					target.getName().getString(), attacker.getName().getString(),
-					ApocryphaConfig.apoptosisBurstDamage()));
+		// 2 号件：爆条瞬间在引爆者背后展开翅膀（再次爆条刷新计时）
+		if (plume) {
+			FallenPlumeWings.flash(attacker);
 		}
-		dealElementDamage(level, attacker, target, (float) ApocryphaConfig.apoptosisBurstDamage(), "爆条");
+		if (ApocryphaConfig.logTrigger()) {
+			Apocrypha.LOGGER.info(String.format("[凋亡] 爆条：%s ← %s（元素伤害 %.2f 点%s）",
+					target.getName().getString(), attacker.getName().getString(),
+					burstDamage,
+					plume ? String.format("，口径：坠羽 %d 刀推条之和 %.2f × %.0f%%、附加 %.0f%%",
+							requiredHits(attacker), pushDamage,
+							ApocryphaConfig.apoptosisBurstRatioWithSecondPercent(), extraPercent) : ""));
+		}
+		dealElementDamage(level, attacker, target, (float) burstDamage, "爆条");
 	}
 
 	// ==================== 元素伤害 ====================
@@ -314,6 +370,7 @@ public final class Apoptosis {
 				}
 			} else if (data.getDouble(VALUE) <= 0.0D) {
 				// 彻底结束：移出登记表并让客户端把条清掉
+				data.putDouble(PUSH_DAMAGE, 0.0D);
 				iterator.remove();
 				removeBar(active.getKey());
 				sync(target);

@@ -1,0 +1,8 @@
+{
+  "order": 21,
+  "size": 1,
+  "icon": "summy-reliquary-apocrypha:slot/perdition_exegesis",
+  "validators": [
+    "summy-reliquary-apocrypha:perdition_exegesis_only"
+  ]
+}

@@ -55,6 +55,10 @@ public final class ApocryphaConfig {
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_HEAL_REDUCTION_PERCENT;
 	private static final ForgeConfigSpec.IntValue APOPTOSIS_INJURED_SECONDS;
 	private static final ForgeConfigSpec.IntValue APOPTOSIS_RESISTANCE_SECONDS;
+	private static final ForgeConfigSpec.IntValue APOPTOSIS_HITS_WITH_SECOND;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_RATIO_WITH_SECOND_PERCENT;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_DAMAGE_PERCENT_WITH_SECOND;
+	private static final ForgeConfigSpec.IntValue APOPTOSIS_WING_SECONDS;
 
 	static {
 		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
@@ -178,6 +182,20 @@ public final class ApocryphaConfig {
 		APOPTOSIS_RESISTANCE_SECONDS = builder
 				.comment("损伤抵抗持续秒数（期间不再累积凋亡损伤）")
 				.defineInRange("resistance_seconds", 5, 0, 600);
+		APOPTOSIS_HITS_WITH_SECOND = builder
+				.comment("佩戴 2 号件「坠羽」时，打满损伤条需要的近战次数（定稿为「6 − 2 = 4」）")
+				.defineInRange("hits_with_second", 4, 1, 100);
+		APOPTOSIS_BURST_RATIO_WITH_SECOND_PERCENT = builder
+				.comment("佩戴「坠羽」时，爆条伤害 = 本轮「推条那几刀」伤害之和 × 该比例（%）",
+						"（取代固定的 burst_damage；刀数为 hits_with_second）")
+				.defineInRange("burst_ratio_with_second_percent", 120.0D, 0.0D, 1000.0D);
+		APOPTOSIS_EXTRA_DAMAGE_PERCENT_WITH_SECOND = builder
+				.comment("佩戴「坠羽」时，损伤状态期间额外附加的元素伤害比例（%）",
+						"（取代 extra_damage_percent）")
+				.defineInRange("extra_damage_percent_with_second", 20.0D, 0.0D, 1000.0D);
+		APOPTOSIS_WING_SECONDS = builder
+				.comment("「坠羽」爆条时背后展开翅膀的持续秒数（再次爆条会刷新）")
+				.defineInRange("wing_seconds", 5, 0, 600);
 		builder.pop();
 
 		SPEC = builder.build();
@@ -346,5 +364,25 @@ public final class ApocryphaConfig {
 	/** 损伤抵抗持续秒数 */
 	public static int apoptosisResistanceSeconds() {
 		return APOPTOSIS_RESISTANCE_SECONDS.get();
+	}
+
+	/** 佩戴「坠羽」时打满损伤条需要的近战次数 */
+	public static int apoptosisHitsWithSecond() {
+		return APOPTOSIS_HITS_WITH_SECOND.get();
+	}
+
+	/** 佩戴「坠羽」时爆条伤害的比例（%，乘以本轮推条伤害之和） */
+	public static double apoptosisBurstRatioWithSecondPercent() {
+		return APOPTOSIS_BURST_RATIO_WITH_SECOND_PERCENT.get();
+	}
+
+	/** 佩戴「坠羽」时损伤状态的附加伤害比例（%） */
+	public static double apoptosisExtraDamagePercentWithSecond() {
+		return APOPTOSIS_EXTRA_DAMAGE_PERCENT_WITH_SECOND.get();
+	}
+
+	/** 「坠羽」爆条时翅膀的持续秒数 */
+	public static int apoptosisWingSeconds() {
+		return APOPTOSIS_WING_SECONDS.get();
 	}
 }
