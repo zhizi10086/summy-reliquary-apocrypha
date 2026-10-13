@@ -42,7 +42,38 @@ public final class ApocryphaText {
 
 	/** 取一条语言文本、解析行内标记，返回可直接加进 tooltip 的组件 */
 	public static MutableComponent line(String key, Object... args) {
-		return parse(Component.translatable(key, args).getString());
+		// 坑：1.20.1 的 Component.translatable(key, args).getString() **不会替换 %s**（原版只在渲染时才替换），
+		// 所以这里先取"不带参数"的模板，再自己按顺序填参，最后才解析行内标记。
+		return parse(fill(Component.translatable(key).getString(), args));
+	}
+
+	/**
+	 * 按顺序把模板里的 {@code %s} 换成实参。
+	 *
+	 * <p>实参不够时原样留下那个 {@code %s}（一眼能看出漏传参数），实参为 {@code null} 时写 {@code null}，
+	 * 任何情况都不抛异常 —— 提示行渲染绝不能因为格式化把游戏搞崩。
+	 */
+	private static String fill(String template, Object... args) {
+		if (template == null) {
+			return "";
+		}
+		if (args == null || args.length == 0 || template.indexOf('%') < 0) {
+			return template;
+		}
+		StringBuilder out = new StringBuilder(template.length() + 16);
+		int next = 0;
+		for (int index = 0; index < template.length(); index++) {
+			char current = template.charAt(index);
+			if (current == '%' && index + 1 < template.length() && template.charAt(index + 1) == 's'
+					&& next < args.length) {
+				out.append(args[next] == null ? "null" : args[next].toString());
+				next++;
+				index++;
+			} else {
+				out.append(current);
+			}
+		}
+		return out.toString();
 	}
 
 	/** 解析 {@code {id|文本}}：正文灰、术语按表着色；标记外的文字原样保留 */
