@@ -1,6 +1,7 @@
 package com.summy.reliquary.apocrypha.item;
 
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
+import com.summy.reliquary.apocrypha.text.ApocryphaText;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import com.summy.reliquary.item.CurioItemSupport;
 import com.summy.reliquary.item.ReliquaryTooltips;
@@ -79,20 +80,17 @@ public class WingFeatherSacramentItem extends Item implements ICurioItem {
 	/** 功能描述行（数值取配置；光羽上限等规则常量写在文案里） */
 	public static List<Component> shiftLines() {
 		List<Component> lines = new ArrayList<>();
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.1")
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.2")
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
-				"item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.3",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.1"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.2"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.3"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.4",
 				ReliquaryTooltips.number(ApocryphaConfig.sacramentDamageBonusPercent())));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
-				"item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.4",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.5"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.6",
 				ReliquaryTooltips.number(ApocryphaConfig.sacramentArrowCount())));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.5",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.7",
 						ReliquaryTooltips.number(ApocryphaConfig.sacramentDecayDelaySeconds()),
-						ReliquaryTooltips.number(ApocryphaConfig.sacramentDecayIntervalSeconds()))
-				.withStyle(ChatFormatting.GRAY));
+				ReliquaryTooltips.number(ApocryphaConfig.sacramentDecayIntervalSeconds())));
 		return lines;
 	}
 

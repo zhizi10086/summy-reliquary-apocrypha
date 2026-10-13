@@ -2,6 +2,7 @@ package com.summy.reliquary.apocrypha.item;
 
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
+import com.summy.reliquary.apocrypha.text.ApocryphaText;
 import com.summy.reliquary.item.CurioItemSupport;
 import com.summy.reliquary.item.ReliquaryTooltips;
 import com.summy.reliquary.text.ReliquaryFaction;
@@ -86,22 +87,15 @@ public class NewTestamentItem extends Item implements ICurioItem {
 		int max = Math.max(ApocryphaConfig.scatterArrowMin(), ApocryphaConfig.scatterArrowMax());
 
 		List<Component> lines = new ArrayList<>();
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
-				"item.summy-reliquary-apocrypha.new_testament.shift.1",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.new_testament.shift.1",
 				ReliquaryTooltips.number(ApocryphaConfig.healAmount())));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.new_testament.shift.2",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.new_testament.shift.2",
 						ReliquaryTooltips.number(ApocryphaConfig.scatterChancePercent()),
 						ReliquaryTooltips.number(ApocryphaConfig.scatterSpawnHeight()),
-						min, max,
-						ReliquaryTooltips.number(ApocryphaConfig.scatterAngleMaxDegrees()))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
-				"item.summy-reliquary-apocrypha.new_testament.shift.3",
+				ReliquaryTooltips.number(ApocryphaConfig.scatterAngleMaxDegrees()),
+				min, max));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.new_testament.shift.3",
 				ReliquaryTooltips.number(ApocryphaConfig.arrowDamage())));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.new_testament.shift.4")
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.new_testament.shift.5")
-				.withStyle(ChatFormatting.GRAY));
 		return lines;
 	}
 

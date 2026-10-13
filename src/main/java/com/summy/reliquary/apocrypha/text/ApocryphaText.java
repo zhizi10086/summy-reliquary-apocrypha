@@ -25,12 +25,21 @@ public final class ApocryphaText {
 	private static final Map<String, Integer> COLORS = new HashMap<>();
 
 	static {
+		// —— 恶魔线（凋亡）——
 		COLORS.put("apoptosis", 0xD86A6A); // 凋亡损伤 / 凋亡：恶魔线暗红
 		COLORS.put("state", 0xE0203A);     // 损伤状态：头顶条「损伤」亮红
 		COLORS.put("burst", 0xE0203A);     // 损伤爆发：与损伤状态同色
 		COLORS.put("resist", 0x8FA6B5);    // 损伤抵抗：青灰（提亮版，正文里可读）
 		COLORS.put("element", 0xB44BE0);   // 元素伤害：紫
 		COLORS.put("fear", 0x6FB3C8);      // 恐惧：青蓝
+		// —— 天使线（新约）——
+		COLORS.put("testament", 0xFFE4B5); // 新约 / 天使线专有名词：与 SR 天使派系名色一致
+		COLORS.put("arrow", 0xFFE4B5);     // 落箭：同天使线色
+		COLORS.put("holy", 0xDCC6FF);      // 圣光矢：淡紫（呼应光灵箭外观）
+		COLORS.put("sacrament", 0xFFB86B); // 圣餐之矢：橙金
+		COLORS.put("feather", 0xBFE3FF);   // 光羽 / 翅膀 / 光翼：淡青蓝
+		COLORS.put("falling", 0x8FB8E8);   // 下落状态 / 缓降 / 二段跳：蓝
+		// —— 通用 ——
 		COLORS.put("value", 0xFFD700);     // 数值 / 指令：金
 	}
 

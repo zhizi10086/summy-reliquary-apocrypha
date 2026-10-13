@@ -1,6 +1,7 @@
 package com.summy.reliquary.apocrypha.item;
 
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
+import com.summy.reliquary.apocrypha.text.ApocryphaText;
 import com.summy.reliquary.apocrypha.effect.PairedWings;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import com.summy.reliquary.item.CurioItemSupport;
@@ -82,22 +83,14 @@ public class PairedWingsItem extends Item implements ICurioItem {
 	/** 功能描述行（数值全部取配置） */
 	public static List<Component> shiftLines() {
 		List<Component> lines = new ArrayList<>();
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
-				"item.summy-reliquary-apocrypha.paired_wings.shift.1",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.paired_wings.shift.1",
 				ReliquaryTooltips.number(ApocryphaConfig.holyArrowChancePercent())));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
-				"item.summy-reliquary-apocrypha.paired_wings.shift.2",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.paired_wings.shift.2",
 				ReliquaryTooltips.number(ApocryphaConfig.holyArrowDamageRatioPercent())));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.paired_wings.shift.3")
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.paired_wings.shift.4",
-						ReliquaryTooltips.number(PairedWings.COUPLED_DELAY_TICKS / 20.0D))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.paired_wings.shift.5",
-						PairedWings.COUPLED_BONUS_ARROWS)
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.paired_wings.shift.6")
-				.withStyle(ChatFormatting.GRAY));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.paired_wings.shift.3"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.paired_wings.shift.4"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.paired_wings.shift.5"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.paired_wings.shift.6"));
 		return lines;
 	}
 

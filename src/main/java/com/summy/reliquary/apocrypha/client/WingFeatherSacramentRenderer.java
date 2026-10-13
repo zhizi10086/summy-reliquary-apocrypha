@@ -28,8 +28,14 @@ import top.theillusivec4.curios.api.client.ICurioRenderer;
  * <p>与旧版（独立实体 + 服务端跟随）的区别：不再需要实体与位置同步；显隐由物品 NBT 上的
  * {@link FeatherCharge#WING_FLAG} 标志决定（服务端在攒满 3 对时写入，Curios 每 tick 会把饰品变化同步给客户端）。
  *
- * <p>贴图是**完整的单边翅膀**：整张 32×32 画布铺满一个正方形四边形，**不做任何旋转**，只用**左右镜像**
- * 构成一对；坐标系里 **−Y 向上、+Z 朝玩家身后**（与 SR 光环渲染器同一套约定）。
+ * <p>两件饰品的贴图结构不同，因此两套画法：
+ * <ul>
+ *     <li><b>光翼（翼羽·圣餐）</b>：贴图是**完整的单边翅膀**（32×32），铺满一个正方形四边形，**不做任何旋转**、
+ *     只用**左右镜像**构成一对；</li>
+ *     <li><b>恶魔翅膀（坠羽）</b>：作者给的是**整对**（79×32：左翼 + 中间核心 + 右翼），所以画**一个矩形四边形**、
+ *     uv 铺满、**不镜像也不内移**，按贴图原比例（79:32）居中于脊柱。</li>
+ * </ul>
+ * 坐标系里 **−Y 向上、+Z 朝玩家身后**（与 SR 光环渲染器同一套约定）。
  *
  * <p>★ 实机观感调节区：只改下面这几个常量即可挪动 / 收放翅膀。
  */
@@ -37,9 +43,11 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 	/** 光翼（翼羽·圣餐）的贴图 */
 	private static final ResourceLocation ANGEL_TEXTURE =
 			Apocrypha.id("textures/entity/light_feather.png");
-	/**
-	 * 恶魔翅膀（坠羽）的贴图：作者提供的 32×32 单边翅膀（与光羽同款画布约定，同样是"整张铺满 + 只镜像"）。
-	 */
+  /**
+   * 恶魔翅膀（坠羽）的贴图：作者提供的**整对**（左翼 + 中间核心 + 右翼），79×32。
+   *
+   * <p>作者已经把左缘多出的 1px 裁掉，所以直接铺满 uv 0..1 就是居中的。
+   */
 	private static final ResourceLocation DEMON_TEXTURE =
 			Apocrypha.id("textures/entity/demon_feather.png");
 
@@ -64,13 +72,14 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 	}
 	/** 整对向玩家身后偏移的距离（格） */
 	private static final float BACK_OFFSET = 0.35F;
-	/**
-	 * 恶魔翅膀（坠羽）用的差异参数：尺寸略大、离背略远。
-	 *
-	 * <p>两件饰品可以同时佩戴，参数错开才不会让两对翅膀共面闪烁。
-	 */
-	private static final float DEMON_WING_SIZE = 1.35F;
+  /** 恶魔翅膀离背的距离（格）：比光翼略远，两件同戴时不会共面闪烁 */
 	private static final float DEMON_BACK_OFFSET = 0.42F;
+  /** 恶魔翅膀整对的宽度（格）—— 实机偏大 / 偏小只改这一个数 */
+  private static final float DEMON_PAIR_WIDTH = 2.7F;
+  /** 贴图原始宽高比（79 : 32），高度由宽度反推，保证不被拉伸 */
+  private static final float DEMON_PAIR_ASPECT = 79.0F / 32.0F;
+  /** 恶魔翅膀整对的高度（格） */
+  private static final float DEMON_PAIR_HEIGHT = DEMON_PAIR_WIDTH / DEMON_PAIR_ASPECT;
 	/**
 	 * 翼根相对 <b>body 骨骼枢轴</b>"向下"偏移的距离（格，<b>正值向下</b>）—— 最常调的一个数。
 	 *
@@ -101,11 +110,8 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 		if (!(renderLayerParent.getModel() instanceof HumanoidModel<?> humanoid)) {
 			return;
 		}
-		// 恶魔翅膀尺寸略大、离背略远（两件同戴时不会共面闪烁）；贴图本轮都是光羽那张（恶魔线美术待补）
-		float size = demon ? DEMON_WING_SIZE : WING_SIZE;
 		float backOffset = demon ? DEMON_BACK_OFFSET : BACK_OFFSET;
 		ResourceLocation texture = demon ? DEMON_TEXTURE : ANGEL_TEXTURE;
-		float shift = innerShift(size);
 
 		poseStack.pushPose();
 		// 挂到躯干骨骼：跟随身体朝向、潜行前倾、骑乘偏移等（该空间里 −Y 向上、+Z 朝身后）
@@ -115,10 +121,34 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 		// 轻微上下浮动：相对背部上下，逐帧平滑
 		float bob = Mth.sin(ageInTicks * BOB_SPEED) * BOB_AMPLITUDE;
 		poseStack.translate(0.0D, -bob, 0.0D);
-		drawWing(poseStack, buffer, light, false, texture, size, shift); // 右片（贴图原样）
-		drawWing(poseStack, buffer, light, true, texture, size, shift);  // 左片（左右镜像）
+    if (demon) {
+      // 整对贴图：一个矩形四边形居中于脊柱，uv 铺满、不镜像
+      drawPair(poseStack, buffer, light, texture);
+    } else {
+      // 单边贴图：正方形四边形 + 左右镜像成一对
+      float shift = innerShift(WING_SIZE);
+      drawWing(poseStack, buffer, light, false, texture, WING_SIZE, shift); // 右片（贴图原样）
+      drawWing(poseStack, buffer, light, true, texture, WING_SIZE, shift);  // 左片（左右镜像）
+    }
 		poseStack.popPose();
 	}
+
+  /**
+   * 画**整对**翅膀（恶魔线）：一个矩形四边形，底边过原点、向 −Y 展开，水平居中于脊柱。
+   *
+   * <p>uv 与 {@link #drawWing} 同一套约定：底边 v=1、顶边 v=0（v=0 是贴图顶部，所以画出来是正的）。
+   */
+  private static void drawPair(PoseStack poseStack, MultiBufferSource buffer, int light,
+      ResourceLocation texture) {
+    float halfWidth = DEMON_PAIR_WIDTH / 2.0F;
+    Matrix4f matrix = poseStack.last().pose();
+    Matrix3f normal = poseStack.last().normal();
+    VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
+    vertex(consumer, matrix, normal, -halfWidth, 0.0F, light, 0.0F, 1.0F);
+    vertex(consumer, matrix, normal, -halfWidth, -DEMON_PAIR_HEIGHT, light, 0.0F, 0.0F);
+    vertex(consumer, matrix, normal, halfWidth, -DEMON_PAIR_HEIGHT, light, 1.0F, 0.0F);
+    vertex(consumer, matrix, normal, halfWidth, 0.0F, light, 1.0F, 1.0F);
+  }
 
 	/**
 	 * 画一片翅膀：枢轴（翼根）在原点，四边形朝"上"（该空间里的 −Y）展开。

@@ -2,6 +2,7 @@ package com.summy.reliquary.apocrypha.item;
 
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
+import com.summy.reliquary.apocrypha.text.ApocryphaText;
 import com.summy.reliquary.item.CurioItemSupport;
 import com.summy.reliquary.item.ReliquaryTooltips;
 import com.summy.reliquary.text.ReliquaryFaction;
@@ -81,19 +82,12 @@ public class SwiftFeatherCovenantItem extends Item implements ICurioItem {
 	/** 功能描述行（数值全部取配置，改配置后提示同步变化） */
 	public static List<Component> shiftLines() {
 		List<Component> lines = new ArrayList<>();
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.swift_feather_covenant.shift.1")
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
-				"item.summy-reliquary-apocrypha.swift_feather_covenant.shift.2",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.swift_feather_covenant.shift.1",
 				ReliquaryTooltips.number(ApocryphaConfig.swiftChancePercent())));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
-				"item.summy-reliquary-apocrypha.swift_feather_covenant.shift.3",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.swift_feather_covenant.shift.2",
 				ReliquaryTooltips.number(ApocryphaConfig.swiftSpeedBonusPercent())));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.ANGEL,
-				"item.summy-reliquary-apocrypha.swift_feather_covenant.shift.4",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.swift_feather_covenant.shift.3",
 				ReliquaryTooltips.number(ApocryphaConfig.swiftDamageRatioPercent())));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.swift_feather_covenant.shift.5")
-				.withStyle(ChatFormatting.GRAY));
 		return lines;
 	}
 
