@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "minecraft:block/wither_rose"
+    "layer0": "summy-reliquary-apocrypha:item/fallen_heaven"
   }
 }

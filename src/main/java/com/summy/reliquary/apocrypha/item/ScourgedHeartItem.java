@@ -2,6 +2,7 @@ package com.summy.reliquary.apocrypha.item;
 
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
+import com.summy.reliquary.apocrypha.text.ApocryphaText;
 import com.summy.reliquary.effect.PlayerFlags;
 import com.summy.reliquary.item.CurioItemSupport;
 import com.summy.reliquary.item.ReliquaryTooltips;
@@ -82,22 +83,13 @@ public class ScourgedHeartItem extends Item implements ICurioItem {
 	/** 功能描述行（数值全部取配置） */
 	public static List<Component> shiftLines() {
 		List<Component> lines = new ArrayList<>();
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.DEMON,
-				"item.summy-reliquary-apocrypha.scourged_heart.shift.1",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.scourged_heart.shift.1",
 				ReliquaryTooltips.number(ApocryphaConfig.apoptosisBurstMultiplierWithThird() * 100.0D)));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.scourged_heart.shift.2",
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisExtraMultiplierWithThird()))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.DEMON,
-				"item.summy-reliquary-apocrypha.scourged_heart.shift.3",
-				ReliquaryTooltips.number(ApocryphaConfig.apoptosisExecuteThresholdPercent())));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.scourged_heart.shift.4",
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisExecuteDamagePercentOfMax()))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.scourged_heart.shift.5")
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.scourged_heart.shift.6")
-				.withStyle(ChatFormatting.GRAY));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.scourged_heart.shift.2",
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisExtraMultiplierWithThird() * 100.0D)));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.scourged_heart.shift.3",
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisExecuteThresholdPercent()),
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisExecuteDamagePercentOfMax())));
 		return lines;
 	}
 

@@ -2,6 +2,7 @@ package com.summy.reliquary.apocrypha.item;
 
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
+import com.summy.reliquary.apocrypha.text.ApocryphaText;
 import com.summy.reliquary.effect.PlayerFlags;
 import com.summy.reliquary.item.CurioItemSupport;
 import com.summy.reliquary.item.ReliquaryTooltips;
@@ -84,23 +85,18 @@ public class FallenHeavenItem extends Item implements ICurioItem {
 	/** 功能描述行（数值全部取配置） */
 	public static List<Component> shiftLines() {
 		List<Component> lines = new ArrayList<>();
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.fallen_heaven.shift.1",
-						ApocryphaConfig.apoptosisHitsBase(),
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisBarMax()))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.DEMON,
-				"item.summy-reliquary-apocrypha.fallen_heaven.shift.2",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_heaven.shift.1"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_heaven.shift.2",
+				ApocryphaConfig.apoptosisHitsBase(),
 				ReliquaryTooltips.number(ApocryphaConfig.apoptosisBurstDamage())));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.fallen_heaven.shift.3",
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisExtraDamagePercent()),
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisHealReductionPercent()),
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisInjuredSeconds()))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.fallen_heaven.shift.4",
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisResistanceSeconds()))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.fallen_heaven.shift.5")
-				.withStyle(ChatFormatting.GRAY));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_heaven.shift.3",
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisInjuredSeconds()),
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisExtraDamagePercent()),
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisHealReductionPercent())));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_heaven.shift.4",
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisResistanceSeconds())));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_heaven.shift.5"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_heaven.shift.6"));
 		return lines;
 	}
 

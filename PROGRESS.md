@@ -280,6 +280,7 @@ effect/ApocryphaSlotSizing         新约系列与凋亡系列栏位的动态格
 entity/NewTestamentArrow           落箭实体（钉住 / 视觉标记 / 无击退）
 entity/HolyArrow                   穿透圣光矢实体
 item/*                             10 件饰品（门槛 + 提示；含恶魔线五件与天使线五件）
+text/ApocryphaText                 提示行的行内彩色术语解析（{id|文本} → 灰色正文 + 带色术语）
 integration/ReliquaryRef           对 SR 的唯一访问出口（真伤名单、Kilt/Forge 探测）
 net/*                              网络通道（协议 "2"）：AirJumpMessage（C2S）+ ApoptosisBarMessage（S2C）
 slot/ApocryphaSlots                栏位 id 常量、天使线与恶魔线列表、校验谓词
@@ -312,7 +313,7 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 | 光羽渲染观感 | 已照 SR「邦邦咔邦光环」改成**饰品渲染层**（零延迟跟随 + 无旋转仅镜像 + 满 3 对才显现）；高度/间隙两个常量待实机复检微调 |
 | 物品图标 | **已完成**：5 件物品贴图由作者提供并入库（`textures/item/<id>.png`，32×32），创造页图标改用「比翼·连携」；`扩展包` 里的源文件已全部用掉，无遗留未命名素材 |
 | 凋亡 5 件 | **已完成**：五件全部实装、栏位与新约并列排布完成；套系收官（后续若作者给恶魔线专属美术，替换物品贴图与翅膀贴图即可） |
-| 恶魔线素材 | **待作者提供**：当前栏位图标借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示）、物品贴图借原版（`block/wither_rose` / `item/phantom_membrane` / `item/heart_of_the_sea` / `item/ink_sac` / `item/goat_horn`）、坠羽的翅膀贴图暂用光羽 `light_feather.png` |
+| 恶魔线素材 | **部分已入库**：堕天/坠羽/笞心/枯笔的 16×16 物品贴图与坠羽翅膀贴图（`textures/entity/demon_feather.png`）由作者提供；**终歌仍借原版 `item/goat_horn`**、栏位图标仍借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示） |
 | 凋亡头顶条美术（可选） | 现在是纯代码绘制、已可用；若作者要换美术，按 **64×16 PNG**（上行＝底槽、下行＝满填充、左右各 1px 描边）提供，代码按 `u ∈ [0, 比例]` 裁切 |
 | SR 真伤清帧 | 只在 Forge 47.4.23 实例验证过；**Kilt/Connector 分支未实测**（代码路径已实现）。**转正方案见 8.1** |
 | 清帧名单漂移 | SR 若新增真伤类型需登记进 `ReliquaryRef`，调试日志会给提醒 |

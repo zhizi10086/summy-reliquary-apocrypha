@@ -158,10 +158,13 @@ Forge 1.20.1（推荐 47.4.10+）
 - **坠羽的爆条翅膀**：戴坠羽引爆时，在该玩家背后展开一对翅膀 **5 秒**（再次爆条刷新）；
   做法与光羽同款 —— 显隐标志写在饰品堆栈 NBT 上（键 `ApocryphaDemonWings`），
   客户端用 Curios 渲染层画在躯干骨骼上，零延迟跟随；登出 / 停机都会立刻清标志。
-- **素材借用表**（恶魔线美术到位前）：栏位图标按顺序借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示）；
-  物品贴图借原版 —— 堕天 `minecraft:block/wither_rose`（**凋灵玫瑰在 1.20.1 只有方块贴图，写 `item/wither_rose` 会变成黑紫块**）、
-  坠羽 `minecraft:item/phantom_membrane`、笞心 `minecraft:item/heart_of_the_sea`、枯笔 `minecraft:item/ink_sac`、终歌 `minecraft:item/goat_horn`；
-  翅膀贴图暂时复用光羽的 `light_feather.png`。
+- **素材现状**：**物品贴图** —— 堕天 / 坠羽 / 笞心 / 枯笔四件已换成作者提供的 16×16 原图（`textures/item/<物品id>.png`），
+  **终歌仍是原版占位**（`minecraft:item/goat_horn`，等作者补图后拷一张 + 改一行 `layer0` 即可）；
+  **坠羽爆条翅膀**已换成作者提供的 `textures/entity/demon_feather.png`（天使线的光翼仍用 `light_feather.png`，两套互不干扰）；
+  **栏位图标**仍按顺序借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示），等恶魔线专属图标。
+- **提示行配色**：五件的功能行支持**行内彩色术语** —— 语言文件里写 `{state|损伤状态}` 这类标记，
+  由 `text/ApocryphaText` 解析成「灰色正文 + 带色术语」：凋亡损伤暗红 `#D86A6A`、损伤状态/损伤爆发亮红 `#E0203A`、
+  损伤抵抗青灰 `#8FA6B5`、元素伤害紫 `#B44BE0`、恐惧青蓝 `#6FB3C8`、数值与指令金 `#FFD700`。改色只改解析器里的一张表。
 - **头顶条（目标）**：自定义渲染、不需要贴图 —— **平滑填充 + 5 条刻度线切出 6 段**，
   **正对相机**（含俯仰，任何角度都正着看）、**与名称牌一致不穿墙**（被方块挡住就看不见）；
   锚点在碰撞箱顶部上方 0.55 格，条 0.90 × 0.10 格。
@@ -303,6 +306,7 @@ src/main/java/com/summy/reliquary/apocrypha/   本模组源码（包名挂在 SR
   effect/FallenPlumeWings   「坠羽」爆条时背后展开的翅膀（写饰品 NBT 标志 + 到期清标志）
   effect/WitheredBrush      「枯笔」的恐惧：生物冻结（清目标/寻路 + 水平速度清零）、玩家定身与封禁近战·右击
   command/ApocryphaCommand  本模组指令（/summyapocrypha fear players <on|off>）
+  text/ApocryphaText        提示行的行内彩色术语解析（{id|文本} → 灰色正文 + 带色术语）
   effect/NewTestamentEffect 命中判定、掷点、音效、落箭调度
   effect/ScatterVolley      待落批次：错峰放出 + 天花板夹紧
   effect/ArrowDamageBonuses 箭矢伤害加成（圣餐 +30% 与滞空 +15% 同轴相加，排在 SR 乘区之前）

@@ -2,6 +2,7 @@ package com.summy.reliquary.apocrypha.item;
 
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
+import com.summy.reliquary.apocrypha.text.ApocryphaText;
 import com.summy.reliquary.effect.PlayerFlags;
 import com.summy.reliquary.item.CurioItemSupport;
 import com.summy.reliquary.item.ReliquaryTooltips;
@@ -83,24 +84,14 @@ public class FallenPlumeItem extends Item implements ICurioItem {
 	/** 功能描述行（数值全部取配置） */
 	public static List<Component> shiftLines() {
 		List<Component> lines = new ArrayList<>();
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.fallen_plume.shift.1",
-						ApocryphaConfig.apoptosisHitsWithSecond())
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(ReliquaryTooltips.statComponent(ReliquaryFaction.DEMON,
-				"item.summy-reliquary-apocrypha.fallen_plume.shift.2",
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_plume.shift.1",
+				ApocryphaConfig.apoptosisHitsWithSecond()));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_plume.shift.2",
 				ReliquaryTooltips.number(ApocryphaConfig.apoptosisBurstRatioWithSecondPercent())));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.fallen_plume.shift.3",
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisExtraDamagePercentWithSecond()))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.fallen_plume.shift.4",
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisWingSeconds()))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.fallen_plume.shift.5",
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisHitsBase()),
-						ReliquaryTooltips.number(ApocryphaConfig.apoptosisBurstDamage()))
-				.withStyle(ChatFormatting.GRAY));
-		lines.add(Component.translatable("item.summy-reliquary-apocrypha.fallen_plume.shift.6")
-				.withStyle(ChatFormatting.GRAY));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_plume.shift.3",
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisExtraDamagePercentWithSecond())));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_plume.shift.4",
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisWingSeconds())));
 		return lines;
 	}
 

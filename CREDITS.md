@@ -31,11 +31,10 @@ and **must not be used commercially**. If any content unintentionally infringes 
   `inverse_feather_hover.png`、`paired_wings.png`）：**由本模组作者绘制并提供**（32×32 原图，未经二次加工）。
   创造页标签图标的图案取自「比翼·连携」。
 - **栏位图标**「新约-光环」（`textures/slot/new_testament_halo.png`）：由本模组作者提供。
-- **恶魔线（凋亡）暂用占位**：物品贴图借原版 —— 堕天 `minecraft:block/wither_rose`（凋灵玫瑰在 1.20.1 只有方块贴图）、
-  坠羽 `minecraft:item/phantom_membrane`、笞心 `minecraft:item/heart_of_the_sea`
-  、枯笔 `minecraft:item/ink_sac`、终歌 `minecraft:item/goat_horn`（**恶魔线五件的占位与计划一致，已全部用上**）；
-  栏位图标按顺序借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示）；
-  「坠羽」爆条时的翅膀贴图暂用光羽的 `light_feather.png`。作者素材到位后逐项替换。
+- **恶魔线（凋亡）素材**：**物品贴图由本模组作者绘制并提供** —— 堕天 / 坠羽 / 笞心 / 枯笔
+  （`textures/item/<物品id>.png`，16×16 原图，未做加工）；**坠羽爆条翅膀**为作者提供的
+  `textures/entity/demon_feather.png`（32×32）。**终歌仍暂借原版 `minecraft:item/goat_horn`**、
+  五个栏位图标仍暂借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示），作者补图后逐项替换。
 - **MOD 图标**（`assets/summy-reliquary-apocrypha/icon.png`）：**本轮临时复用**前置模组 Summy Reliquary
   的图标（`assets/summy-reliquary/icon.png`），待专属图标做好后替换。
 

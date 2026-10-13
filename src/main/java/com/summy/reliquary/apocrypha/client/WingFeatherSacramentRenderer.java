@@ -38,9 +38,10 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 	private static final ResourceLocation ANGEL_TEXTURE =
 			Apocrypha.id("textures/entity/light_feather.png");
 	/**
-	 * 恶魔翅膀（坠羽）的贴图 —— **本轮仍是占位**：直接复用光羽那张，等恶魔线美术到位后只改这一行。
+	 * 恶魔翅膀（坠羽）的贴图：作者提供的 32×32 单边翅膀（与光羽同款画布约定，同样是"整张铺满 + 只镜像"）。
 	 */
-	private static final ResourceLocation DEMON_TEXTURE = ANGEL_TEXTURE;
+	private static final ResourceLocation DEMON_TEXTURE =
+			Apocrypha.id("textures/entity/demon_feather.png");
 
 	/** 四边形边长（格）：正方形 + 整张画布铺满，才保得住贴图 20×30 内容的比例（1.25 格 ≈ 半身多一点） */
 	private static final float WING_SIZE = 1.25F;
