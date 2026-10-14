@@ -184,13 +184,13 @@ Forge 1.20.1（推荐 47.4.10+）
 ## 清帧补强
 
 - **落箭本体**：命中前清一次（保证这一箭不被吞），`hurt()` 真的落地后再清一次（不把无敌帧留给同批其它落箭与随后落下的近战/箭矢）。只在真正打中时清。
-- **SR 的真伤**（启示之光 / 圣光 / 圣光爆发 / 神性光环 / 亚巴顿光环 / 恶魔之焰 / 狱火 / 契约献祭 / 献祭自伤）：由本模组**旁路兜底**补上「命中后清帧」，**不改动 SR 仓库**。做法是在 `LivingHurtEvent` 里按 SR 的伤害类型名单识别，Forge 上就地清零、Kilt/Connector 上登记后在 server tick 末尾清零（Kilt 的事件时机在原版写字段之前，就地写会被覆盖）。
-- **名单**：SR 的 11 个伤害类型里 10 个是真伤；`golden_razor`（金刀片，物理）被排除。`godhead_aura` 与 `holy_light` 共用同一个 `message_id`，去重后是 9 个 id，登记在 `integration/ReliquaryRef.java`。SR 若新增真伤类型，打开调试日志时会看到「清帧名单可能已漂移」的提醒。
-- **开关**：`[general] clear_sr_iframes_after_hit`（默认 true）。关掉即恢复 SR 原本「只在命中前清帧」的行为。
+- **SR 的真伤**（启示之光 / 圣光 / 圣光爆发 / 神性光环 / 亚巴顿光环 / 恶魔之焰 / 狱火 / 契约献祭 / 献祭自伤）：**自 SR 1.8.6 起由 SR 本体负责**（`ReliquaryEvents.onLivingHurtClearTrueDamageIframes` → 判据 `HolyLightEffect.isTrueDamage` → `CombatTuning.clearIframesAfterHit`；Forge 就地清零、Kilt/Connector 登记到 tick 末尾，排在窗口钳位之后），开关是 SR 的 `[combat] clear_iframes_after_true_damage`（默认 true）。本模组**不再旁路兜底**（原 `effect/TrueDamageFrames` 与那份 9 个 id 的名单已删除），前置下限也随之提到 **`1.8.6-forge`**。
+- **本模组自身四种伤害仍由自己清帧**：落箭、圣光矢、元素伤害（爆条 / 附加 / 斩杀 / 终歌灼伤）、逆羽的瞬时结算 —— SR 不会代劳别家的伤害类型。
 - **代价**：真伤不再给受害者留 5 tick 保护帧（含玩家被真伤命中时），同 tick 内随后落下的普通伤害也会照常结算。
 - **普通攻击不受影响**：近战、原版箭矢、金刀片等仍按原版无敌帧语义处理。
-- **待转正**：上面这条 SR 真伤清帧目前是本模组的**旁路兜底**；正式化的方向是由 **SR 本体**在真伤落地后自行清帧
-  （方案与验收见 `PROGRESS.md`「八、准备转正」8.1）。转正落地后本模组会删掉这条旁路与 `clear_sr_iframes_after_hit` 开关。
+- **转正已完成**：SR 1.8.6 起由 SR 本体负责清帧，本模组的旁路与 `clear_sr_iframes_after_hit` 开关已删除。
+  **迁移提醒**：旧配置里残留的 `[general] clear_sr_iframes_after_hit` 会被 Forge 自动清掉（启动日志里会有一条
+  `Incorrect key general.clear_sr_iframes_after_hit was corrected ... to its default, null`），不需要手动处理。
 
 ## 配置
 
@@ -199,7 +199,6 @@ Forge 1.20.1（推荐 47.4.10+）
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
 | `[general] enable` | true | 玩法总开关 |
-| `[general] clear_sr_iframes_after_hit` | true | 是否给 SR 真伤补「命中后清帧」 |
 | `[new_testament] heal_amount` | 0.5 | 弓 / 弩命中后的回血 |
 | `scatter_chance_percent` | 35 | 触发落箭散射的概率（%） |
 | `scatter_arrow_min` / `scatter_arrow_max` | 3 / 5 | 每批落箭数量区间 |
@@ -245,7 +244,7 @@ Forge 1.20.1（推荐 47.4.10+）
 | `heal_reduction_percent_with_fifth` | 80.0 | 「终歌」：损伤状态的减疗比例提升到该值（%） |
 | `damage_taken_bonus_percent_with_fifth` | 10.0 | 「终歌」：损伤状态目标的受伤加成（%，只放大非元素伤害） |
 
-以上 47 项就是全部配置面。**错峰间隔 2 tick；天花板夹紧余量 0.5 格、夹紧下限 0.5 格；命中方块后贴地停留 10 tick、寿命兜底 200 tick；光羽的显示上限 6 片 / 存储上限 8 片 / 消耗门槛 >6 片；光羽的层高、角度、尺寸、跟随延迟；下落判定的速度阈值 0、额外跳跃的音效与粒子；圣光矢的初速 3.0 / 寿命 200 tick / 命中方块停留 10 tick、协同延迟 2 tick、共同触发 +1 道 +1 支、第二道偏角 3°；凋亡条的尺寸与位置（0.90 × 0.10 格、顶部 +0.55 格）、5 条刻度切 6 段、三段配色与脉动、抵抗期倒计时细条、玩家侧 Boss 条（`NOTCHED_6`）、恶魔翅膀的尺寸与背后偏移（1.35 格 / 0.42 格）** 都是写死的实现细节（没人会去调，留在配置里只是噪音），不再出现在配置文件中。
+以上 46 项就是全部配置面。**错峰间隔 2 tick；天花板夹紧余量 0.5 格、夹紧下限 0.5 格；命中方块后贴地停留 10 tick、寿命兜底 200 tick；光羽的显示上限 6 片 / 存储上限 8 片 / 消耗门槛 >6 片；光羽的层高、角度、尺寸、跟随延迟；下落判定的速度阈值 0、额外跳跃的音效与粒子；圣光矢的初速 3.0 / 寿命 200 tick / 命中方块停留 10 tick、协同延迟 2 tick、共同触发 +1 道 +1 支、第二道偏角 3°；凋亡条的尺寸与位置（0.90 × 0.10 格、顶部 +0.55 格）、5 条刻度切 6 段、三段配色与脉动、抵抗期倒计时细条、玩家侧 Boss 条（`NOTCHED_6`）、恶魔翅膀的尺寸与背后偏移（1.35 格 / 0.42 格）** 都是写死的实现细节（没人会去调，留在配置里只是噪音），不再出现在配置文件中。
 
 **落箭现在是固定伤害**：钉住机制会让 SR 的七罪 / 七德 / 最终倍率（谦逊、思想套装、圣心、暴怒随机……）**全部不参与落箭的数值**，
 所以每支箭的结算值恒定等于 `arrow_damage`（默认 5）。唯一的例外是**同戴迅羽·协约**时：改为 `触发之箭最终伤害的 40%`，
@@ -381,8 +380,8 @@ libs/                       前置模组 Summy Reliquary 的生产 jar（**必�
   `data/minecraft/tags/damage_type/bypasses_*.json` 都在 jar 里（被打包时丢文件会退回原版魔法伤害源）。
 - **落箭看着还是集中**：确认 `scatter_spawn_height` / `scatter_initial_speed` 没被改回小值；洞穴里会被
   天花板压回（看调试日志的「落箭起点」行）；戴圣心时会被追踪收拢（预期）。
-- **真伤还是被无敌帧吞**：确认 `[general] clear_sr_iframes_after_hit=true`；若某条 SR 真伤没生效，
-  打开 `log_trigger` 看有没有「清帧名单可能已漂移」的提醒，并按提示把类型登记进 `ReliquaryRef`。
+- **真伤还是被无敌帧吞**：确认 SR 版本 ≥ 1.8.6（本模组已把前置下限提到该版本），并确认 SR 的
+  `[combat] clear_iframes_after_true_damage=true`；本模组自 1.8.6 起不再做这条旁路。
 - **二段跳没反应 / 只能跳一次**：确认 `[inverse_feather_hover] air_jumps` > 0 且饰品已佩戴；
   二段跳要求**离地之后松开过跳跃键**（一直按住不松不会触发，这是为了不把地面起跳那一次按键算进来）、
   创造模式飞行中不触发；每段离地只有 `air_jumps` 次，落地或攀爬梯子后才会补满（打开 `log_trigger`

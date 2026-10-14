@@ -40,6 +40,6 @@ Summy Reliquary 的扩展包（Forge 1.20.1）。
 [[dependencies.summy_reliquary_apocrypha]]
     modId="summy_reliquary"
     mandatory=true
-    versionRange="[1.8.5-forge,)"
+    versionRange="[1.8.6-forge,)"
     ordering="AFTER"
     side="BOTH"

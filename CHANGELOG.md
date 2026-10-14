@@ -489,6 +489,23 @@
 - **验证**：离线逐行复现天使线 25 行 + 恶魔线 19 行共 **44 行** —— 全部不含 `%s`、数值与 `%` 同段同色、术语各带其色、无参行原样。
 - 文档：README 素材段与配色段、PROGRESS 素材待办与配色说明、CREDITS 贴图小节同步。
 
+### 清帧转正：删除 SR 真伤清帧旁路 + 前置下限提到 1.8.6（同日第二十六轮）
+
+- **背景**：SR 1.8.6 已原生实现「真伤命中后清帧」（`ReliquaryEvents.onLivingHurtClearTrueDamageIframes` →
+  判据 `HolyLightEffect.isTrueDamage`（isDivine ‖ isExactDamage ‖ 献祭自伤，排除金刀片）→ `CombatTuning.clearIframesAfterHit`；
+  Forge 就地清零、Kilt/Connector 登记到 tick 末尾且排在窗口钳位之后），开关是 SR 的
+  `[combat] clear_iframes_after_true_damage`（默认 true）。**判据范围覆盖且优于**本模组原来的 9 个 id 名单。
+- **删除旁路**：删掉 `effect/TrueDamageFrames` 整个类与 `NewTestamentEffect` 里的三处调用；
+  `integration/ReliquaryRef` 删掉 `TRUE_DAMAGE_MSG_IDS`、`isTrueDamage()`、`looksLikeSrDamage()` 与只被旁路使用的
+  `fabricSide()`；配置删掉 `[general] clear_sr_iframes_after_hit`，配置面 **47 → 46 项**。
+- **前置下限**：`libs/` 换用 `summy-reliquary-1.8.6-forge.jar`（`gradle.properties` 的 `summy_reliquary_version` 同步），
+  `mods.toml` 里 SR 的 `versionRange` 由 `[1.8.5-forge,)` 改为 **`[1.8.6-forge,)`** —— 不再保留 1.8.5 兜底。
+- **迁移提醒**：旧配置里残留的 `[general] clear_sr_iframes_after_hit` 会被 Forge 自动清掉（启动日志有
+  `Incorrect key general.clear_sr_iframes_after_hit was corrected ... to its default, null`），无需手动处理。
+- **不变**：本模组自身四种伤害的清帧（落箭 / 圣光矢 / 元素伤害：爆条 / 附加 / 斩杀 / 终歌灼伤 / 逆羽瞬时结算）
+  与它们的伤害口径一字不动 —— SR 管不到别家伤害类型。
+- 文档：README「清帧补强」小节与配置表、`PROGRESS.md` 3.7 / 四 / 五 / 七 / 八 / 九 同步（8.1 已按约定移除）。
+
 ### 备注
 
 - 首轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步

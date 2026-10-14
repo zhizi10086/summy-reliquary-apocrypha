@@ -62,11 +62,6 @@ public final class NewTestamentEffect {
 			return;
 		}
 
-		// ② SR 真伤的「命中后清帧」补强（独立开关，不受 [general] enable 影响）
-		if (!event.isCanceled() && ApocryphaConfig.clearSrIframesAfterHit()) {
-			TrueDamageFrames.handle(event, level);
-		}
-
 		// ③ 本体箭矢命中目标：新约（落箭）与比翼·连携（穿透圣光矢）各自掷点，两件同戴时协同触发
 		if (event.isCanceled() || !ApocryphaConfig.enable()) {
 			return;
@@ -197,7 +192,6 @@ public final class NewTestamentEffect {
 			return;
 		}
 		ScatterVolley.tick(event.getServer());
-		TrueDamageFrames.tickServer();
 		// 新约系列栏位的动态格数：仅天使线开放（每秒校正一次）
 		ApocryphaSlotSizing.tickServer(event.getServer());
 		// 光羽：脱战衰减 + 实体实体校正（每秒一次）
@@ -212,7 +206,6 @@ public final class NewTestamentEffect {
 	@SubscribeEvent
 	public static void onServerStopped(ServerStoppedEvent event) {
 		ScatterVolley.clear();
-		TrueDamageFrames.clear();
 		SacramentArrows.clear();
 		HoverFlight.clear();
 		PairedWings.clear();

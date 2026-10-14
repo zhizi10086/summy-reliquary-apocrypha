@@ -11,8 +11,6 @@ public final class ApocryphaConfig {
 	public static final ForgeConfigSpec SPEC;
 
 	private static final ForgeConfigSpec.BooleanValue ENABLE;
-	/** 是否给 Summy Reliquary 的真伤补「命中后清帧」 */
-	private static final ForgeConfigSpec.BooleanValue CLEAR_SR_IFRAMES;
 
 	// ===== 新约 =====
 	private static final ForgeConfigSpec.DoubleValue HEAL_AMOUNT;
@@ -77,11 +75,6 @@ public final class ApocryphaConfig {
 		builder.comment("Summy Reliquary: Apocrypha 总开关").push("general");
 		ENABLE = builder.comment("是否启用本模组的玩法效果（关掉后饰品仍可佩戴，但不再触发效果）")
 				.define("enable", true);
-		CLEAR_SR_IFRAMES = builder
-				.comment("是否给 Summy Reliquary 的「无视无敌帧」真伤补上「命中后清帧」",
-						"开启后：这些真伤打完之后不会再给受害者留下无敌帧（同批多段真伤、以及随后的近战/箭矢都能全额落地）",
-						"本项独立于上面的 enable：即使玩法效果全关，补强依然生效；关掉即恢复 SR 原本的行为")
-				.define("clear_sr_iframes_after_hit", true);
 		builder.pop();
 
 		builder.comment("新约（饰品，装入「新约-光环」栏位；需要天使标记）").push("new_testament");
@@ -254,11 +247,6 @@ public final class ApocryphaConfig {
 	/** 总开关 */
 	public static boolean enable() {
 		return ENABLE.get();
-	}
-
-	/** 是否给 SR 真伤补「命中后清帧」 */
-	public static boolean clearSrIframesAfterHit() {
-		return CLEAR_SR_IFRAMES.get();
 	}
 
 	public static double healAmount() {

@@ -125,11 +125,15 @@
   跳的瞬间清空 `fallDistance`；做法是 Artifacts 云朵瓶式的**客户端预测 + 服务端权威双端施加**，
   客户端要求「离地后松开过跳跃键」以免吃掉地面起跳那一次按键。首条网络通道 `summy-reliquary-apocrypha:main`（协议 `"1"`）只承载这一个空 C2S 包。
 
-### 3.7 SR 真伤「命中后清帧」旁路（不改 SR）
+### 3.7 SR 真伤「命中后清帧」——**已由 SR 本体负责（1.8.6 起）**
 
-SR 的 10 个真伤类型（排除物理的 `golden_razor`）在本模组侧补上「命中后清无敌帧」：
-Forge 上就地清零、Kilt/Connector 上登记后在 server tick 末尾清零；开关 `[general] clear_sr_iframes_after_hit`（默认 true）。
-SR 若新增真伤类型，打开调试日志时会看到「清帧名单可能已漂移」提醒（名单在 `integration/ReliquaryRef`）。
+SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（LOWEST）→ 判据 SR 自己的
+`HolyLightEffect.isTrueDamage`（isDivine ‖ isExactDamage ‖ 献祭自伤，排除金刀片）→ `CombatTuning.clearIframesAfterHit`
+（Forge 就地清零；Kilt/Connector 登记到 tick 末尾、排在窗口钳位之后）；开关是 SR 的
+`[combat] clear_iframes_after_true_damage`（默认 true）。
+本模组的旁路（原 `effect/TrueDamageFrames` + `ReliquaryRef` 的 9 个 id 名单 + `[general] clear_sr_iframes_after_hit`）
+已**整段删除**，前置下限提到 **`1.8.6-forge`**（`libs/` 与 `gradle.properties` 同步）。
+本模组自身四种伤害（落箭 / 圣光矢 / 元素伤害 / 逆羽瞬时结算）仍由自己清帧 —— SR 管不到别家伤害类型。
 
 ### 3.8 凋亡（恶魔线核心机制，`effect/Apoptosis`）
 
@@ -196,12 +200,11 @@ SR 若新增真伤类型，打开调试日志时会看到「清帧名单可能�
 落箭瞬时结算汇总行、二段跳行、清帧行。关闭时零输出。口径文本：落箭 =「钉住：N 点（不吃 SR 增伤乘区）」，
 圣光矢 =「钉住：触发箭伤害的 100%」；恶魔线另输出 `[凋亡]` 行（爆条、元素伤害（爆条 / 附加），含发出值与钉住后值）。
 
-## 四、配置面（`config/summy_reliquary_apocrypha-common.toml`，共 47 项）
+## 四、配置面（`config/summy_reliquary_apocrypha-common.toml`，共 46 项）
 
 | 段 | 键 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | `[general]` | `enable` | true | 玩法总开关 |
-| | `clear_sr_iframes_after_hit` | true | 是否给 SR 真伤补「命中后清帧」（独立于 enable） |
 | `[new_testament]` | `heal_amount` | 0.5 | 命中回血 |
 | | `scatter_chance_percent` | 35 | 落箭触发概率（%） |
 | | `scatter_arrow_min` / `scatter_arrow_max` | 3 / 5 | 落箭数量区间 |
@@ -265,19 +268,18 @@ client/HolyArrowRenderer           圣光矢渲染（光灵箭贴图）
 client/WingFeatherSacramentRenderer 光翼 / 恶魔翅膀渲染层（Curios，挂在玩家模型躯干骨骼上；按物品切参数与标志）
 client/ApoptosisBarRenderer        凋亡损伤头顶条（billboard、不穿墙、纯代码）
 client/ApoptosisBarState           凋亡条的客户端缓存（本地逐 tick 衰减）
-config/ApocryphaConfig             47 项配置
+config/ApocryphaConfig             46 项配置
 command/ApocryphaCommand           本模组指令（/summyapocrypha fear players on|off）
 effect/Apoptosis                   凋亡核心：推条 / 爆条 / 损伤状态 / 抵抗 / 元素伤害钉住 / 玩家 Boss 条
 effect/FallenPlumeWings            「坠羽」爆条时背后展开的翅膀（写饰品 NBT 标志 + 到期清标志）
 effect/WitheredBrush               「枯笔」的恐惧（生物冻结 / 玩家定身与封禁近战·右击）
-effect/NewTestamentEffect          命中判定 / 掷点 / 协同 / 落箭调度 / 清帧旁路 / 日志
+effect/NewTestamentEffect          命中判定 / 掷点 / 协同 / 落箭调度 / 日志
 effect/ScatterVolley               落箭待落批次（错峰 + 延迟 + 天花板夹紧）
 effect/PairedWings                 圣光矢发射与协同补发队列
 effect/SacramentArrows             圣餐之矢（放箭登记 → 指定箭 → 本体箭增伤）
 effect/FeatherCharge               光羽计数、脱战衰减、实体校正
 effect/HoverFlight                 逆羽·滞空（缓降 / 二段跳 / 落阶状态）
 effect/ArrowDamageBonuses          箭矢增伤（圣餐 +30% 与滞空 +15%，HIGHEST，排在 SR 乘区之前）
-effect/TrueDamageFrames            SR 真伤命中后清帧旁路
 effect/ApocryphaSlotSizing         新约系列与凋亡系列栏位的动态格数（每秒）
 entity/NewTestamentArrow           落箭实体（钉住 / 视觉标记 / 无击退）
 entity/HolyArrow                   穿透圣光矢实体
@@ -293,7 +295,7 @@ slot/ApocryphaSlots                栏位 id 常量、天使线与恶魔线列�
 
 ## 六、进度
 
-**已完成（按提交顺序）**：框架 + 栏位体系 → #1 新约（散射观感调优 / 配置收敛 / 去击退 / SR 真伤清帧旁路 / 调试日志）
+**已完成（按提交顺序）**：框架 + 栏位体系 → #1 新约（散射观感调优 / 配置收敛 / 去击退 / SR 真伤清帧旁路（已于 1.8.6 转正删净）/ 调试日志）
 → #2 迅羽·协约 → #3 翼羽·圣餐 + 光羽实体（含层号同步与跟随修复）→ #4 逆羽·滞空 + 首条网络通道
 → 二段跳改为云朵瓶式双端预测 → #5 比翼·连携 + 穿透圣光矢（系列收官）
 → 伤害口径调整（落箭固定伤害、圣光矢 100%）→ 日志前缀修正 → 光翼改饰品渲染层（含多轮微调）
@@ -317,8 +319,8 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 | 凋亡 5 件 | **已完成**：五件全部实装、栏位与新约并列排布完成；套系收官（后续若作者给恶魔线专属美术，替换物品贴图与翅膀贴图即可） |
 | 素材 | **物品贴图已全部到位**：天使线 5 件（32×32）与恶魔线 5 件（含终歌）均由作者提供；坠羽翅膀为作者给的**整对**图（`demon_feather.png`，79×32，已按作者要求左裁 1px），光翼仍是单片 32×32 镜像画法。**仅剩栏位图标**暂借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示） |
 | 凋亡头顶条美术（可选） | 现在是纯代码绘制、已可用；若作者要换美术，按 **64×16 PNG**（上行＝底槽、下行＝满填充、左右各 1px 描边）提供，代码按 `u ∈ [0, 比例]` 裁切 |
-| SR 真伤清帧 | 只在 Forge 47.4.23 实例验证过；**Kilt/Connector 分支未实测**（代码路径已实现）。**转正方案见 8.1** |
-| 清帧名单漂移 | SR 若新增真伤类型需登记进 `ReliquaryRef`，调试日志会给提醒 |
+| SR 真伤清帧 | **已完成转正**：SR 1.8.6 起由 SR 本体负责，本模组旁路已删除、前置下限提到 1.8.6（详见 3.7） |
+| SR 2.0 接入（限伤） | **待办**：SR 2.0 的「真伤限伤破除」（`effect/TrueDamageLimits#hurt`，见 SR 的 `docs/SR真伤限伤破除-方案.md`）落地后，升级 `libs/` 并把本模组四个产伤点（`NewTestamentArrow` / `HolyArrow` / `Apoptosis.dealElementDamage` / `NewTestamentEffect` 瞬时结算）改走该统一出口；否则本模组的斩杀 / 圣光矢 / 爆条等真伤仍会被第三方 Boss 的数值上限（灾变默认 20~22/次）削平。清帧只解决无敌帧，解决不了数值上限 |
 | 圣心追踪 | 落箭与圣光矢都会**被 SR 圣心牵引**（owner 为玩家的 `AbstractArrow`），按既有口径接受；要排除须改 SR |
 | SR 圣光联动 | 玩家另戴 SR「圣光」时，本模组箭矢命中仍会按 SR 规则掷点出光柱（SR 的规则是"任何玩家命中"） |
 | `onSacramentHit` 扩展点 | 仍为空实现；#3 预留的「圣餐之矢同时触发圣光矢」已由协同规则覆盖，无需再接 |
@@ -330,36 +332,15 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 > 「转正」= 把只是权宜 / 旁路的做法改成**正式做法**。本节只登记**已经决定要做、尚未做**的事；
 > 做完即从本节移除，并把结论补进 `CHANGELOG.md` 与相关小节（`七` 的清单保持原样，不搬动）。
 
-### 8.1 SR 真伤「命中后清帧」由旁路转为 SR 原生（未排期）
-
-- **来源**：2026-10-11 指定 —— 现在这件事以「SRA 侧旁路兜底」的方式实现，正式化的方向是**由 SR 本体负责**。
-- **现状**：SRA 侧由 `effect/TrueDamageFrames` 在 `LivingHurtEvent` 里按名单识别 SR 的真伤并补上「命中后清帧」
-  （Forge 上就地清零；Kilt/Connector 上登记后在 server tick 末尾清零，因为那边的事件时机早于原版写 `invulnerableTime`），
-  名单在 `integration/ReliquaryRef.TRUE_DAMAGE_MSG_IDS`（SR 的 11 个伤害类型里 10 个是真伤，`golden_razor` 是物理伤害被排除；
-  `godhead_aura` 与 `holy_light` 共用同一个 `message_id`，去重后是 9 个 id），开关是 `[general] clear_sr_iframes_after_hit`
-  （默认 true，独立于 `enable`）。SR 本体目前只在命中**前**清帧（`RevelationBeam.applyTrueDamage` 里写 `target.invulnerableTime = 0`），
-  命中后仍留 5 tick 保护帧。
-- **改法**（SR 侧做，转正后 SRA 删旁路）：
-  1. `effect/HolyLightEffect` 增一个统一的真伤判据（`isDivine || isExactDamage`，再补上 `sacrifice_self`；
-     `golden_razor` 不参与、`godhead_aura` / `holy_light` 共用 `message_id` 的去重在同一处解决）——
-     这两份名单本来就是「真伤类型」的事实来源，集中成单一入口后，SR 以后新增真伤类型不会再出现「SRA 名单漂移」。
-  2. 真伤**落地后**再清一次无敌帧；Kilt/Connector 侧沿用 SR 1.6.5 起已有的 tick 末尾钳位通道
-     （否则会被原版在 hurt 开头写入的 `invulnerableTime = 20` 覆盖）。
-  3. 新增 SR 侧配置键（暂定 `[general] clear_iframes_after_true_damage`，默认 true），语义与 SRA 现在的开关一致。
-  4. SRA 侧删掉 `effect/TrueDamageFrames`、`integration/ReliquaryRef` 的真伤名单与同名配置键；
-     README「清帧补强」与本档 3.7 改成「由 SR 本体负责」，并给旧配置键留一条迁移说明。
-- **涉及文件**：SR `effect/HolyLightEffect.java`、`ReliquaryEvents.java`、`effect/DamagePools.java`、`ReliquaryConfig.java`；
-  SRA `effect/TrueDamageFrames.java`、`integration/ReliquaryRef.java`、`config/ApocryphaConfig.java`、README / PROGRESS / CHANGELOG。
-- **验收**：① 只装 SR（不装 SRA）时，10 种真伤连续命中同一目标**每次全额结算**（不再被 5 tick 保护帧吞），
-  普通近战 / 原版箭矢 / 金刀片仍保留原版无敌帧语义；② Forge 与 Kilt/Connector 两侧行为一致；
-  ③ 关掉该配置即恢复原行为；④ SRA 删旁路后，落箭与圣光矢的清帧不受影响（那是 SRA 自己的伤害类型）。
+目前**没有待转正项**。唯一一项「SR 真伤命中后清帧由旁路转 SR 原生」已于 2026-10-14 完成
+（SR 1.8.6 落地原生清帧，SRA 侧旁路删净、前置下限提到 1.8.6）—— 结论见第 3.7 节与 `CHANGELOG.md`。
 
 ## 九、开发与验收流程
 
 1. **构建**：在源码目录执行 `gradlew build`（需 JDK 17，路径走全局 `~/.gradle/gradle.properties`）；
    产物自动复制到 `..\JAR\summy-reliquary-apocrypha\`。
 2. **冒烟**：`gradlew runServer`（`run/mods` 里会自动投放 SR 的 dev 映射 jar）；
-   期望 `Loaded 27 curio slots`（SRA 占 10 个）、配置 47 项、零 ERROR / 异常。
+   期望 `Loaded 27 curio slots`（SRA 占 10 个）、配置 46 项、零 ERROR / 异常。
 3. **实机**：把 jar 拷进实例 `mods`（同名覆盖）→ 启动 → 用 `/summyreliquary angel grant` / `demon grant` 取得对应标记。
 4. **验收**：先在实例配置里把 `[new_testament] log_trigger` 改成 `true`，按动作打一遍，再把
    `E:\MC\PCL2快照版\.minecraft\versions\1.20.1-Forge_47.4.23-test\logs\latest.log` 交给验收方核对，
