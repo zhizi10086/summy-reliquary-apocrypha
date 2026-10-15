@@ -104,9 +104,9 @@ Forge 1.20.1（推荐 47.4.10+）
   被强制带出的那一次**不再掷点、也不计「共同触发」**的 +1；「圣餐之矢」视为新约侧自然成功
   （所以它同戴比翼时必定连带出圣光矢）。圣光矢本身**不触发**新约（不回血、不再放落箭、不递归），
   也不会被误标成圣餐之矢。
-- **与 ER 的关系**：ER 默认会把「继承 `AbstractArrow` 的投射物」当箭接管粒子轨迹，本模组用数据包标签
-  `data/enchantment_reforged/tags/entity_types/no_arrow_particles.json` 把圣光矢退出，保持纯净的光灵箭外观
-  （没装 ER 时该文件无副作用）。
+- **与 SE 的关系**：SE 默认会把「继承 `AbstractArrow` 的投射物」当箭接管粒子轨迹，本模组用数据包标签
+  `data/summy_enchantment/tags/entity_types/no_arrow_particles.json` 把圣光矢退出，保持纯净的光灵箭外观
+  （没装 SE 时该文件无副作用）。
 - **已知交叉影响**（不改 SR，接受并记录）：① 圣光矢是「owner 为玩家的 `AbstractArrow`」，因此会**被 SR 圣心追踪**
   （与落箭同一既有口径）；② 若玩家另戴 SR 的「圣光」饰品，此箭命中仍会按 SR 自己的规则（"任何玩家命中"）掷点出光柱。
 
@@ -123,8 +123,8 @@ Forge 1.20.1（推荐 47.4.10+）
   （无视护甲 / 保护附魔 / 抗性 / 效果），命中前后各清一次无敌帧、不造成击退；金额**钉住**
   （在 `LivingHurtEvent` 的 LOWEST 改回固定值，因此**不吃** SR 的七罪七德与全伤害乘区），
   但"伤害减免"类效果（例如 SR 肉体套装那种事件链减免）仍照常生效。
-- **不吃闪避**：ER 的「灵动步伐」原本对所有来源生效，现在多了 `#enchantment_reforged:no_dodge` 伤害类型标签
-  （本模组提供标签内容，把元素伤害挂进去）；未装 ER 时该文件无副作用。
+- **不吃闪避**：SE 的「灵动步伐」原本对所有来源生效，现在多了 `#summy_enchantment:no_dodge` 伤害类型标签
+  （本模组提供标签内容，把元素伤害挂进去）；未装 SE 时该文件无副作用。
 - **时间口径（读档自愈）**：损伤状态与损伤抵抗都存**到期时刻**（关卡时间）而不是倒计时，所以中途退出游戏、
   长时间离线、甚至旧存档里的残留状态，读档后都会自然结束（旧键不再读取）；损伤状态期间的条值按剩余时间派生。
 - **凋亡损伤条**：总 **100 点**；佩戴者每次**近战直击** +`100/刀数`（只戴堕天 6 刀 ≈ +16.67，戴坠羽 4 刀 = +25）。
@@ -331,7 +331,7 @@ src/main/resources/
   assets/summy-reliquary-apocrypha/   图标、语言文件、物品模型、栏位贴图
   data/summy-reliquary-apocrypha/     栏位定义、玩家栏位表、伤害类型（含凋亡元素伤害）
   data/minecraft/tags/damage_type/    把本模组的真实伤害类型加进原版减免标签
-  data/enchantment_reforged/tags/     给 ER 的退出标签（箭矢粒子退出、`no_dodge` 不可闪避）
+  data/summy_enchantment/tags/     给 SE 的退出标签（箭矢粒子退出、`no_dodge` 不可闪避）
 libs/                       前置模组 Summy Reliquary 的生产 jar（**必须入库**）
 ```
 

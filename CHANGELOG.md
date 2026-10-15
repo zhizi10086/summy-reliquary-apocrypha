@@ -183,8 +183,8 @@
   仍能沿用它登记时的中心点把箭落下来。
 - **三处排除名单同步加上圣光矢**（否则会出真 bug）：本体命中判定、`ArrowDamageBonuses` 的 HIGHEST 增伤、
   `SacramentArrows` 的"放箭后 40 tick 内新生成的箭"标记（不加就会被误打上圣餐之矢标记）。
-- **退出 ER 的箭矢粒子接管**：新增数据包标签 `data/enchantment_reforged/tags/entity_types/no_arrow_particles.json`
-  （ER 默认会把「继承 `AbstractArrow` 的投射物」当箭接管轨迹粒子），保持纯净的光灵箭外观；未装 ER 时该文件无副作用。
+- **退出 SE 的箭矢粒子接管**：新增数据包标签 `data/summy_enchantment/tags/entity_types/no_arrow_particles.json`
+  （SE 默认会把「继承 `AbstractArrow` 的投射物」当箭接管轨迹粒子），保持纯净的光灵箭外观；未装 SE 时该文件无副作用。
 - **配置面 23 → 25 项**：新增 `[paired_wings]`（`holy_arrow_chance_percent` 20、`holy_arrow_damage_bonus` 6.0）；
   弹速 3.0、寿命 200 tick、协同延迟 2 tick、共同触发 +1 道/+1 支、第二道偏角 3° 均为写死的实现细节。
 
@@ -323,8 +323,8 @@
   命中前后各清一次无敌帧、结算前后还原目标速度（**无击退**）；金额**钉住**（LOWEST 改回固定值），
   因此不吃 SR 的七罪七德与全伤害乘区，但"伤害减免"类效果照常生效；伤害源**直接来源留空、造成者＝玩家**
   （避免 SR 把它当成玩家近战命中去做圣光等掷点）。
-- **不吃闪避**：该类型挂进 `#enchantment_reforged:no_dodge` 伤害类型标签（数据驱动，未装 ER 时无副作用）；
-  ER 侧新增该标签判断 + mixin 传递 `DamageSource`（独立提交，版本号不升）。
+- **不吃闪避**：该类型挂进 `#summy_enchantment:no_dodge` 伤害类型标签（数据驱动，未装 SE 时无副作用）；
+  SE 侧新增该标签判断 + mixin 传递 `DamageSource`（独立提交，版本号不升）。
 - **目标头顶条**（`client/ApoptosisBarRenderer`，纯代码不需要贴图）：**正对相机**（含俯仰）、与名称牌一致**不穿墙**、
   平滑填充 + 5 条刻度竖线切出 6 段、三段配色（累积 `#7A1220` / 损伤 `#E0203A` 脉动 / 抵抗 `#5A6B7A` 显示倒计时）。
 - **玩家自身**：受害者是玩家时改用**原版 Boss 条**（`NOTCHED_6`，紫→红→白，名称带百分比 / 剩余秒），零自定义渲染；

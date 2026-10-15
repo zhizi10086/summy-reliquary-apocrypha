@@ -91,7 +91,7 @@
   撞方块贴地 10 tick 后消失、寿命兜底 200 tick；外观是原版**光灵箭**（`ArrowRenderer` + spectral_arrow 贴图，不加自绘拖尾）。
 - **伤害 = 触发之箭「各类倍率后」金额 × 100%**（配置 `holy_arrow_damage_ratio_percent`），**钉住**、不再吃第二次 SR 乘区；
   真伤类型 `summy-reliquary-apocrypha:holy_arrow`（四个 `bypasses_*` 全开）+ 命中前后各清无敌帧 + 无击退。
-- 退出 ER 的箭矢粒子接管：`data/enchantment_reforged/tags/entity_types/no_arrow_particles.json`。
+- 退出 SE 的箭矢粒子接管：`data/summy_enchantment/tags/entity_types/no_arrow_particles.json`。
 
 ### 3.4 协同触发（仅「新约」+「比翼·连携」同戴）
 
@@ -183,8 +183,8 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
   在 LOWEST 把事件金额改回自己发出的固定值，因此**不吃 SR 的七罪七德与全伤害乘区**，
   但"伤害减免"类效果（事件链上把金额改小的）仍照常生效。
   伤害源**直接来源留空、造成者＝玩家**（这样 SR 不会把它当成玩家近战命中去做圣光等掷点）。
-- **不吃闪避**：该类型挂在 `#enchantment_reforged:no_dodge` 标签里（SRA 提供标签内容、ER 侧读该标签判断），
-  因此 ER 的「灵动步伐」不会闪避它；未装 ER 时该文件无副作用。
+- **不吃闪避**：该类型挂在 `#summy_enchantment:no_dodge` 标签里（SRA 提供标签内容、SE 侧读该标签判断），
+  因此 SE 的「灵动步伐」不会闪避它；未装 SE 时该文件无副作用。
 - **两套显示**：目标头顶条是自定义 billboard 渲染 —— 正对相机（含俯仰）、与名称牌一致**不穿墙**、
   平滑填充 + 5 条刻度竖线切出 6 段，三段配色（累积 `#7A1220` / 损伤 `#E0203A` 脉动 / 抵抗 `#5A6B7A` 显示倒计时）；
   受害者是**玩家**时改用原版 **Boss 条**（`NOTCHED_6`，紫→红→白，名称带百分比 / 剩余秒），零自定义渲染。
@@ -291,7 +291,7 @@ slot/ApocryphaSlots                栏位 id 常量、天使线与恶魔线列�
 ```
 
 数据与资源：10 个栏位 json + `curios/entities/player.json`（挂 10 栏位）、3 个伤害类型 + 4 个 `bypasses_*` 标签追加、
-2 个 ER 标签（实体标签 `no_arrow_particles` + 伤害类型标签 `no_dodge`）、10 张栏位图标（16×16）、10 个物品模型 json、中英语言文件。
+2 个 SE 标签（实体标签 `no_arrow_particles` + 伤害类型标签 `no_dodge`）、10 张栏位图标（16×16）、10 个物品模型 json、中英语言文件。
 
 ## 六、进度
 
@@ -307,7 +307,7 @@ slot/ApocryphaSlots                栏位 id 常量、天使线与恶魔线列�
 → 修复：空闲清空日志的格式符崩服（%.0f 打印 int）。
 
 **当前状态**：新约系列 5 件全部实装并通过实机验收（概率、箭数、起点高度、钉住值、协同交叉账目、无击退、二段跳均以日志核对过）；
-恶魔线 5 件与核心机制已全部实现（待实机验收）；ER 侧同时加了 `#enchantment_reforged:no_dodge` 伤害类型标签判断（版本号不升，单独提交）。
+恶魔线 5 件与核心机制已全部实现（待实机验收）；SE 侧同时加了 `#summy_enchantment:no_dodge` 伤害类型标签判断（版本号不升，单独提交）。
 jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 
 ## 七、待办与已知问题
@@ -347,4 +347,4 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
    核对后把开关改回 `false`（代码默认值始终是 `false`）。
 5. **同步**：`git add -A` → commit（提交信息避免直引号）→ 推送前先 `git ls-remote` 确认 Watt Toolkit 加速生效 → `git push`。
 
-> 约定：**不改 SR / ER 仓库**；SR 与 `libs/` 里的前置 jar 都不随轮次变动；`libs/` 必须入库。
+> 约定：**不改 SR / SE 仓库**；SR 与 `libs/` 里的前置 jar 都不随轮次变动；`libs/` 必须入库。

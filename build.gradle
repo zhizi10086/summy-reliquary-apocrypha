@@ -1,7 +1,7 @@
 // Summy Reliquary: Apocrypha —— Forge 1.20.1 扩展包
 // 说明：本工程是 Summy Reliquary（SR）的扩展模组，SR 是**硬前置**：
 //      · 编译期直接引用 libs/ 里的 SR 生产 jar（SR 不发布在任何 Maven 上）；
-//      · 开发运行期由 Gradle 把 SR 反转成 dev 映射后投放到 run/mods（照 ER-forge 已验证的写法）。
+//      · 开发运行期由 Gradle 把 SR 反转成 dev 映射后投放到 run/mods（照 SE-forge 已验证的写法）。
 plugins {
     id 'eclipse'
     id 'idea'
@@ -86,7 +86,7 @@ dependencies {
 
 // ===== 开发运行期：把 SR 的生产 jar 反转成 dev 映射，投放到 run/mods =====
 // 生产 jar 用的是 SRG 成员名，dev 环境直接读会因成员名对不上而失败；
-// 这里照 ER-forge 已经跑通的写法，用专用配置生成一份 deobf 版本（不进产物、不影响 build）。
+// 这里照 SE-forge 已经跑通的写法，用专用配置生成一份 deobf 版本（不进产物、不影响 build）。
 configurations {
     summyReliquaryDev
 }

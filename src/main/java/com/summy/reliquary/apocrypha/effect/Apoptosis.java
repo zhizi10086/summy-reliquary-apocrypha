@@ -54,8 +54,8 @@ import java.util.UUID;
  *
  * <p>**元素伤害**：独立伤害类型，自带四个 {@code bypasses_*} 标签（无视护甲 / 保护附魔 / 抗性 / 效果），
  * 并且金额**钉住** —— 在 {@link LivingHurtEvent}（LOWEST）把金额改回我们发出的固定值，因此不吃
- * SR 的七罪七德与全伤害乘区（"伤害减免"类效果仍照常生效）。与 ER 的配合：该类型挂在
- * {@code #enchantment_reforged:no_dodge} 标签里，因此不会被「灵动步伐」闪避。
+ * SR 的七罪七德与全伤害乘区（"伤害减免"类效果仍照常生效）。与 SE 的配合：该类型挂在
+ * {@code #summy_enchantment:no_dodge} 标签里，因此不会被「灵动步伐」闪避。
  *
  * <p>数据存目标实体的持久数据（SRA 根键），随存档保存；计时只遍历 {@link #ACTIVE} 登记表，
  * 不做全实体扫描。目标是玩家时，额外用原版 Boss 条在屏幕顶部显示（见 {@link #updateBossBar}）。
