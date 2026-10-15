@@ -54,7 +54,7 @@
 | 2 | `perdition_exegesis`（91） | `fallen_plume`「坠羽」 | 4 刀满（每次 +1/4 条）；爆伤 = 本轮**推条那几刀伤害之和 × 60%**；损伤状态附加 20%；爆条时引爆者背后展开翅膀 5 秒（刷新） | **已实装** |
 | 3 | `perdition_mass`（92） | `scourged_heart`「笞心」 | 最终爆伤 ×1.5、附加比例 ×1.5；**斩杀**：目标受伤后生命 ≤15% 时补一击「最大生命 100%」元素伤害，每段损伤状态只落地一次、且只由佩戴笞心者的伤害激活 | **已实装** |
 | 4 | `perdition_mercy`（93） | `withered_brush`「枯笔」 | 近战直击「损伤抵抗中」的目标 → 抵抗 −1 秒（减到 0 立即结束）；引爆时目标获 1 秒恐惧（**无法移动 + 无法攻击**；玩家档默认关，指令可开） | **已实装** |
-| 5 | `perdition_requiem`（94） | `final_song`「终歌」 | 引爆开启：损伤状态**每秒**受「本次爆伤 × 5%」的元素伤害（共 5 笔）、减疗提升到 80%、目标受到的（非元素）伤害 +10% | **已实装** |
+| 5 | `perdition_requiem`（94） | `final_song`「终歌」 | 引爆开启：损伤状态**每秒**受「本次爆伤 × 25%」的元素伤害（共 5 笔）、减疗提升到 95%、目标受到的（非元素）伤害 +30% | **已实装** |
 
 > **栏位位置**：SR 的栏位是 `10/20/30/40/50/60/70`；本模组两套整体排在它之后 —— 新约 `80~84`、凋亡 `90~94`，
 > 各自连续、互不穿插、无并列（历史上凋亡第 1 格 20 曾与 SR `stomach(20)` 并列，导致排序不稳定）。改 `order` 不影响已装配物品。
@@ -170,10 +170,10 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
   默认 false，指令热切换）挂两条 `MULTIPLY_TOTAL −1` 的 transient 修饰符（移动速度、攻速归零）并拦 `AttackEntityEvent` 与
   `PlayerInteractEvent.RightClickItem/RightClickBlock`；到期 / 死亡 / 登出 / 停机都会摘掉修饰符。
 - **终歌（第 5 件）**：同样在爆条那一刻由引爆者佩戴决定并写进目标状态 ——
-  ① `apoptosis_burst_damage` 记下**本次爆伤**，损伤状态期间**每满 1 秒**结算一笔「爆伤 × `burst_percent_per_second_with_fifth`（5%）」的
+  ① `apoptosis_burst_damage` 记下**本次爆伤**，损伤状态期间**每满 1 秒**结算一笔「爆伤 × `burst_percent_per_second_with_fifth`（25%）」的
   元素伤害（`apoptosis_song_ticks_paid` 记已付笔数，用「已过秒数 − 已付笔数」补结算，5 秒共 5 笔）；
-  ② `apoptosis_heal_reduction` 写减疗比例（50 → `heal_reduction_percent_with_fifth` 80），`LivingHealEvent` 改读它；
-  ③ `apoptosis_damage_taken_bonus` 写受伤加成（`damage_taken_bonus_percent_with_fifth` 10%），在 LOWEST 把它乘进事件金额 ——
+  ② `apoptosis_heal_reduction` 写减疗比例（50 → `heal_reduction_percent_with_fifth` 95），`LivingHealEvent` 改读它；
+  ③ `apoptosis_damage_taken_bonus` 写受伤加成（`damage_taken_bonus_percent_with_fifth` 30%），在 LOWEST 把它乘进事件金额 ——
   **本模组的元素伤害在 `①` 分支就 return 了，所以仍按钉住值结算**。三项都随状态结束（含空闲清空 / 读档过期）清理。
 - **坠羽的爆条翅膀**：爆条且引爆者戴坠羽时，`effect/FallenPlumeWings` 给其坠羽堆栈写 NBT 标志
   （`ApocryphaDemonWings`，与光羽的 `ApocryphaWings` 分开）+ 记剩余 tick（`wing_seconds` × 20），
@@ -246,9 +246,9 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
 | | `resistance_cut_seconds_with_fourth` | 1 | 佩戴枯笔时每次近战直击削减的抵抗秒数 |
 | | `fear_seconds_with_fourth` | 1 | 佩戴枯笔引爆时目标的恐惧秒数 |
 | | `fear_affects_players` | false | 恐惧是否也对玩家生效（指令热切换） |
-| | `burst_percent_per_second_with_fifth` | 5.0 | 终歌：损伤状态每秒结算「本次爆伤 × 该比例%」 |
-| | `heal_reduction_percent_with_fifth` | 80.0 | 终歌：损伤状态的减疗比例提升到该值（%） |
-| | `damage_taken_bonus_percent_with_fifth` | 10.0 | 终歌：损伤状态目标的受伤加成（%） |
+| | `burst_percent_per_second_with_fifth` | 25.0 | 终歌：损伤状态每秒结算「本次爆伤 × 该比例%」 |
+| | `heal_reduction_percent_with_fifth` | 95.0 | 终歌：损伤状态的减疗比例提升到该值（%） |
+| | `damage_taken_bonus_percent_with_fifth` | 30.0 | 终歌：损伤状态目标的受伤加成（%） |
 
 **写死的实现细节**（不进配置）：错峰间隔 2 tick、天花板夹紧余量/下限 0.5 格、贴地停留 10 tick、寿命 200 tick、
 光羽显示/存储上限与层高角度尺寸、下落判定阈值 0、圣光矢初速 3.0 与协同延迟 2 tick、共同触发 +1 道/+1 支、第二道偏角 3°、

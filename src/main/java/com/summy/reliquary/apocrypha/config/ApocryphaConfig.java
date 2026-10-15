@@ -228,14 +228,14 @@ public final class ApocryphaConfig {
 				.define("fear_affects_players", false);
 		APOPTOSIS_BURST_PERCENT_PER_SECOND_WITH_FIFTH = builder
 				.comment("佩戴 5 号件「终歌」时，损伤状态期间每秒结算的元素伤害 = 本次爆伤 × 该比例（%）")
-				.defineInRange("burst_percent_per_second_with_fifth", 5.0D, 0.0D, 100.0D);
+				.defineInRange("burst_percent_per_second_with_fifth", 25.0D, 0.0D, 100.0D);
 		APOPTOSIS_HEAL_REDUCTION_PERCENT_WITH_FIFTH = builder
 				.comment("佩戴「终歌」时，损伤状态的减疗比例提升到的值（%，取代 heal_reduction_percent）")
-				.defineInRange("heal_reduction_percent_with_fifth", 80.0D, 0.0D, 100.0D);
+				.defineInRange("heal_reduction_percent_with_fifth", 95.0D, 0.0D, 100.0D);
 		APOPTOSIS_DAMAGE_TAKEN_BONUS_PERCENT_WITH_FIFTH = builder
 				.comment("佩戴「终歌」时，损伤状态的目标受到的所有伤害提升的比例（%）",
 						"（只作用于非本模组元素伤害；元素伤害仍按钉住值结算）")
-				.defineInRange("damage_taken_bonus_percent_with_fifth", 10.0D, 0.0D, 1000.0D);
+				.defineInRange("damage_taken_bonus_percent_with_fifth", 30.0D, 0.0D, 1000.0D);
 		builder.pop();
 
 		SPEC = builder.build();
