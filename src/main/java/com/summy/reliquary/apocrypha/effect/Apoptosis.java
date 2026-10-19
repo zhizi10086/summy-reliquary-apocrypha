@@ -33,6 +33,7 @@ import net.minecraftforge.network.PacketDistributor;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -93,6 +94,21 @@ public final class Apoptosis {
 
 	/** 本模组元素伤害类型的 id：钉住与「防递归」判定都用它 */
 	private static final String ELEMENT_ID = "summy-reliquary-apocrypha.apoptosis_element";
+	/**
+	 * SR 的 7 项固定伤害：它们的伤害源 direct entity 也是玩家，但并不是近战直击。
+	 *
+	 * <p>这些伤害仍应吃「损伤状态受伤 +N%」与额外元素附伤，但不能用来推凋亡条、
+	 * 削减损伤抵抗或触发笞心斩杀；否则圣光/神性等法术伤害会被误判成玩家挥刀。
+	 */
+	private static final Set<String> SR_FIXED_DAMAGE_IDS = Set.of(
+			"summy-reliquary.holy_light_burst",
+			"summy-reliquary.golden_razor",
+			"summy-reliquary.revelation_light",
+			"summy-reliquary.demon_flame",
+			"summy-reliquary.abyss_aura",
+			"summy-reliquary.godhead_aura",
+			"summy-reliquary.sacrifice"
+	);
 	/** 同步节流：客户端会本地衰减，所以每 N tick 补发一次即可 */
 	private static final int SYNC_INTERVAL_TICKS = 5;
 
@@ -182,6 +198,7 @@ public final class Apoptosis {
 		if (event.isCanceled() || !ApocryphaConfig.enable()) {
 			return;
 		}
+		boolean srFixed = SR_FIXED_DAMAGE_IDS.contains(event.getSource().getMsgId());
 
 		// 取「触发那一刻」的损伤状态快照：这一刀若正好推满触发爆条，它本身不该再吃附加伤害
 		// （损伤状态是爆条之后才开始的，口径与天使线「在下落状态的那一刻判定」一致）
@@ -196,13 +213,13 @@ public final class Apoptosis {
 
 		// ② 佩戴「堕天」或「坠羽」的玩家近战直击 → 推条
 		//（弓箭 / 投掷物 / 落箭 / 宠物：直接来源都不是玩家本人，天然被排除）
-		if (event.getSource().getDirectEntity() instanceof ServerPlayer attacker && attacker != target
+		if (!srFixed && event.getSource().getDirectEntity() instanceof ServerPlayer attacker && attacker != target
 				&& wearsElementCurio(attacker)) {
 			push(level, attacker, target, event.getAmount());
 		}
 
 		// ②b 佩戴「枯笔」的玩家近战直击「损伤抵抗中」的目标 → 抵抗时间削减（4 号件）
-		if (event.getSource().getDirectEntity() instanceof ServerPlayer cutter && cutter != target
+		if (!srFixed && event.getSource().getDirectEntity() instanceof ServerPlayer cutter && cutter != target
 				&& CurioHelper.wears(cutter, Apocrypha.WITHERED_BRUSH.get())) {
 			cutResistance(cutter, target);
 		}
@@ -213,7 +230,9 @@ public final class Apoptosis {
 			Entity causing = event.getSource().getEntity();
 			dealElementDamage(level, causing instanceof ServerPlayer player ? player : null, target, extra, "附加");
 			// ④ 斩杀：本次伤害结算完附加伤害之后再判 —— 只有「佩戴笞心的伤害造成者」才会激活这个判断
-			tryExecute(level, target, event);
+			if (!srFixed) {
+				tryExecute(level, target, event);
+			}
 		}
 	}
 
