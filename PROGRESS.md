@@ -137,9 +137,11 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
 
 ### 3.8 凋亡（恶魔线核心机制，`effect/Apoptosis`）
 
-- **推条**：`LivingHurtEvent`（LOWEST）里要求「**直接来源是 `ServerPlayer`**」+ 该玩家佩戴「堕天」**或**「坠羽」，
+- **推条**：`LivingHurtEvent`（LOWEST）里先做**可信近战来源**判定，再要求该玩家佩戴「堕天」**或**「坠羽」，
   且目标**既不在损伤状态、也不在损伤抵抗**；每次 +`bar_max / 刀数`（堕天 6 刀 ≈ 16.67 / 坠羽 4 刀 = 25）。
-  **弓箭 / 投掷物 / 落箭 / 宠物天然不算**（直接来源不是玩家本人），本模组自己的元素伤害也被排除（防递归）。
+  普通左键由 `AttackEntityEvent` 建立本 tick 窗口（主目标与横扫都算），遁入暗影由 `ShadowDash.isResolving`
+  识别基础斩击 / 强力斩；最后按「攻击者 + 目标 + tick」去重。投掷短矛、电刀、魔剑、斩杀追加、出其不意、
+  恶魔之焰 / 圣光 / 狱火等法术，以及弓箭 / 落箭 / 宠物都不推条。
   每次推条同时把该刀的 `LivingHurtEvent` 金额累加进 `apoptosis_push_damage`（坠羽的爆伤口径要用）。
 - **爆条**：推条值触及 `bar_max`（判定留 1e-6 浮点余量以兜住累加误差）→ 造成**元素伤害**；
   条**置满**并进入**损伤状态** `injured_seconds`（5 秒），期间条按同一条速率**线性回退到 0**。
@@ -163,7 +165,7 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
   （近战 / 弓箭 / 落箭都算）才激活；目标处于损伤状态且**预计落地后血量 ≤ 最大生命 × 15%**（且 > 0）时，
   补一击「最大生命 × 100%」的元素伤害（钉住、无击退、算在该佩戴者头上）；**每段损伤状态只落地一次**
   （`apoptosis_execute_used`，爆条时重置），抵抗与累积期不判定。
-- **抵抗削减（枯笔）**：与推条同口径 —— 只有**近战直击**（直接来源是玩家本人）且该玩家戴枯笔、目标处于抵抗期时，
+- **抵抗削减（枯笔）**：与推条共用同一套**可信近战**判定 —— 只有普通左键 / 横扫 / 遁入暗影实际斩击且该玩家戴枯笔、目标处于抵抗期时，
   把 `apoptosis_resist_until` 前移 `resistance_cut_seconds_with_fourth`（1）秒；每刀最多一次、可叠加，减到 0 即抵抗立刻结束。
 - **恐惧（枯笔）**：爆条那一刻若引爆者戴枯笔 → `effect/WitheredBrush` 给目标 1 秒恐惧（`fear_seconds_with_fourth`）：
   **生物**每 tick（服务器 tick 末尾）清攻击目标 / 中立仇恨 + 停寻路 + 水平速度清零（垂直分量保留）；**玩家**（`fear_affects_players`，

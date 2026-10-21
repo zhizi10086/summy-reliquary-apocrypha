@@ -4,6 +4,8 @@ import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.net.ApoptosisBarMessage;
+import com.summy.reliquary.effect.HolyLightEffect;
+import com.summy.reliquary.effect.ShadowDash;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -24,6 +26,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHealEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -31,6 +34,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.network.PacketDistributor;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -94,21 +98,8 @@ public final class Apoptosis {
 
 	/** 本模组元素伤害类型的 id：钉住与「防递归」判定都用它 */
 	private static final String ELEMENT_ID = "summy-reliquary-apocrypha.apoptosis_element";
-	/**
-	 * SR 的 7 项固定伤害：它们的伤害源 direct entity 也是玩家，但并不是近战直击。
-	 *
-	 * <p>这些伤害仍应吃「损伤状态受伤 +N%」与额外元素附伤，但不能用来推凋亡条、
-	 * 削减损伤抵抗或触发笞心斩杀；否则圣光/神性等法术伤害会被误判成玩家挥刀。
-	 */
-	private static final Set<String> SR_FIXED_DAMAGE_IDS = Set.of(
-			"summy-reliquary.holy_light_burst",
-			"summy-reliquary.golden_razor",
-			"summy-reliquary.revelation_light",
-			"summy-reliquary.demon_flame",
-			"summy-reliquary.abyss_aura",
-			"summy-reliquary.godhead_aura",
-			"summy-reliquary.sacrifice"
-	);
+	/** 原版近战伤害的唯一消息 id；用于把普通左键与同名伪造伤害区分开 */
+	private static final String PLAYER_ATTACK_ID = "minecraft.player_attack";
 	/** 同步节流：客户端会本地衰减，所以每 N tick 补发一次即可 */
 	private static final int SYNC_INTERVAL_TICKS = 5;
 
@@ -121,6 +112,14 @@ public final class Apoptosis {
 	private static final Map<UUID, ServerLevel> ACTIVE = new HashMap<>();
 	/** 玩家受害者 → 屏幕顶部的 Boss 条 */
 	private static final Map<UUID, ServerBossEvent> BOSS_BARS = new HashMap<>();
+	/** 玩家 → 本 tick 发生过普通左键攻击的标记；横扫沿用同一 tick 窗口 */
+	private static final Map<UUID, Long> MELEE_ATTACK_TICKS = new HashMap<>();
+	/** 本 tick 已经计入的可信近战命中：同一攻击者对同一目标最多推一次 */
+	private static final Set<MeleeHit> MELEE_HITS = new HashSet<>();
+
+	/** 一次可信近战命中的去重键（攻击者 + 目标实体 id + 服务端 tick） */
+	private record MeleeHit(UUID attacker, int targetId, long tick) {
+	}
 
 	private Apoptosis() {
 	}
@@ -179,15 +178,32 @@ public final class Apoptosis {
 
 	// ==================== 事件 ====================
 
+	/**
+	 * 记录真正的普通左键攻击。
+	 *
+	 * <p>{@code player_attack} 这个伤害 id 本身并不可信：投掷短矛、电刀、遁入暗影等
+	 * 都会复用同名伤害源。这里只把 Forge 实际派发的攻击事件当作普通近战窗口，
+	 * 同一 tick 内主目标与横扫目标都能通过；其它时机的 {@code player_attack} 不会推条。
+	 */
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public static void onAttackEntity(AttackEntityEvent event) {
+		if (event.isCanceled() || !(event.getEntity() instanceof ServerPlayer attacker)
+				|| !(attacker.level() instanceof ServerLevel level)) {
+			return;
+		}
+		MELEE_ATTACK_TICKS.put(attacker.getUUID(), (long) level.getServer().getTickCount());
+	}
+
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public static void onLivingHurt(LivingHurtEvent event) {
 		if (!(event.getEntity().level() instanceof ServerLevel level)) {
 			return;
 		}
 		LivingEntity target = event.getEntity();
+		DamageSource source = event.getSource();
 
 		// ① 本模组的元素伤害：把金额钉回固定值（不吃 SR 的七罪七德与全伤害乘区）
-		if (ELEMENT_ID.equals(event.getSource().getMsgId())) {
+		if (ELEMENT_ID.equals(source.getMsgId())) {
 			if (!event.isCanceled()) {
 				event.setAmount(pendingElementDamage);
 			}
@@ -198,7 +214,8 @@ public final class Apoptosis {
 		if (event.isCanceled() || !ApocryphaConfig.enable()) {
 			return;
 		}
-		boolean srFixed = SR_FIXED_DAMAGE_IDS.contains(event.getSource().getMsgId());
+		// 复用 SR 自己的判据，避免维护一份会随前置漂移的消息 id 名单。
+		boolean srFixed = HolyLightEffect.isDivine(source) || HolyLightEffect.isExactDamage(source);
 
 		// 取「触发那一刻」的损伤状态快照：这一刀若正好推满触发爆条，它本身不该再吃附加伤害
 		// （损伤状态是爆条之后才开始的，口径与天使线「在下落状态的那一刻判定」一致）
@@ -211,29 +228,51 @@ public final class Apoptosis {
 		// 读档 / 长时间离线后残留的状态或进度：只要目标被碰过，就重新纳入计时表（自愈 + 让头顶条重新同步）
 		resumeIfCarrying(level, target);
 
-		// ② 佩戴「堕天」或「坠羽」的玩家近战直击 → 推条
-		//（弓箭 / 投掷物 / 落箭 / 宠物：直接来源都不是玩家本人，天然被排除）
-		if (!srFixed && event.getSource().getDirectEntity() instanceof ServerPlayer attacker && attacker != target
-				&& wearsElementCurio(attacker)) {
-			push(level, attacker, target, event.getAmount());
-		}
-
-		// ②b 佩戴「枯笔」的玩家近战直击「损伤抵抗中」的目标 → 抵抗时间削减（4 号件）
-		if (!srFixed && event.getSource().getDirectEntity() instanceof ServerPlayer cutter && cutter != target
-				&& CurioHelper.wears(cutter, Apocrypha.WITHERED_BRUSH.get())) {
-			cutResistance(cutter, target);
+		// ② 只有可信近战才推条 / 削减抵抗：普通左键、横扫、遁入暗影实际斩击。
+		// 投掷短矛、电刀、追加魔法与其它直接以玩家为来源的特效不会进入这里。
+		ServerPlayer meleeAttacker = trustedMeleeAttacker(level, source, target);
+		if (meleeAttacker != null) {
+			if (wearsElementCurio(meleeAttacker)) {
+				push(level, meleeAttacker, target, event.getAmount());
+			}
+			if (CurioHelper.wears(meleeAttacker, Apocrypha.WITHERED_BRUSH.get())) {
+				cutResistance(meleeAttacker, target);
+			}
 		}
 
 		// ③ 损伤状态：这一次受伤额外附加元素伤害（比例由引爆那一刻定死在目标数据里）
 		if (wasInjured) {
 			float extra = event.getAmount() * (float) (extraPercent(target) / 100.0D);
-			Entity causing = event.getSource().getEntity();
+			Entity causing = source.getEntity();
 			dealElementDamage(level, causing instanceof ServerPlayer player ? player : null, target, extra, "附加");
 			// ④ 斩杀：本次伤害结算完附加伤害之后再判 —— 只有「佩戴笞心的伤害造成者」才会激活这个判断
 			if (!srFixed) {
 				tryExecute(level, target, event);
 			}
 		}
+	}
+
+	/**
+	 * 判断这次伤害是否来自真正会推条近战动作。
+	 *
+	 * <p>普通左键由 {@link #onAttackEntity} 建立本 tick 窗口；遁入暗影的基础斩击和强力斩
+	 * 由 {@link ShadowDash#isResolving(ServerPlayer)} 识别。最后用攻击者、目标、tick 去重，
+	 * 所以同一次挥刀随后产生的出其不意、斩杀追加或其它 {@code player_attack} 不会重复计数。
+	 */
+	private static ServerPlayer trustedMeleeAttacker(ServerLevel level, DamageSource source, LivingEntity target) {
+		if (!(source.getDirectEntity() instanceof ServerPlayer attacker)
+				|| source.getEntity() != attacker
+				|| attacker == target
+				|| !PLAYER_ATTACK_ID.equals(source.getMsgId())) {
+			return null;
+		}
+		long tick = level.getServer().getTickCount();
+		boolean normalAttack = MELEE_ATTACK_TICKS.getOrDefault(attacker.getUUID(), Long.MIN_VALUE) == tick;
+		if (!normalAttack && !ShadowDash.isResolving(attacker)) {
+			return null;
+		}
+		MeleeHit hit = new MeleeHit(attacker.getUUID(), target.getId(), tick);
+		return MELEE_HITS.add(hit) ? attacker : null;
 	}
 
 	/** 目标身上还留着未过期的状态或未清空的进度时，把它重新纳入计时表（读档自愈） */
@@ -357,6 +396,26 @@ public final class Apoptosis {
 		event.setAmount(event.getAmount() * clamped);
 	}
 
+	/**
+	 * 近战窗口的 tick 生命周期。
+	 *
+	 * <p>普通左键伤害在本 tick 的实体更新阶段已经全部落地；到 END 阶段先关闭窗口，
+	 * 可以挡住电刀等允许在 {@code 0 tick} 后于 tick 末尾再次调用 {@code playerAttack} 的链式伤害。
+	 * 遁入暗影走独立状态，不依赖这里的窗口。
+	 */
+	@SubscribeEvent(priority = EventPriority.HIGHEST)
+	public static void onMeleeWindowTick(TickEvent.ServerTickEvent event) {
+		if (event.phase == TickEvent.Phase.START) {
+			// 普通近战窗口只在当前 tick 有效，避免跨 tick 吞掉投掷或后续技能伤害。
+			MELEE_ATTACK_TICKS.clear();
+			MELEE_HITS.clear();
+			return;
+		}
+		if (event.phase == TickEvent.Phase.END) {
+			MELEE_ATTACK_TICKS.clear();
+		}
+	}
+
 	@SubscribeEvent
 	public static void onServerTick(TickEvent.ServerTickEvent event) {
 		if (event.phase != TickEvent.Phase.END) {
@@ -374,6 +433,7 @@ public final class Apoptosis {
 	public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
 		if (event.getEntity() instanceof ServerPlayer player) {
 			removeBar(player.getUUID());
+			MELEE_ATTACK_TICKS.remove(player.getUUID());
 		}
 	}
 
@@ -715,6 +775,8 @@ public final class Apoptosis {
 	/** 服务器停止：清空登记与所有 Boss 条 */
 	public static void clear() {
 		ACTIVE.clear();
+		MELEE_ATTACK_TICKS.clear();
+		MELEE_HITS.clear();
 		for (ServerBossEvent bar : BOSS_BARS.values()) {
 			bar.removeAllPlayers();
 		}
