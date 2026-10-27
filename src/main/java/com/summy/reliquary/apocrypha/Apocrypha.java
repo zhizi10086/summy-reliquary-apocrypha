@@ -1,6 +1,7 @@
 package com.summy.reliquary.apocrypha;
 
 import com.mojang.logging.LogUtils;
+import com.mojang.serialization.Codec;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.ArrowDamageBonuses;
 import com.summy.reliquary.apocrypha.effect.Apoptosis;
@@ -12,6 +13,9 @@ import com.summy.reliquary.apocrypha.effect.SacramentArrows;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
 import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.apocrypha.integration.ReliquaryRef;
+import com.summy.reliquary.apocrypha.loot.ApocryphaAcquisition;
+import com.summy.reliquary.apocrypha.loot.ApocryphaItemProtection;
+import com.summy.reliquary.apocrypha.loot.ApocryphaLootModifier;
 import com.summy.reliquary.apocrypha.item.NewTestamentItem;
 import com.summy.reliquary.apocrypha.item.SwiftFeatherCovenantItem;
 import com.summy.reliquary.apocrypha.item.WingFeatherSacramentItem;
@@ -33,6 +37,7 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.loot.IGlobalLootModifier;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -67,6 +72,8 @@ public class Apocrypha {
 			DeferredRegister.create(Registries.CREATIVE_MODE_TAB, NAMESPACE);
 	private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
 			DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, NAMESPACE);
+	private static final DeferredRegister<Codec<? extends IGlobalLootModifier>> LOOT_MODIFIER_CODECS =
+			DeferredRegister.create(ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, NAMESPACE);
 
 	/** 落箭实体：与原版箭矢同档的同步范围 */
 	public static final RegistryObject<EntityType<NewTestamentArrow>> NEW_TESTAMENT_ARROW =
@@ -141,6 +148,10 @@ public class Apocrypha {
 			ITEMS.register("final_song",
 					() -> new FinalSongItem(new Item.Properties().stacksTo(1)));
 
+	/** 战利品修饰器 codec：数据文件只负责把 Forge 的调用转进获取状态机 */
+	public static final RegistryObject<Codec<ApocryphaLootModifier>> ACQUISITION_LOOT_MODIFIER =
+			LOOT_MODIFIER_CODECS.register("acquisition_reward", () -> ApocryphaLootModifier.CODEC);
+
 	/** 本模组专属创造标签页 */
 	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
@@ -166,6 +177,7 @@ public class Apocrypha {
 		ITEMS.register(modBus);
 		TABS.register(modBus);
 		ENTITY_TYPES.register(modBus);
+		LOOT_MODIFIER_CODECS.register(modBus);
 
 		// Curios 栏位校验谓词：本模组的栏位只接受指定物品
 		ApocryphaSlots.registerValidators();
@@ -186,6 +198,10 @@ public class Apocrypha {
 		MinecraftForge.EVENT_BUS.register(FallenPlumeWings.class);
 		// 凋亡 #4「枯笔」：恐惧（生物冻结 / 玩家定身与封禁近战·右击）
 		MinecraftForge.EVENT_BUS.register(WitheredBrush.class);
+		// 两套饰品的野箱获取状态机、死亡恢复与登录兼容扫描
+		MinecraftForge.EVENT_BUS.register(ApocryphaAcquisition.class);
+		// 10 件独占饰品的掉落物不可摧毁 / 永不消失，并从死亡掉落中剔除
+		MinecraftForge.EVENT_BUS.register(ApocryphaItemProtection.class);
 		// 本模组的指令（/summyapocrypha fear players <on|off>）
 		MinecraftForge.EVENT_BUS.register(ApocryphaCommand.class);
 		// 本模组自己的网络通道（协议 "1"：目前只有"空中按下跳跃键"一条 C2S 包）

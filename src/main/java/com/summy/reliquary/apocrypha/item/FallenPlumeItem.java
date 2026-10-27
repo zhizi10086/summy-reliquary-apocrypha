@@ -18,7 +18,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import top.theillusivec4.curios.api.SlotContext;
-import top.theillusivec4.curios.api.type.capability.ICurioItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +31,7 @@ import java.util.List;
  *
  * <p>两件同戴时按本件（坠羽）的口径结算，见 {@code effect/Apoptosis}。
  */
-public class FallenPlumeItem extends Item implements ICurioItem {
+public class FallenPlumeItem extends Item implements ApocryphaKeptCurioItem {
 	/** 暗红（恶魔线经文用色） */
 	private static final int DARK_RED = 0xD86A6A;
 

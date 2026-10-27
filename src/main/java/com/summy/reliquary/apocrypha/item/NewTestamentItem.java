@@ -17,7 +17,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import top.theillusivec4.curios.api.SlotContext;
-import top.theillusivec4.curios.api.type.capability.ICurioItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +34,7 @@ import java.util.List;
  * <p>玩法逻辑在 effect/NewTestamentEffect（命中判定 + 回血 + 散射 + 音效），
  * 落箭实体见 entity/NewTestamentArrow。
  */
-public class NewTestamentItem extends Item implements ICurioItem {
+public class NewTestamentItem extends Item implements ApocryphaKeptCurioItem {
 	/** 淡金（天使线经文用色） */
 	private static final int PALE_GOLD = 0xFFE4B5;
 

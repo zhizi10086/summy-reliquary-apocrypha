@@ -18,7 +18,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import top.theillusivec4.curios.api.SlotContext;
-import top.theillusivec4.curios.api.type.capability.ICurioItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +32,7 @@ import java.util.List;
  * <p>门槛与提示排版都复用 SR 的现成实现（`CurioItemSupport` 的自定义门槛重载 + `ReliquaryTooltips`
  * 的恶魔门槛提示行），与天使线那五件是同款写法，只是门槛换成了恶魔标记。
  */
-public class FallenHeavenItem extends Item implements ICurioItem {
+public class FallenHeavenItem extends Item implements ApocryphaKeptCurioItem {
 	/** 暗红（恶魔线经文用色） */
 	private static final int DARK_RED = 0xD86A6A;
 

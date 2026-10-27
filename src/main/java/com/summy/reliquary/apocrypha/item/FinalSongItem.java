@@ -18,7 +18,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import top.theillusivec4.curios.api.SlotContext;
-import top.theillusivec4.curios.api.type.capability.ICurioItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +28,7 @@ import java.util.List;
  * <p>佩戴者引爆时，本段**损伤状态**额外获得三件事：① 目标**每秒**再吃一笔「本次爆伤 × 5%」的元素伤害；
  * ② 减疗从 50% 提升到 80%；③ 目标受到的（非本模组元素）最终伤害 +10%（见 {@code effect/Apoptosis}）。
  */
-public class FinalSongItem extends Item implements ICurioItem {
+public class FinalSongItem extends Item implements ApocryphaKeptCurioItem {
 	/** 暗红（恶魔线经文用色） */
 	private static final int DARK_RED = 0xD86A6A;
 

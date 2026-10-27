@@ -59,6 +59,16 @@
 > **栏位位置**：SR 的栏位是 `10/20/30/40/50/60/70`；本模组两套整体排在它之后 —— 新约 `80~84`、凋亡 `90~94`，
 > 各自连续、互不穿插、无并列（历史上凋亡第 1 格 20 曾与 SR `stomach(20)` 并列，导致排序不稳定）。改 `order` 不影响已装配物品。
 
+### 战利品获取与独占保护（已实装）
+
+- **触发面**：Forge `Global Loot Modifier` 只处理 `LootContext` 表路径以 `chests/` 开头、且有 `ServerPlayer` 作为 `THIS_ENTITY` 的首次生成。玩家箱、已开箱、手动填装箱和非玩家生成不会触发。
+- **路线判定**：无天使/恶魔标记不发奖；双标记暂停发奖。天使线与恶魔线分别保存 5 位获取位图与保底计数。
+- **基础件**：新约 = `new_testament`，凋亡 = `fallen_heaven`。未获取时下一个合格野箱直接发放；发放后立即写获取位。
+- **后四件**：必须佩戴基础件；每次合格野箱默认 15% 概率，连续 10 次失败后下一箱必得，成功率重置保底。候选只包含该路线尚未获取的 2~5 号件，按数量等概率选择。
+- **交付**：直接进入玩家背包，满则掉在脚下并交给掉落实体保护。登录时扫描背包与 Curios 栏，`/give`、创造模式或旧存档已有物品会补记获取位。
+- **死亡保留**：10 件饰品统一实现 `ApocryphaKeptCurioItem`，Curios 掉落规则为 `ALWAYS_KEEP`；`LivingDropsEvent` 最低优先级移除所有背包副本，`PlayerEvent.Clone` 记录死亡前数量，下一 tick 在新玩家存活后按缺口恢复，兼容 `keepInventory` 与 Curios 自带复制。
+- **掉落实体保护**：`EntityJoinLevelEvent` 对 10 件饰品的所有 `ItemEntity` 设置 `invulnerable` 与 `setUnlimitedLifetime()` —— 防火、岩浆、爆炸、仙人掌，且永不自然消失；虚空仍永久丢失。
+
 ## 三、核心机制与数值口径（当前定稿）
 
 ### 3.1 本体箭矢命中（`LivingHurtEvent`，LOWEST）
@@ -202,11 +212,13 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
 落箭瞬时结算汇总行、二段跳行、清帧行。关闭时零输出。口径文本：落箭 =「钉住：N 点（不吃 SR 增伤乘区）」，
 圣光矢 =「钉住：触发箭伤害的 100%」；恶魔线另输出 `[凋亡]` 行（爆条、元素伤害（爆条 / 附加），含发出值与钉住后值）。
 
-## 四、配置面（`config/summy_reliquary_apocrypha-common.toml`，共 46 项）
+## 四、配置面（`config/summy_reliquary_apocrypha-common.toml`，共 48 项）
 
 | 段 | 键 | 默认 | 说明 |
 | --- | --- | --- | --- |
 | `[general]` | `enable` | true | 玩法总开关 |
+| `[acquisition]` | `subsequent_chance_percent` | 15 | 佩戴基础件后，每个合格野箱获取缺失后四件之一的概率（%） |
+| | `pity_chests` | 10 | 连续失败多少箱后下一箱必得；0 = 关闭保底 |
 | `[new_testament]` | `heal_amount` | 0.5 | 命中回血 |
 | | `scatter_chance_percent` | 35 | 落箭触发概率（%） |
 | | `scatter_arrow_min` / `scatter_arrow_max` | 3 / 5 | 落箭数量区间 |
@@ -270,7 +282,7 @@ client/HolyArrowRenderer           圣光矢渲染（光灵箭贴图）
 client/WingFeatherSacramentRenderer 光翼 / 恶魔翅膀渲染层（Curios，挂在玩家模型躯干骨骼上；按物品切参数与标志）
 client/ApoptosisBarRenderer        凋亡损伤头顶条（billboard、不穿墙、纯代码）
 client/ApoptosisBarState           凋亡条的客户端缓存（本地逐 tick 衰减）
-config/ApocryphaConfig             46 项配置
+config/ApocryphaConfig             48 项配置
 command/ApocryphaCommand           本模组指令（/summyapocrypha fear players on|off）
 effect/Apoptosis                   凋亡核心：推条 / 爆条 / 损伤状态 / 抵抗 / 元素伤害钉住 / 玩家 Boss 条
 effect/FallenPlumeWings            「坠羽」爆条时背后展开的翅膀（写饰品 NBT 标志 + 到期清标志）
@@ -282,6 +294,10 @@ effect/SacramentArrows             圣餐之矢（放箭登记 → 指定箭 →
 effect/FeatherCharge               光羽计数、脱战衰减、实体校正
 effect/HoverFlight                 逆羽·滞空（缓降 / 二段跳 / 落阶状态）
 effect/ArrowDamageBonuses          箭矢增伤（圣餐 +30% 与滞空 +15%，HIGHEST，排在 SR 乘区之前）
+item/ApocryphaKeptCurioItem        10 件独占饰品的统一 Curios 死亡保留规则
+loot/ApocryphaAcquisition          野箱获取状态机、直接交付、获取位与死亡恢复
+loot/ApocryphaLootModifier         Forge Global Loot Modifier codec 入口
+loot/ApocryphaItemProtection       死亡掉落剔除 + 掉落实体不可摧毁 / 无限寿命
 effect/ApocryphaSlotSizing         新约系列与凋亡系列栏位的动态格数（每秒）
 entity/NewTestamentArrow           落箭实体（钉住 / 视觉标记 / 无击退）
 entity/HolyArrow                   穿透圣光矢实体
@@ -342,7 +358,7 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 1. **构建**：在源码目录执行 `gradlew build`（需 JDK 17，路径走全局 `~/.gradle/gradle.properties`）；
    产物自动复制到 `..\JAR\summy-reliquary-apocrypha\`。
 2. **冒烟**：`gradlew runServer`（`run/mods` 里会自动投放 SR 的 dev 映射 jar）；
-   期望 `Loaded 27 curio slots`（SRA 占 10 个）、配置 46 项、零 ERROR / 异常。
+   期望 `Loaded 27 curio slots`（SRA 占 10 个）、配置 48 项、零 ERROR / 异常。
 3. **实机**：把 jar 拷进实例 `mods`（同名覆盖）→ 启动 → 用 `/summyreliquary angel grant` / `demon grant` 取得对应标记。
 4. **验收**：先在实例配置里把 `[new_testament] log_trigger` 改成 `true`，按动作打一遍，再把
    `E:\MC\PCL2快照版\.minecraft\versions\1.20.1-Forge_47.4.23-test\logs\latest.log` 交给验收方核对，

@@ -18,7 +18,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import top.theillusivec4.curios.api.SlotContext;
-import top.theillusivec4.curios.api.type.capability.ICurioItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +29,7 @@ import java.util.List;
  * ② 佩戴者引爆时，**目标获得一小段恐惧**（无法移动 + 无法攻击；玩家档默认关闭，
  * 可用指令 {@code /summyapocrypha fear players <on|off>} 打开）。
  */
-public class WitheredBrushItem extends Item implements ICurioItem {
+public class WitheredBrushItem extends Item implements ApocryphaKeptCurioItem {
 	/** 暗红（恶魔线经文用色） */
 	private static final int DARK_RED = 0xD86A6A;
 

@@ -17,7 +17,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import top.theillusivec4.curios.api.SlotContext;
-import top.theillusivec4.curios.api.type.capability.ICurioItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +28,7 @@ import java.util.List;
  * 攒到第 4 对后射出箭矢会消耗 1 对，使该箭成为**圣餐之矢**（伤害 +N%、必定触发新约、落箭固定若干支）；
  * 脱战若干秒后逐对熄灭。逻辑分别在 {@code effect/FeatherCharge} 与 {@code effect/SacramentArrows}。
  */
-public class WingFeatherSacramentItem extends Item implements ICurioItem {
+public class WingFeatherSacramentItem extends Item implements ApocryphaKeptCurioItem {
 	/** 淡金（天使线经文用色） */
 	private static final int PALE_GOLD = 0xFFE4B5;
 

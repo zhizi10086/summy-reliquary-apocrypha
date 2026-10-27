@@ -11,6 +11,8 @@ public final class ApocryphaConfig {
 	public static final ForgeConfigSpec SPEC;
 
 	private static final ForgeConfigSpec.BooleanValue ENABLE;
+	private static final ForgeConfigSpec.IntValue ACQUISITION_CHANCE_PERCENT;
+	private static final ForgeConfigSpec.IntValue ACQUISITION_PITY_CHESTS;
 
 	// ===== 新约 =====
 	private static final ForgeConfigSpec.DoubleValue HEAL_AMOUNT;
@@ -75,6 +77,15 @@ public final class ApocryphaConfig {
 		builder.comment("Summy Reliquary: Apocrypha 总开关").push("general");
 		ENABLE = builder.comment("是否启用本模组的玩法效果（关掉后饰品仍可佩戴，但不再触发效果）")
 				.define("enable", true);
+		builder.pop();
+
+		builder.comment("两套饰品的野箱获取规则").push("acquisition");
+		ACQUISITION_CHANCE_PERCENT = builder
+				.comment("佩戴基础件后，每个合格野箱获得后四件之一的概率（百分比）")
+				.defineInRange("subsequent_chance_percent", 15, 0, 100);
+		ACQUISITION_PITY_CHESTS = builder
+				.comment("连续多少个合格野箱未出货后，下一个箱子必得；0 = 关闭保底")
+				.defineInRange("pity_chests", 10, 0, 1000);
 		builder.pop();
 
 		builder.comment("新约（饰品，装入「新约-光环」栏位；需要天使标记）").push("new_testament");
@@ -247,6 +258,16 @@ public final class ApocryphaConfig {
 	/** 总开关 */
 	public static boolean enable() {
 		return ENABLE.get();
+	}
+
+	/** 佩戴基础件后，每个合格野箱出货的概率（%） */
+	public static int acquisitionChancePercent() {
+		return ACQUISITION_CHANCE_PERCENT.get();
+	}
+
+	/** 连续失败多少箱后保底；0 = 关闭 */
+	public static int acquisitionPityChests() {
+		return ACQUISITION_PITY_CHESTS.get();
 	}
 
 	public static double healAmount() {

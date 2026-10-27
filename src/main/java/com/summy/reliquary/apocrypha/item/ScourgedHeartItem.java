@@ -18,7 +18,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import top.theillusivec4.curios.api.SlotContext;
-import top.theillusivec4.curios.api.type.capability.ICurioItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +30,7 @@ import java.util.List;
  * 就补上一击「最大生命 × 100%」的元素伤害，**每段损伤状态只落地一次**，且只有
  * **「本次伤害的造成者是佩戴笞心的玩家」**时才激活这个判断（见 {@code effect/Apoptosis#tryExecute}）。
  */
-public class ScourgedHeartItem extends Item implements ICurioItem {
+public class ScourgedHeartItem extends Item implements ApocryphaKeptCurioItem {
 	/** 暗红（恶魔线经文用色） */
 	private static final int DARK_RED = 0xD86A6A;
 

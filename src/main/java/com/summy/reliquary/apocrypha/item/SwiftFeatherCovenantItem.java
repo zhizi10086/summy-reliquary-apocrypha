@@ -17,7 +17,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import top.theillusivec4.curios.api.SlotContext;
-import top.theillusivec4.curios.api.type.capability.ICurioItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +30,7 @@ import java.util.List;
  * 落箭伤害 = 触发之箭（在 LivingHurtEvent 里）金额的 {@code damage_ratio_percent}%，
  * 且该值**钉住**、不再叠加 SR 的增伤乘区。改写逻辑在 {@code effect/NewTestamentEffect} 的命中分支里。
  */
-public class SwiftFeatherCovenantItem extends Item implements ICurioItem {
+public class SwiftFeatherCovenantItem extends Item implements ApocryphaKeptCurioItem {
 	/** 淡金（天使线经文用色） */
 	private static final int PALE_GOLD = 0xFFE4B5;
 
