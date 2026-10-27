@@ -23,6 +23,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHealEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
@@ -278,8 +279,7 @@ public final class Apoptosis {
 	/** 目标身上还留着未过期的状态或未清空的进度时，把它重新纳入计时表（读档自愈） */
 	private static void resumeIfCarrying(ServerLevel level, LivingEntity target) {
 		CompoundTag data = data(target);
-		long now = now(target);
-		if (data.getLong(INJURED_UNTIL) > now || data.getLong(RESIST_UNTIL) > now
+		if (data.getLong(INJURED_UNTIL) > 0L || data.getLong(RESIST_UNTIL) > 0L
 				|| data.getDouble(VALUE) > 0.0D) {
 			markActive(level, target);
 		}
@@ -429,6 +429,23 @@ public final class Apoptosis {
 		clear();
 	}
 
+	/** 区块载入 / 服务器重启 / 换维度后，按目标持久 NBT 恢复活跃登记 */
+	@SubscribeEvent
+	public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
+		if (event.getLevel().isClientSide() || !(event.getLevel() instanceof ServerLevel level)
+				|| !(event.getEntity() instanceof LivingEntity target)) {
+			return;
+		}
+		resumeIfCarrying(level, target);
+	}
+
+	@SubscribeEvent
+	public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+		if (event.getEntity() instanceof ServerPlayer player && player.level() instanceof ServerLevel level) {
+			resumeIfCarrying(level, player);
+		}
+	}
+
 	@SubscribeEvent
 	public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
 		if (event.getEntity() instanceof ServerPlayer player) {
@@ -440,8 +457,11 @@ public final class Apoptosis {
 	@SubscribeEvent
 	public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
 		if (event.getEntity() instanceof ServerPlayer player) {
-			// 换维度时先收掉，下一次 tick 若状态仍在会自动重建
+			// 换维度时先收掉旧 Boss 条，再把持久状态登记到新维度。
 			removeBar(player.getUUID());
+			if (player.level() instanceof ServerLevel level) {
+				resumeIfCarrying(level, player);
+			}
 		}
 	}
 
@@ -638,8 +658,9 @@ public final class Apoptosis {
 					data.putDouble(PUSH_DAMAGE, 0.0D);
 					data.putBoolean(EXECUTE_USED, false);
 					clearBurstSnapshot(data);
-					data.putLong(RESIST_UNTIL,
-							now + Math.max(0, ApocryphaConfig.apoptosisResistanceSeconds()) * 20L);
+					long resistanceUntil = injuredUntil
+							+ Math.max(0, ApocryphaConfig.apoptosisResistanceSeconds()) * 20L;
+					data.putLong(RESIST_UNTIL, resistanceUntil > now ? resistanceUntil : 0L);
 					phaseChanged = true;
 				} else if (resistUntil > 0L) {
 					data.putLong(RESIST_UNTIL, 0L);

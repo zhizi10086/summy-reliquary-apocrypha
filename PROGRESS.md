@@ -39,9 +39,9 @@
 
 与天使线对称：全部**需要恶魔标记**（走 `CurioItemSupport.canEquipInto` 的自定义门槛重载，第 5 个参数传
 `PlayerFlags::isDemon` +「需要恶魔标记」），对应栏位**仅恶魔线开放**（与天使线一样每秒 `SlotSizing.sync` 动态 0/1 格，
-列表在 `ApocryphaSlots.DEMON_SERIES_SLOTS`）。**素材按约定先用占位**：栏位图标按顺序借新约套
-（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示），物品贴图借原版
-（堕天=`wither_rose`、坠羽=`phantom_membrane`、笞心=`heart_of_the_sea`、枯笔=`ink_sac`、终歌=`goat_horn`）。
+列表在 `ApocryphaSlots.DEMON_SERIES_SLOTS`）。**素材已入库**：5 件物品贴图由作者提供，
+栏位图标按约定借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示），
+恶魔翅膀使用作者提供的整对贴图；扩展包目录中的未命名素材均已处理。
 
 > 贴图占位的**踩坑记录**：凋灵玫瑰在 1.20.1 只有**方块**贴图，模型的 `layer0` 必须写
 > `minecraft:block/wither_rose`；写 `minecraft:item/wither_rose` 会渲染成黑紫块（客户端日志会有一条
@@ -61,13 +61,14 @@
 
 ### 战利品获取与独占保护（已实装）
 
-- **触发面**：Forge `Global Loot Modifier` 只处理 `LootContext` 表路径以 `chests/` 开头、且有 `ServerPlayer` 作为 `THIS_ENTITY` 的首次生成。玩家箱、已开箱、手动填装箱和非玩家生成不会触发。
+- **触发面**：Forge `Global Loot Modifier` 只处理**玩家实际交互的未开箱容器**：右键容器（含双箱、木桶、潜影箱）或箱子矿车时先登记本 tick 的容器来源，GLM 再校验玩家、维度、tick、位置和战利品表。`/loot`、命令生成、玩家箱、已开箱、手动填装箱和非玩家生成不会触发。
 - **路线判定**：无天使/恶魔标记不发奖；双标记暂停发奖。天使线与恶魔线分别保存 5 位获取位图与保底计数。
 - **基础件**：新约 = `new_testament`，凋亡 = `fallen_heaven`。未获取时下一个合格野箱直接发放；发放后立即写获取位。
 - **后四件**：必须佩戴基础件；每次合格野箱默认 15% 概率，连续 10 次失败后下一箱必得，成功率重置保底。候选只包含该路线尚未获取的 2~5 号件，按数量等概率选择。
 - **交付**：直接进入玩家背包，满则掉在脚下并交给掉落实体保护。登录时扫描背包与 Curios 栏，`/give`、创造模式或旧存档已有物品会补记获取位。
 - **死亡保留**：10 件饰品统一实现 `ApocryphaKeptCurioItem`，Curios 掉落规则为 `ALWAYS_KEEP`；`LivingDropsEvent` 最低优先级移除所有背包副本，`PlayerEvent.Clone` 记录死亡前数量，下一 tick 在新玩家存活后按缺口恢复，兼容 `keepInventory` 与 Curios 自带复制。
 - **掉落实体保护**：`EntityJoinLevelEvent` 对 10 件饰品的所有 `ItemEntity` 设置 `invulnerable` 与 `setUnlimitedLifetime()` —— 防火、岩浆、爆炸、仙人掌，且永不自然消失；虚空仍永久丢失。
+- **异界力量边界**：SR 创世纪只清理 SR 自身标记与物品，不清除 SRA 获取位、保底或 10 件饰品；标记消失导致缩栏时，饰品退回背包，背包满才落地并受保护。
 
 ## 三、核心机制与数值口径（当前定稿）
 
@@ -169,6 +170,8 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
   所以中途退游戏 / 长时间离线都不会留下卡死的残留；旧键（`*_ticks`）不再读取 —— 旧存档等价于「状态已结束」。
   损伤状态期间的条值按剩余时间**派生**（不再逐 tick 写盘）；每次受伤若发现目标还带着未过期的状态或未清空的进度，
   会顺手把它重新纳入 `ACTIVE`（读档后头顶条会在 5 tick 内恢复显示）。
+- **恢复口径**：实体进入已加载世界（登录、换维度、区块载入、服务器重启）时会按持久数据重新纳入 `ACTIVE`；
+  损伤结束后的抵抗到期时刻按「原损伤结束时刻 + 抵抗时长」计算，离线时间线继续，不会在重连时重新给完整 5 秒。
 - **空闲清空**：累积阶段若连续 `idle_clear_seconds`（30）秒没被推过条（`apoptosis_last_push`），
   进度值与已累计的推条伤害一起清零；损伤 / 抵抗期（合计 10 秒）不会触发。
 - **斩杀（笞心）**：`LivingHurtEvent`（LOWEST）里、结算完附加伤害之后判定 —— 只有「本次伤害的**造成者**是佩戴笞心的玩家」

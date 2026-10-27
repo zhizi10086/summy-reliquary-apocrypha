@@ -541,6 +541,13 @@
 - **掉落实体保护**：所有来源的这 10 件饰品掉落实体均 `invulnerable + unlimited lifetime`，防火、岩浆、爆炸、仙人掌，永不自然消失；虚空和命令删除不找回。
 - **配置**：新增 `[acquisition] subsequent_chance_percent = 15` 与 `pity_chests = 10`，配置面 **46 → 48 项**。版本仍为 `0.1.0`，网络协议不变。
 
+### SRA 闭环修正：严格真实开箱 + 凋亡恢复（同日第三十轮）
+
+- **严格开箱来源**：SRA 现在只在玩家实际交互未开箱容器时登记来源窗口；`RightClickBlock` 校验方块容器 NBT 的 `LootTable`，`EntityInteract` 支持箱子矿车。Global Loot Modifier 必须匹配玩家、维度、tick、位置和预期战利品表后才结算，`/loot` 不再能伪造首件或推进保底。
+- **凋亡恢复**：`EntityJoinLevelEvent` 会在登录 / 换维度 / 区块载入 / 服务器重启后，把持久状态重新纳入 `ACTIVE`。损伤结束后，抵抗到期时刻按原损伤结束时刻计算；离线跨过整个状态窗口则直接清空。
+- **异界力量边界**：SR 创世纪不清除 SRA 获取位、保底或饰品；标记消失只触发缩栏，饰品优先退回背包，背包满则落地并受独占物保护。
+- **文档**：README / PROGRESS 删除过期占位描述，并明确 `subsequent_chance_percent = 0` 时 `pity_chests` 仍生效。版本仍为 `0.1.0`，无新增配置、网络包或指令。
+
 ### 备注
 
 - 首轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步

@@ -5,23 +5,37 @@ import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.effect.PlayerFlags;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.vehicle.AbstractMinecartContainer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -63,6 +77,22 @@ public final class ApocryphaAcquisition {
 
 	/** 已写入待恢复 NBT、但当前连接仍需在下一 tick 核对数量的玩家 */
 	private static final Set<UUID> PENDING_RESTORES = new HashSet<>();
+	/** 玩家本 tick 实际交互过的未开箱容器；防止 `/loot` 和模组直接调用伪造开箱 */
+	private static final Map<UUID, ContainerWindow> CONTAINER_WINDOWS = new HashMap<>();
+
+	private record ContainerWindow(ResourceKey<Level> dimension, BlockPos blockPos, net.minecraft.world.phys.Vec3 origin,
+			ResourceLocation table, long tick) {
+		private boolean matches(ServerLevel level, ResourceLocation actualTable,
+				net.minecraft.world.phys.Vec3 actualOrigin) {
+			if (!dimension.equals(level.dimension()) || !table.equals(actualTable) || tick != level.getServer().getTickCount()) {
+				return false;
+			}
+			if (blockPos != null) {
+				return BlockPos.containing(actualOrigin).equals(blockPos);
+			}
+			return origin.distanceToSqr(actualOrigin) < 0.01D;
+		}
+	}
 
 	private ApocryphaAcquisition() {
 	}
@@ -72,6 +102,7 @@ public final class ApocryphaAcquisition {
 		if (!ApocryphaConfig.enable()) {
 			return;
 		}
+		ServerLevel level = context.getLevel();
 		ResourceLocation table = context.getQueriedLootTableId();
 		if (table == null || !table.getPath().startsWith("chests/")) {
 			return;
@@ -80,6 +111,13 @@ public final class ApocryphaAcquisition {
 				|| player.isSpectator()) {
 			return;
 		}
+		net.minecraft.world.phys.Vec3 origin = context.getParamOrNull(LootContextParams.ORIGIN);
+		ContainerWindow window = CONTAINER_WINDOWS.get(player.getUUID());
+		if (origin == null || window == null || !window.matches(level, table, origin)) {
+			return;
+		}
+		// 一次实际开箱最多消费一个来源窗口，后续同名战利品表不会再被当作开箱。
+		CONTAINER_WINDOWS.remove(player.getUUID());
 
 		boolean angel = PlayerFlags.hasAngel(player);
 		boolean demon = PlayerFlags.isDemon(player);
@@ -132,6 +170,62 @@ public final class ApocryphaAcquisition {
 		grant(player, route.get(selected).item().get());
 		state.putInt(ownedKey, owned | (1 << selected));
 		state.putInt(pityKey, 0);
+	}
+
+	@SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+	public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+		if (event.isCanceled() || !(event.getEntity() instanceof ServerPlayer player)
+				|| !(event.getLevel() instanceof ServerLevel level) || player.isSpectator()) {
+			return;
+		}
+		ResourceLocation table = blockContainerLootTable(level, event.getPos());
+		if (table != null) {
+			rememberContainer(player, level, event.getPos(), net.minecraft.world.phys.Vec3.atCenterOf(event.getPos()), table);
+		}
+	}
+
+	@SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+	public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+		if (event.isCanceled() || !(event.getEntity() instanceof ServerPlayer player)
+				|| !(event.getLevel() instanceof ServerLevel level) || player.isSpectator()
+				|| !(event.getTarget() instanceof AbstractMinecartContainer cart) || cart.getLootTable() == null) {
+			return;
+		}
+		rememberContainer(player, level, null, cart.position(), cart.getLootTable());
+	}
+
+	/** 读取方块容器尚未生成的 LootTable；双箱会检查连接的另一半 */
+	private static ResourceLocation blockContainerLootTable(ServerLevel level, BlockPos pos) {
+		ResourceLocation table = readContainerLootTable(level.getBlockEntity(pos));
+		if (table != null) {
+			return table;
+		}
+		BlockState state = level.getBlockState(pos);
+		if (!(state.getBlock() instanceof ChestBlock) || state.getValue(ChestBlock.TYPE) == ChestType.SINGLE) {
+			return null;
+		}
+		Direction connected = ChestBlock.getConnectedDirection(state);
+		return readContainerLootTable(level.getBlockEntity(pos.relative(connected)));
+	}
+
+	private static ResourceLocation readContainerLootTable(BlockEntity blockEntity) {
+		if (!(blockEntity instanceof RandomizableContainerBlockEntity container)) {
+			return null;
+		}
+		CompoundTag saved = container.saveWithoutMetadata();
+		if (!saved.contains(RandomizableContainerBlockEntity.LOOT_TABLE_TAG, CompoundTag.TAG_STRING)) {
+			return null;
+		}
+		return ResourceLocation.tryParse(saved.getString(RandomizableContainerBlockEntity.LOOT_TABLE_TAG));
+	}
+
+	private static void rememberContainer(ServerPlayer player, ServerLevel level, BlockPos blockPos,
+			net.minecraft.world.phys.Vec3 origin, ResourceLocation table) {
+		if (!table.getPath().startsWith("chests/")) {
+			return;
+		}
+		CONTAINER_WINDOWS.put(player.getUUID(), new ContainerWindow(level.dimension(), blockPos, origin, table,
+				level.getServer().getTickCount()));
 	}
 
 	/** 判断物品是否属于本获取系统的 10 件独占饰品 */
@@ -191,6 +285,10 @@ public final class ApocryphaAcquisition {
 
 	@SubscribeEvent
 	public static void onServerTick(TickEvent.ServerTickEvent event) {
+		if (event.phase == TickEvent.Phase.START) {
+			CONTAINER_WINDOWS.clear();
+			return;
+		}
 		if (event.phase != TickEvent.Phase.END || PENDING_RESTORES.isEmpty()) {
 			return;
 		}
@@ -206,6 +304,14 @@ public final class ApocryphaAcquisition {
 	@SubscribeEvent
 	public static void onServerStopped(ServerStoppedEvent event) {
 		PENDING_RESTORES.clear();
+		CONTAINER_WINDOWS.clear();
+	}
+
+	@SubscribeEvent
+	public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+		if (event.getEntity() instanceof ServerPlayer player) {
+			CONTAINER_WINDOWS.remove(player.getUUID());
+		}
 	}
 
 	private static void restorePending(ServerPlayer player) {
