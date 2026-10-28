@@ -177,6 +177,45 @@ public final class Apoptosis {
 		return data(target).getLong(INJURED_UNTIL) > now(target);
 	}
 
+	/** 自检用：直接构造损伤/抵抗状态，避免依赖随机攻击时序 */
+	public static void setStateForTest(LivingEntity target, int injuredTicks, int resistTicks) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return;
+		}
+		if (!(target.level() instanceof ServerLevel level)) {
+			return;
+		}
+		CompoundTag data = data(target);
+		long now = now(target);
+		data.putLong(INJURED_UNTIL, now + Math.max(0, injuredTicks));
+		data.putLong(RESIST_UNTIL, now + Math.max(0, resistTicks));
+		data.putDouble(VALUE, injuredTicks > 0 ? Math.max(1.0D, ApocryphaConfig.apoptosisBarMax()) : 0.0D);
+		data.putDouble(PUSH_DAMAGE, 0.0D);
+		data.putBoolean(EXECUTE_USED, false);
+		data.putDouble(BURST_DAMAGE, 0.0D);
+		data.putDouble(HEAL_REDUCTION, 0.0D);
+		data.putDouble(DAMAGE_TAKEN_BONUS, 0.0D);
+		data.putInt(SONG_TICKS_PAID, 0);
+		data.putLong(LAST_PUSH, now);
+		markActive(level, target);
+	}
+
+	/** 自检用：清掉某个目标的凋亡状态与活跃登记 */
+	public static void clearForTest(LivingEntity target) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return;
+		}
+		ACTIVE.remove(target.getUUID());
+		removeBar(target.getUUID());
+		CompoundTag data = data(target);
+		data.remove(INJURED_UNTIL);
+		data.remove(RESIST_UNTIL);
+		data.remove(VALUE);
+		data.remove(PUSH_DAMAGE);
+		data.remove(EXECUTE_USED);
+		clearBurstSnapshot(data);
+	}
+
 	// ==================== 事件 ====================
 
 	/**

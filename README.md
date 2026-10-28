@@ -319,6 +319,11 @@ Forge 1.20.1（推荐 47.4.10+）
 - 运行：`gradlew runClient` / `gradlew runServer`
 - 本地测试用指令（都来自 SR）：`/summyreliquary angel grant`（天使标记，佩戴「新约」系列所需）、
   `/summyreliquary demon grant`（恶魔标记，佩戴恶魔线「堕天」所需；该子命令需要 OP 权限）
+- **真实客户端自检**：在专用测试世界运行 `gradlew runClient -Pdevcheck`。脚本会在当前世界准备物品和栏位、
+  验证 `/loot` 不触发 SRA 获取、创建真实箱子验证基础件、检查掉落实体保护，并自动截图
+  `run/screenshots/sra_devcheck_*.png` 后退出客户端。截图按服务端测试阶段触发，避免在物品或目标尚未同步时抢拍；
+  脚本会清理测试世界内玩家物品，请勿在正式存档运行。
+  不带 `-Pdevcheck` 的正式 jar 会排除 `com/summy/reliquary/apocrypha/devcheck/**`。
 
 ### 目录
 

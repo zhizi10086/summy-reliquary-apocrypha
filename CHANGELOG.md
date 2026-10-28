@@ -548,6 +548,13 @@
 - **异界力量边界**：SR 创世纪不清除 SRA 获取位、保底或饰品；标记消失只触发缩栏，饰品优先退回背包，背包满则落地并受独占物保护。
 - **文档**：README / PROGRESS 删除过期占位描述，并明确 `subsequent_chance_percent = 0` 时 `pity_chests` 仍生效。版本仍为 `0.1.0`，无新增配置、网络包或指令。
 
+### 真实客户端自检接入（同日第三十一轮）
+
+- **开发门禁**：新增 `devcheck/ApocryphaDevCheck`，仅在 `gradlew runClient -Pdevcheck` 的客户端启用；正式 jar 和 sources jar 均排除 `com/summy/reliquary/apocrypha/devcheck/**`。
+- **自动覆盖**：准备测试世界与玩家，验证双方栏位和 Curios 佩戴、`/loot` 不触发获取、真实箱子发放基础件、掉落实体保护，并布置 10 件物品、恶魔羽翼与凋亡头顶条截图。
+- **产物**：日志使用 `[DEVCHECK]` 前缀，截图由服务端测试阶段驱动并写入 `run/screenshots/sra_devcheck_*.png`；等待异步写入完成后自动退出客户端。
+- 自检使用当前测试世界，必须只在专用开发存档运行；复杂视觉和行为矩阵仍由人工验收。
+
 ### 备注
 
 - 首轮**不新增网络包**：新约的全部逻辑都在服务端，落箭实体用原版 `AbstractArrow` 自带的同步

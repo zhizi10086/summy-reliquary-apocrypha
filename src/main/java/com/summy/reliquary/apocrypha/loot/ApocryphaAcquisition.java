@@ -241,6 +241,34 @@ public final class ApocryphaAcquisition {
 		return false;
 	}
 
+	/** 自检用：读取某一路线的获取位图 */
+	public static int ownedMaskForTest(ServerPlayer player, boolean angel) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return 0;
+		}
+		return state(player).getInt(angel ? ANGEL_OWNED : DEMON_OWNED);
+	}
+
+	/** 自检用：读取某一路线的连续失败保底计数 */
+	public static int pityForTest(ServerPlayer player, boolean angel) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return 0;
+		}
+		return state(player).getInt(angel ? ANGEL_PITY : DEMON_PITY);
+	}
+
+	/** 自检用：清掉获取位图与保底，不触碰死亡恢复和其他根数据 */
+	public static void clearAcquisitionForTest(ServerPlayer player) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return;
+		}
+		CompoundTag state = state(player);
+		state.remove(ANGEL_OWNED);
+		state.remove(DEMON_OWNED);
+		state.remove(ANGEL_PITY);
+		state.remove(DEMON_PITY);
+	}
+
 	@SubscribeEvent
 	public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
 		if (!(event.getEntity() instanceof ServerPlayer player)) {

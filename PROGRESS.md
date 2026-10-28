@@ -274,6 +274,15 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
 
 **凋亡五件的配置键已全部落地**（2 号件四键、3 号件五键、4 号件三键、5 号件三键），套系收官。
 
+## 四之二、真实客户端自检
+
+- 开发命令：`gradlew runClient -Pdevcheck`；只应在专用测试世界运行，脚本会清理玩家物品并修改标记/栏位。
+- 自检入口：`devcheck/ApocryphaDevCheck`，仅在系统属性 `summy_apocrypha.devcheck=true` 时启用。
+- 当前覆盖：10 件物品、双方栏位与 Curios 佩戴、`/loot` 不触发、真实箱子基础件、掉落实体保护、凋亡头顶条截图。
+- 输出：日志前缀 `[DEVCHECK]`，截图写入 `run/screenshots/sra_devcheck_*.png`；截图由服务端测试阶段驱动，
+  异步写入完成后自动退出客户端。
+- 正式 jar 排除 `com/summy/reliquary/apocrypha/devcheck/**`；复杂视觉和大规模行为矩阵仍需人工验收。
+
 ## 五、代码与资源清单
 
 ```
@@ -301,6 +310,7 @@ item/ApocryphaKeptCurioItem        10 件独占饰品的统一 Curios 死亡保�
 loot/ApocryphaAcquisition          野箱获取状态机、直接交付、获取位与死亡恢复
 loot/ApocryphaLootModifier         Forge Global Loot Modifier codec 入口
 loot/ApocryphaItemProtection       死亡掉落剔除 + 掉落实体不可摧毁 / 无限寿命
+devcheck/ApocryphaDevCheck         仅 -Pdevcheck 启用的真实客户端自检、截图与自动退出
 effect/ApocryphaSlotSizing         新约系列与凋亡系列栏位的动态格数（每秒）
 entity/NewTestamentArrow           落箭实体（钉住 / 视觉标记 / 无击退）
 entity/HolyArrow                   穿透圣光矢实体

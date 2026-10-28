@@ -53,6 +53,11 @@ minecraft {
             // 否则 Curios 的 Accessor（f_xxx_ 字段）会因为找不到目标而让客户端直接崩溃
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            // 只有显式加 -Pdevcheck 时才启用真实客户端自检；脚本会在结束后自动退出客户端。
+            if (project.hasProperty('devcheck')) {
+                property 'summy_apocrypha.devcheck', 'true'
+                args '--quickPlaySingleplayer', 'SraDevCheckWorld'
+            }
             mods {
                 "${project.mod_id}" {
                     source sourceSets.main
@@ -120,6 +125,9 @@ tasks.matching { it.name == 'runClient' || it.name == 'runServer' }.configureEac
 }
 
 jar {
+    if (!project.hasProperty('devcheck')) {
+        exclude 'com/summy/reliquary/apocrypha/devcheck/**'
+    }
     manifest {
         attributes([
                 'Specification-Title'   : project.archives_base_name,
@@ -132,6 +140,12 @@ jar {
     }
     from('LICENSE') {
         rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}
+
+tasks.named('sourcesJar') {
+    if (!project.hasProperty('devcheck')) {
+        exclude 'com/summy/reliquary/apocrypha/devcheck/**'
     }
 }
 
