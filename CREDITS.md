@@ -36,8 +36,7 @@ and **must not be used commercially**. If any content unintentionally infringes 
   `textures/entity/demon_feather.png`（79×32：左翼 + 中间核心 + 右翼；作者已按需求把左缘 1px 裁掉以保证居中）。
   至此**两套共 10 件物品贴图全部由作者提供**；仅五个恶魔线**栏位图标**仍暂借新约套
   （提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示），作者补图后逐项替换。
-- **MOD 图标**（`assets/summy-reliquary-apocrypha/icon.png`）：**本轮临时复用**前置模组 Summy Reliquary
-  的图标（`assets/summy-reliquary/icon.png`），待专属图标做好后替换。
+- **MOD 图标**（`assets/summy-reliquary-apocrypha/icon.png`）：使用作者提供的「比翼·连携」物品贴图。
 
 ## 代码参考
 

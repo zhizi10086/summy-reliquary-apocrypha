@@ -1,10 +1,6 @@
 package com.summy.reliquary.apocrypha.effect;
 
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
-import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
-import com.summy.reliquary.apocrypha.entity.HolyArrow;
-import com.summy.reliquary.entity.ThrownRazor;
-import com.summy.reliquary.entity.ThrownSpear;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
@@ -26,16 +22,14 @@ public final class ArrowDamageBonuses {
 
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
 	public static void onLivingHurt(LivingHurtEvent event) {
-		if (event.getEntity().level().isClientSide() || event.isCanceled()) {
+		if (event.getEntity().level().isClientSide() || event.isCanceled() || !ApocryphaConfig.enable()) {
 			return;
 		}
 		if (!(event.getSource().getDirectEntity() instanceof AbstractArrow arrow)) {
 			return;
 		}
-		// SR 的幻影矛 / 金刀片与本模组的落箭、圣光矢都不吃这一层的"本体箭矢"加成
-		// （它们的伤害口径由 NewTestamentEffect 与各自的钉住逻辑单独决定）
-		if (arrow instanceof ThrownSpear || arrow instanceof ThrownRazor
-				|| arrow instanceof NewTestamentArrow || arrow instanceof HolyArrow) {
+		// 只有弓 / 弩射出的普通箭和光灵箭吃本体箭矢加成；三叉戟等 AbstractArrow 一律排除。
+		if (!ProjectileRules.isPlayerBowArrow(arrow)) {
 			return;
 		}
 		if (!(arrow.getOwner() instanceof ServerPlayer shooter)) {

@@ -128,6 +128,10 @@ public class NewTestamentArrow extends AbstractArrow {
 
 	@Override
 	protected void onHitEntity(EntityHitResult result) {
+		if (!ApocryphaConfig.enable()) {
+			discard();
+			return;
+		}
 		// 纯视觉模式：伤害已在触发时结算过，这里只结束这支箭
 		if (visualOnly) {
 			discard();
@@ -204,6 +208,10 @@ public class NewTestamentArrow extends AbstractArrow {
 
 	@Override
 	public void tick() {
+		if (!ApocryphaConfig.enable()) {
+			discard();
+			return;
+		}
 		if (landed) {
 			// 冻结后的第一 tick：把箭对齐到撞击点（沿来向回退 0.05 格，同原版的贴面做法）。
 			// 放在这里而不是 onHitBlock 里，是因为原版的位置推进在本 tick 之后才执行；

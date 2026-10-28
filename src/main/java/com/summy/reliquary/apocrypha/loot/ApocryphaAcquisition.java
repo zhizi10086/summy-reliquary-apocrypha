@@ -6,7 +6,6 @@ import com.summy.reliquary.effect.PlayerFlags;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -26,6 +25,7 @@ import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
@@ -77,20 +77,23 @@ public final class ApocryphaAcquisition {
 
 	/** 已写入待恢复 NBT、但当前连接仍需在下一 tick 核对数量的玩家 */
 	private static final Set<UUID> PENDING_RESTORES = new HashSet<>();
+	/** 死亡快照所属服务端 tick：同一 tick 的重复死亡事件只合并，不互相覆盖。 */
+	private static final Map<UUID, Long> DEATH_SNAPSHOT_TICKS = new HashMap<>();
 	/** 玩家本 tick 实际交互过的未开箱容器；防止 `/loot` 和模组直接调用伪造开箱 */
 	private static final Map<UUID, ContainerWindow> CONTAINER_WINDOWS = new HashMap<>();
 
-	private record ContainerWindow(ResourceKey<Level> dimension, BlockPos blockPos, net.minecraft.world.phys.Vec3 origin,
-			ResourceLocation table, long tick) {
+	private record ContainerWindow(ResourceKey<Level> dimension, Map<BlockPos, ResourceLocation> blockTables,
+			net.minecraft.world.phys.Vec3 origin, ResourceLocation table, long tick) {
 		private boolean matches(ServerLevel level, ResourceLocation actualTable,
 				net.minecraft.world.phys.Vec3 actualOrigin) {
-			if (!dimension.equals(level.dimension()) || !table.equals(actualTable) || tick != level.getServer().getTickCount()) {
+			if (!dimension.equals(level.dimension()) || tick != level.getServer().getTickCount()) {
 				return false;
 			}
-			if (blockPos != null) {
-				return BlockPos.containing(actualOrigin).equals(blockPos);
+			if (!blockTables.isEmpty()) {
+				ResourceLocation expected = blockTables.get(BlockPos.containing(actualOrigin));
+				return expected != null && expected.equals(actualTable);
 			}
-			return origin.distanceToSqr(actualOrigin) < 0.01D;
+			return table != null && table.equals(actualTable) && origin.distanceToSqr(actualOrigin) < 0.01D;
 		}
 	}
 
@@ -178,9 +181,9 @@ public final class ApocryphaAcquisition {
 				|| !(event.getLevel() instanceof ServerLevel level) || player.isSpectator()) {
 			return;
 		}
-		ResourceLocation table = blockContainerLootTable(level, event.getPos());
-		if (table != null) {
-			rememberContainer(player, level, event.getPos(), net.minecraft.world.phys.Vec3.atCenterOf(event.getPos()), table);
+		Map<BlockPos, ResourceLocation> tables = blockContainerLootTables(level, event.getPos());
+		if (!tables.isEmpty()) {
+			rememberBlockContainer(player, level, tables);
 		}
 	}
 
@@ -191,21 +194,26 @@ public final class ApocryphaAcquisition {
 				|| !(event.getTarget() instanceof AbstractMinecartContainer cart) || cart.getLootTable() == null) {
 			return;
 		}
-		rememberContainer(player, level, null, cart.position(), cart.getLootTable());
+		rememberVehicleContainer(player, level, cart.position(), cart.getLootTable());
 	}
 
-	/** 读取方块容器尚未生成的 LootTable；双箱会检查连接的另一半 */
-	private static ResourceLocation blockContainerLootTable(ServerLevel level, BlockPos pos) {
+	/** 读取方块容器尚未生成的 LootTable；双箱同时登记两半的位置与各自的战利品表。 */
+	private static Map<BlockPos, ResourceLocation> blockContainerLootTables(ServerLevel level, BlockPos pos) {
+		Map<BlockPos, ResourceLocation> tables = new HashMap<>();
 		ResourceLocation table = readContainerLootTable(level.getBlockEntity(pos));
 		if (table != null) {
-			return table;
+			tables.put(pos, table);
 		}
 		BlockState state = level.getBlockState(pos);
-		if (!(state.getBlock() instanceof ChestBlock) || state.getValue(ChestBlock.TYPE) == ChestType.SINGLE) {
-			return null;
+		if (state.getBlock() instanceof ChestBlock && state.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
+			BlockPos connectedPos = pos.relative(ChestBlock.getConnectedDirection(state));
+			ResourceLocation connectedTable = readContainerLootTable(level.getBlockEntity(connectedPos));
+			if (connectedTable != null) {
+				tables.put(connectedPos, connectedTable);
+			}
 		}
-		Direction connected = ChestBlock.getConnectedDirection(state);
-		return readContainerLootTable(level.getBlockEntity(pos.relative(connected)));
+		tables.entrySet().removeIf(entry -> !entry.getValue().getPath().startsWith("chests/"));
+		return tables;
 	}
 
 	private static ResourceLocation readContainerLootTable(BlockEntity blockEntity) {
@@ -219,12 +227,21 @@ public final class ApocryphaAcquisition {
 		return ResourceLocation.tryParse(saved.getString(RandomizableContainerBlockEntity.LOOT_TABLE_TAG));
 	}
 
-	private static void rememberContainer(ServerPlayer player, ServerLevel level, BlockPos blockPos,
+	private static void rememberBlockContainer(ServerPlayer player, ServerLevel level,
+			Map<BlockPos, ResourceLocation> tables) {
+		if (tables.isEmpty()) {
+			return;
+		}
+		CONTAINER_WINDOWS.put(player.getUUID(), new ContainerWindow(level.dimension(), Map.copyOf(tables),
+				net.minecraft.world.phys.Vec3.ZERO, null, level.getServer().getTickCount()));
+	}
+
+	private static void rememberVehicleContainer(ServerPlayer player, ServerLevel level,
 			net.minecraft.world.phys.Vec3 origin, ResourceLocation table) {
 		if (!table.getPath().startsWith("chests/")) {
 			return;
 		}
-		CONTAINER_WINDOWS.put(player.getUUID(), new ContainerWindow(level.dimension(), blockPos, origin, table,
+		CONTAINER_WINDOWS.put(player.getUUID(), new ContainerWindow(level.dimension(), Map.of(), origin, table,
 				level.getServer().getTickCount()));
 	}
 
@@ -269,6 +286,17 @@ public final class ApocryphaAcquisition {
 		state.remove(DEMON_PITY);
 	}
 
+	/** 自检用：读取死亡快照内容。 */
+	public static String pendingRestoreForTest(ServerPlayer player) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return "";
+		}
+		CompoundTag state = state(player);
+		return state.contains(PENDING_RESTORE, CompoundTag.TAG_COMPOUND)
+				? state.getCompound(PENDING_RESTORE).toString()
+				: "<none>";
+	}
+
 	@SubscribeEvent
 	public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
 		if (!(event.getEntity() instanceof ServerPlayer player)) {
@@ -279,6 +307,39 @@ public final class ApocryphaAcquisition {
 		reconcileOwned(player, state, DEMON_ITEMS, DEMON_OWNED);
 		if (state.contains(PENDING_RESTORE, CompoundTag.TAG_COMPOUND)) {
 			PENDING_RESTORES.add(player.getUUID());
+		}
+	}
+
+	/**
+	 * 死亡前采样：原版会在 LivingDropsEvent 前清空背包，因此数量必须在死亡事件刚成立时保存。
+	 */
+	@SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+	public static void onLivingDeath(LivingDeathEvent event) {
+		if (event.isCanceled() || !(event.getEntity() instanceof ServerPlayer player)) {
+			return;
+		}
+		PENDING_RESTORES.remove(player.getUUID());
+		long tick = player.getServer().getTickCount();
+		CompoundTag state = state(player);
+		boolean sameTick = DEATH_SNAPSHOT_TICKS.getOrDefault(player.getUUID(), Long.MIN_VALUE) == tick
+				&& state.contains(PENDING_RESTORE, CompoundTag.TAG_COMPOUND);
+		CompoundTag savedCounts = new CompoundTag();
+		for (Entry entry : ALL_ITEMS) {
+			int count = countEverywhere(player, entry.item().get());
+			if (sameTick && state.contains(PENDING_RESTORE, CompoundTag.TAG_COMPOUND)) {
+				count = Math.max(count, state.getCompound(PENDING_RESTORE).getInt(entry.key()));
+			}
+			if (count > 0) {
+				savedCounts.putInt(entry.key(), count);
+			}
+		}
+		state.remove(PENDING_RESTORE);
+		if (!savedCounts.isEmpty()) {
+			state.put(PENDING_RESTORE, savedCounts);
+			DEATH_SNAPSHOT_TICKS.put(player.getUUID(), tick);
+			PENDING_RESTORES.add(player.getUUID());
+		} else {
+			DEATH_SNAPSHOT_TICKS.remove(player.getUUID());
 		}
 	}
 
@@ -297,16 +358,11 @@ public final class ApocryphaAcquisition {
 		}
 
 		PENDING_RESTORES.remove(player.getUUID());
-		state(player).remove(PENDING_RESTORE);
-		CompoundTag savedCounts = new CompoundTag();
-		for (Entry entry : ALL_ITEMS) {
-			int count = countEverywhere(event.getOriginal(), entry.item().get());
-			if (count > 0) {
-				savedCounts.putInt(entry.key(), count);
-			}
+		boolean pending = state(player).contains(PENDING_RESTORE, CompoundTag.TAG_COMPOUND);
+		if (Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			Apocrypha.LOGGER.info("[DEVCHECK] Clone 死亡快照：{}", pending ? state(player).getCompound(PENDING_RESTORE) : "<none>");
 		}
-		if (!savedCounts.isEmpty()) {
-			state(player).put(PENDING_RESTORE, savedCounts);
+		if (pending) {
 			PENDING_RESTORES.add(player.getUUID());
 		}
 	}
@@ -332,6 +388,7 @@ public final class ApocryphaAcquisition {
 	@SubscribeEvent
 	public static void onServerStopped(ServerStoppedEvent event) {
 		PENDING_RESTORES.clear();
+		DEATH_SNAPSHOT_TICKS.clear();
 		CONTAINER_WINDOWS.clear();
 	}
 
@@ -339,6 +396,7 @@ public final class ApocryphaAcquisition {
 	public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
 		if (event.getEntity() instanceof ServerPlayer player) {
 			CONTAINER_WINDOWS.remove(player.getUUID());
+			DEATH_SNAPSHOT_TICKS.remove(player.getUUID());
 		}
 	}
 
@@ -355,11 +413,16 @@ public final class ApocryphaAcquisition {
 				continue;
 			}
 			int current = countEverywhere(player, entry.item().get());
+			if (Boolean.getBoolean("summy_apocrypha.devcheck") && expected > 0) {
+				Apocrypha.LOGGER.info("[DEVCHECK] 恢复核对：{} current={} expected={}",
+						entry.key(), current, expected);
+			}
 			for (int index = current; index < expected; index++) {
 				grant(player, entry.item().get());
 			}
 		}
 		state.remove(PENDING_RESTORE);
+		DEATH_SNAPSHOT_TICKS.remove(player.getUUID());
 		PENDING_RESTORES.remove(player.getUUID());
 	}
 

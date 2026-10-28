@@ -2,10 +2,6 @@ package com.summy.reliquary.apocrypha.effect;
 
 import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
-import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
-import com.summy.reliquary.apocrypha.entity.HolyArrow;
-import com.summy.reliquary.entity.ThrownRazor;
-import com.summy.reliquary.entity.ThrownSpear;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
@@ -68,7 +64,14 @@ public final class SacramentArrows {
 		if (!(event.getEntity() instanceof AbstractArrow arrow)) {
 			return;
 		}
+		if (!ProjectileRules.isPlayerBowArrow(arrow)) {
+			return;
+		}
 		if (!(arrow.getOwner() instanceof ServerPlayer player)) {
+			return;
+		}
+		if (!ApocryphaConfig.enable()) {
+			PENDING.remove(player.getUUID());
 			return;
 		}
 		Long looseTick = PENDING.get(player.getUUID());
@@ -78,12 +81,6 @@ public final class SacramentArrows {
 		long now = player.serverLevel().getGameTime();
 		if (now - looseTick > MATCH_WINDOW_TICKS) {
 			PENDING.remove(player.getUUID());
-			return;
-		}
-		// SR 的幻影矛 / 金刀片与本模组的落箭、圣光矢都不算"弓箭射出的箭矢"
-		// （否则刚射完弓的 40 tick 内，模组自己生成的圣光矢会被误打上圣餐之矢标记）
-		if (arrow instanceof ThrownSpear || arrow instanceof ThrownRazor
-				|| arrow instanceof NewTestamentArrow || arrow instanceof HolyArrow) {
 			return;
 		}
 		arrow.getPersistentData().putBoolean(MARK, true);
@@ -98,7 +95,13 @@ public final class SacramentArrows {
 	public static boolean isSacrament(DamageSource source) {
 		return source != null
 				&& source.getDirectEntity() instanceof AbstractArrow arrow
+				&& ProjectileRules.isPlayerBowArrow(arrow)
 				&& arrow.getPersistentData().getBoolean(MARK);
+	}
+
+	/** 死亡 / 退服：只丢弃该玩家尚未匹配的圣餐标记。 */
+	public static void forget(UUID player) {
+		PENDING.remove(player);
 	}
 
 	/** 服务器停止 / 换存档：清掉待匹配登记 */

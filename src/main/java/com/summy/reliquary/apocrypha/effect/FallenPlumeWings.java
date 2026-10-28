@@ -46,6 +46,9 @@ public final class FallenPlumeWings {
 
 	/** 爆条时调用：给引爆者的坠羽写上标志，并把计时重置为完整时长（再次爆条即刷新） */
 	public static void flash(ServerPlayer player) {
+		if (!ApocryphaConfig.enable()) {
+			return;
+		}
 		int ticks = Math.max(0, ApocryphaConfig.apoptosisWingSeconds() * 20);
 		if (ticks <= 0) {
 			return;
@@ -56,7 +59,14 @@ public final class FallenPlumeWings {
 
 	@SubscribeEvent
 	public static void onServerTick(TickEvent.ServerTickEvent event) {
-		if (event.phase != TickEvent.Phase.END || REMAINING.isEmpty()) {
+		if (event.phase != TickEvent.Phase.END) {
+			return;
+		}
+		if (!ApocryphaConfig.enable()) {
+			clearAll(event.getServer());
+			return;
+		}
+		if (REMAINING.isEmpty()) {
 			return;
 		}
 		MinecraftServer server = event.getServer();
@@ -83,8 +93,12 @@ public final class FallenPlumeWings {
 
 	@SubscribeEvent
 	public static void onServerStopped(ServerStoppedEvent event) {
-		// 停机前把所有在线玩家身上的标志清掉（离线玩家的标志已在登出时清过）
-		for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
+		clearAll(event.getServer());
+	}
+
+	/** 清掉全部在线玩家的临时恶魔翅膀。 */
+	private static void clearAll(MinecraftServer server) {
+		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			setFlag(player, false);
 		}
 		REMAINING.clear();
@@ -96,6 +110,11 @@ public final class FallenPlumeWings {
 		if (player instanceof ServerPlayer serverPlayer) {
 			setFlag(serverPlayer, false);
 		}
+	}
+
+	/** 自检用：判断某玩家当前是否登记了临时恶魔翅膀。 */
+	public static boolean isActiveForTest(Player player) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") && REMAINING.containsKey(player.getUUID());
 	}
 
 	/**

@@ -4,8 +4,6 @@ import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
-import com.summy.reliquary.entity.ThrownRazor;
-import com.summy.reliquary.entity.ThrownSpear;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,8 +23,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 // 「新约」（落箭）与「比翼·连携」（穿透圣光矢）的命中判定、掷点、音效与调度，
 // 外加给 SR 真伤补的「命中后清帧」。
 //
-// 触发条件：弓或弩射出的箭矢命中目标（AbstractArrow + owner 是佩戴这两件之一的玩家、命中的不是自己）。
-// 明确排除 SR 的幻影矛（ThrownSpear）与金刀片（ThrownRazor），以及本模组的落箭与圣光矢（避免重复触发与递归）。
+// 触发条件：弓或弩射出的 Arrow / SpectralArrow 命中目标，owner 是佩戴这两件之一的玩家，且目标不是自己。
+// 三叉戟、SR 幻影矛/金刀片，以及本模组的落箭与圣光矢都不会进入触发路径。
 // 两件同戴时两者永远协同触发（详见 onLivingHurt 的步骤③）。
 //
 // 用 LOWEST 优先级：此时其它模组（含 SR）的取消与数值改写都已完成，我们只读事实、不回写伤害。
@@ -49,6 +47,9 @@ public final class NewTestamentEffect {
 		if (!(event.getEntity().level() instanceof ServerLevel level)) {
 			return;
 		}
+		if (!ApocryphaConfig.enable()) {
+			return;
+		}
 
 		// ① 本模组投掷物（落箭 / 圣光矢）的命中：先把金额钉回携带值，再记下本击金额供实体打日志；
 		//    这两者自身都不再触发新约
@@ -63,15 +64,14 @@ public final class NewTestamentEffect {
 		}
 
 		// ③ 本体箭矢命中目标：新约（落箭）与比翼·连携（穿透圣光矢）各自掷点，两件同戴时协同触发
-		if (event.isCanceled() || !ApocryphaConfig.enable()) {
+		if (event.isCanceled()) {
 			return;
 		}
 		if (!(event.getSource().getDirectEntity() instanceof AbstractArrow arrow)) {
 			return;
 		}
-		// SR 的幻影矛 / 金刀片，以及本模组的落箭与圣光矢都不算"本体箭矢"
-		if (arrow instanceof ThrownSpear || arrow instanceof ThrownRazor
-				|| arrow instanceof NewTestamentArrow || arrow instanceof HolyArrow) {
+		// 只有弓 / 弩射出的普通箭和光灵箭才算本体箭矢；三叉戟与特效投射物全部排除。
+		if (!ProjectileRules.isPlayerBowArrow(arrow)) {
 			return;
 		}
 		if (!(arrow.getOwner() instanceof ServerPlayer shooter)) {
@@ -170,9 +170,6 @@ public final class NewTestamentEffect {
 		if (holyLater > 0) {
 			PairedWings.enqueueHoly(level, shooter, holyLater, holyDamage);
 		}
-		if (sacrament) {
-			onSacramentHit(shooter, target);
-		}
 		if (newTestament) {
 			logTrigger(shooter, target, roll, chance,
 					volleyOutcome(sacrament, ntSuccess, volleyLater, bothSuccess, count));
@@ -191,15 +188,22 @@ public final class NewTestamentEffect {
 		if (event.phase != TickEvent.Phase.END) {
 			return;
 		}
-		ScatterVolley.tick(event.getServer());
+		boolean enabled = ApocryphaConfig.enable();
+		if (enabled) {
+			ScatterVolley.tick(event.getServer());
+			PairedWings.tick(event.getServer());
+			HoverFlight.tickServer(event.getServer());
+		} else {
+			// 严格停用：未结算队列立即作废，已有临时状态不跨关闭窗口继续生效。
+			ScatterVolley.clear();
+			SacramentArrows.clear();
+			PairedWings.clear();
+			HoverFlight.clear();
+		}
 		// 新约系列栏位的动态格数：仅天使线开放（每秒校正一次）
 		ApocryphaSlotSizing.tickServer(event.getServer());
 		// 光羽：脱战衰减 + 实体实体校正（每秒一次）
 		FeatherCharge.tickServer(event.getServer());
-		// 逆羽·滞空：缓降 + 落地重置空中跳数（每 tick）
-		HoverFlight.tickServer(event.getServer());
-		// 比翼·连携：放出延迟补发的圣光矢 / 落箭批次
-		PairedWings.tick(event.getServer());
 	}
 
 	// 服务器停止：清空待落队列与清帧登记，避免残留到下一个存档
@@ -247,16 +251,30 @@ public final class NewTestamentEffect {
 	@SubscribeEvent
 	public static void onPlayerLoggedOut(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
 		if (event.getEntity() instanceof ServerPlayer player) {
-			HoverFlight.forget(player);
+			clearPlayerEffects(player);
 		}
 	}
 
 	/** 死亡：同样清掉空中跳计数（重生后是一段新的离地） */
-	@SubscribeEvent
+	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public static void onLivingDeath(LivingDeathEvent event) {
-		if (event.getEntity() instanceof ServerPlayer player) {
-			HoverFlight.forget(player);
+		if (!event.isCanceled() && event.getEntity() instanceof ServerPlayer player) {
+			clearPlayerEffects(player);
 		}
+	}
+
+	/** 清理只属于该玩家的临时队列、羽翼与输入状态。 */
+	private static void clearPlayerEffects(ServerPlayer player) {
+		HoverFlight.forget(player);
+		ScatterVolley.clearShooter(player.getUUID());
+		PairedWings.clearShooter(player.getUUID());
+		SacramentArrows.forget(player.getUUID());
+		FallenPlumeWings.clear(player);
+	}
+
+	/** 自检用：确认弓 / 弩投射物分类不会把三叉戟等 AbstractArrow 混入。 */
+	public static boolean isPlayerBowArrowForTest(net.minecraft.world.entity.Entity entity) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") && ProjectileRules.isPlayerBowArrow(entity);
 	}
 
 	/**
@@ -359,15 +377,6 @@ public final class NewTestamentEffect {
 				: "无";
 		Apocrypha.LOGGER.info(String.format("[新约] 协同触发：%s 新约=%s、圣光矢=%s、共同加成=%s",
 				shooter.getName().getString(), nt, holy, bonus));
-	}
-
-	/**
-	 * 圣餐之矢命中后的扩展点。
-	 *
-	 * <p>TODO（比翼·连携）：那件饰品要在这里接「圣餐之矢同时触发圣光矢」——判断玩家是否佩戴它、
-	 * 然后触发对应的圣光矢逻辑即可，其它地方不需要改动。
-	 */
-	private static void onSacramentHit(ServerPlayer shooter, LivingEntity target) {
 	}
 
 	/**

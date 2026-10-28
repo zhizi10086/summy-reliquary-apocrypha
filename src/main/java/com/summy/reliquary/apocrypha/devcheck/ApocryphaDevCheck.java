@@ -1,13 +1,20 @@
 package com.summy.reliquary.apocrypha.devcheck;
 
 import com.summy.reliquary.apocrypha.Apocrypha;
+import com.summy.reliquary.apocrypha.client.ApocryphaClientInput;
+import com.summy.reliquary.apocrypha.client.ApoptosisBarState;
+import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.Apoptosis;
 import com.summy.reliquary.apocrypha.effect.FallenPlumeWings;
+import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
+import com.summy.reliquary.apocrypha.effect.WitheredBrush;
 import com.summy.reliquary.apocrypha.loot.ApocryphaAcquisition;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import com.summy.reliquary.effect.PlayerFlags;
 import com.summy.reliquary.effect.SlotSizing;
 import com.summy.reliquary.util.CurioHelper;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
@@ -15,21 +22,34 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.projectile.Arrow;
+import net.minecraft.world.entity.projectile.SpectralArrow;
+import net.minecraft.world.entity.projectile.ThrownTrident;
+import net.minecraft.world.entity.vehicle.Minecart;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -39,6 +59,8 @@ import top.theillusivec4.curios.api.CuriosApi;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.nio.charset.StandardCharsets;
+import java.io.InputStreamReader;
 
 /**
  * SRA 真实客户端开发自检。
@@ -62,6 +84,11 @@ public final class ApocryphaDevCheck {
 	private static int visualWait;
 	private static int checks;
 	private static boolean finished;
+	private static boolean worldPrepared;
+	private static volatile boolean checksComplete;
+	private static boolean clientCacheChecked;
+	private static boolean reduceTestElement;
+	private static volatile boolean requestClientRespawn;
 	private static volatile boolean inventoryVisualReady;
 	private static volatile boolean barVisualReady;
 	private static Zombie barTarget;
@@ -76,10 +103,20 @@ public final class ApocryphaDevCheck {
 		}
 		List<ServerPlayer> players = event.getServer().getPlayerList().getPlayers();
 		if (players.isEmpty()) {
-			serverTick = 0;
+			if (!worldPrepared) {
+				serverTick = 0;
+			}
 			return;
 		}
 		ServerPlayer player = players.get(0);
+		if (!player.isAlive()) {
+			// 上一轮死亡测试可能把测试世界留在死亡界面；由客户端走原版重生命令。
+			requestClientRespawn = true;
+			return;
+		}
+		if (serverTick < 20 && !PlayerFlags.isDataReady(player)) {
+			return;
+		}
 		serverTick++;
 		try {
 			switch (serverTick) {
@@ -98,6 +135,25 @@ public final class ApocryphaDevCheck {
 				case 360 -> checkItemProtection(player);
 				case 400 -> setupApoptosisBar(player);
 				case 420 -> checkApoptosisBar();
+				case 440 -> checkProjectileRulesAndAirJumps(player);
+				case 460 -> checkFear(player);
+				case 480 -> checkElementAndExecute(player);
+				case 500 -> checkStrictSwitch(player);
+				case 520 -> checkBilingualTooltipTemplates();
+				case 600 -> prepareDeathScenario(player, false);
+				case 620 -> killTestPlayer(player);
+				case 660 -> respawnTestPlayer(player);
+				case 700 -> checkDeathRestore(player, false);
+				case 760 -> prepareDeathScenario(player, true);
+				case 780 -> killTestPlayer(player);
+				case 820 -> respawnTestPlayer(player);
+				case 860 -> {
+					checkDeathRestore(player, true);
+					run(player, "gamerule keepInventory false");
+					player.setInvulnerable(true);
+					player.setHealth(player.getMaxHealth());
+					checksComplete = true;
+				}
 				default -> {
 				}
 			}
@@ -127,7 +183,31 @@ public final class ApocryphaDevCheck {
 			return;
 		}
 		idleTicks = 0;
+		if (client.player.isDeadOrDying()) {
+			requestClientRespawn = true;
+		}
+		if (requestClientRespawn && client.player.isDeadOrDying()) {
+			requestClientRespawn = false;
+			client.player.respawn();
+		}
+		if (!clientCacheChecked) {
+			ApoptosisBarState.accept(Integer.MAX_VALUE - 7, 50.0F, 0, 0);
+			ApoptosisBarState.tick(client.level, ApocryphaConfig.apoptosisBarMax(),
+					ApocryphaConfig.apoptosisInjuredSeconds() * 20);
+			check("凋亡条会清理不存在实体的缓存",
+					ApoptosisBarState.get(Integer.MAX_VALUE - 7) == null, "fake entity id");
+			clientCacheChecked = true;
+		}
 		runVisualChecks(client);
+	}
+
+	/** 自检用：模拟其它模组在 NORMAL 阶段削减元素伤害，验证 LOWEST 仍钉回固定值。 */
+	@SubscribeEvent
+	public static void onTestElementReduction(LivingHurtEvent event) {
+		if (ENABLED && reduceTestElement
+				&& "summy-reliquary-apocrypha.apoptosis_element".equals(event.getSource().getMsgId())) {
+			event.setAmount(event.getAmount() * 0.5F);
+		}
 	}
 
 	@SubscribeEvent
@@ -145,7 +225,7 @@ public final class ApocryphaDevCheck {
 	private static void prepareWorld(ServerPlayer player) {
 		ServerLevel level = player.serverLevel();
 		run(player, "gamerule doMobSpawning false");
-		run(player, "gamerule keepInventory true");
+		run(player, "gamerule keepInventory false");
 		run(player, "gamerule doDaylightCycle false");
 		run(player, "difficulty easy");
 		run(player, "time set night");
@@ -169,7 +249,55 @@ public final class ApocryphaDevCheck {
 		PlayerFlags.setDemon(player, false);
 		forceSlots(player, false);
 		ApocryphaAcquisition.clearAcquisitionForTest(player);
+		worldPrepared = true;
 		check("测试世界已准备", level != null && player.isAlive(), "player=" + player.getName().getString());
+	}
+
+	/** 准备一轮真实死亡测试：背包 1 件、Curio 1 件。 */
+	private static void prepareDeathScenario(ServerPlayer player, boolean keepInventory) {
+		clearInventory(player);
+		CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
+			for (var entry : handler.getCurios().entrySet()) {
+				for (int slot = 0; slot < entry.getValue().getSlots(); slot++) {
+					handler.setEquippedCurio(entry.getKey(), slot, ItemStack.EMPTY);
+				}
+			}
+		});
+		PlayerFlags.setAngel(player, false);
+		PlayerFlags.setDemon(player, true);
+		forceSlots(player, false);
+		equip(player, ApocryphaSlots.PERDITION_SYNECDOCHE, Apocrypha.FALLEN_HEAVEN.get());
+		player.getInventory().add(new ItemStack(Apocrypha.NEW_TESTAMENT.get()));
+		run(player, "gamerule keepInventory " + keepInventory);
+		player.setInvulnerable(false);
+		player.setHealth(player.getMaxHealth());
+		Apoptosis.setStateForTest(player, 100, 0);
+		int bag = countItem(player, Apocrypha.NEW_TESTAMENT.get());
+		int worn = countItem(player, Apocrypha.FALLEN_HEAVEN.get());
+		check("死亡测试已准备（keepInventory=" + keepInventory + "）", bag == 1 && worn == 1,
+				"new_testament=" + bag + ", fallen_heaven=" + worn);
+	}
+
+	private static void killTestPlayer(ServerPlayer player) {
+		player.hurt(player.serverLevel().damageSources().genericKill(), Float.MAX_VALUE);
+		requestClientRespawn = true;
+		check("测试玩家进入死亡状态", player.isDeadOrDying(),
+				"health=" + player.getHealth()
+						+ ", pending=" + ApocryphaAcquisition.pendingRestoreForTest(player));
+	}
+
+	private static void respawnTestPlayer(ServerPlayer player) {
+		check("测试玩家已由客户端请求重生", player.isAlive(),
+				"alive=" + player.isAlive() + ", health=" + player.getHealth());
+	}
+
+	private static void checkDeathRestore(ServerPlayer player, boolean keepInventory) {
+		int bag = countItem(player, Apocrypha.NEW_TESTAMENT.get());
+		int worn = countItem(player, Apocrypha.FALLEN_HEAVEN.get());
+		boolean apoptosisCleared = !Apoptosis.isInjured(player) && Apoptosis.resistTicks(player) == 0;
+		check("死亡恢复无丢失/复制且凋亡清空（keepInventory=" + keepInventory + "）",
+				bag == 1 && worn == 1 && apoptosisCleared,
+				"new_testament=" + bag + ", fallen_heaven=" + worn + ", apoptosisCleared=" + apoptosisCleared);
 	}
 
 	private static void setAngel(ServerPlayer player) {
@@ -293,6 +421,83 @@ public final class ApocryphaDevCheck {
 		check("真实箱子发放新约基础件", (owned & 1) != 0, "owned=" + owned);
 		level.removeBlock(pos, false);
 		clearInventory(player);
+
+		checkDoubleChestConnectedHalf(player);
+		checkDoubleChestSingleConsume(player);
+	}
+
+	/** 点击半边没有 LootTable、连接半边有时，仍必须按一次真实开箱结算。 */
+	private static void checkDoubleChestConnectedHalf(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		clearInventory(player);
+		ApocryphaAcquisition.clearAcquisitionForTest(player);
+		BlockPos clicked = player.blockPosition().offset(4, 0, 0);
+		BlockState left = Blocks.CHEST.defaultBlockState()
+				.setValue(net.minecraft.world.level.block.ChestBlock.FACING, Direction.NORTH)
+				.setValue(net.minecraft.world.level.block.ChestBlock.TYPE, ChestType.LEFT);
+		Direction connectedDirection = net.minecraft.world.level.block.ChestBlock.getConnectedDirection(left);
+		BlockPos other = clicked.relative(connectedDirection);
+		BlockState right = Blocks.CHEST.defaultBlockState()
+				.setValue(net.minecraft.world.level.block.ChestBlock.FACING, Direction.NORTH)
+				.setValue(net.minecraft.world.level.block.ChestBlock.TYPE, ChestType.RIGHT);
+		level.setBlockAndUpdate(clicked, left);
+		level.setBlockAndUpdate(other, right);
+		if (!(level.getBlockEntity(other) instanceof ChestBlockEntity otherChest)) {
+			check("双箱另一半来源匹配", false, "连接半边不是 ChestBlockEntity");
+			level.removeBlock(clicked, false);
+			level.removeBlock(other, false);
+			return;
+		}
+		otherChest.setLootTable(ResourceLocation.fromNamespaceAndPath("minecraft", "chests/simple_dungeon"), 0L);
+		postBlockInteraction(player, clicked);
+		otherChest.unpackLootTable(player);
+		int owned = ApocryphaAcquisition.ownedMaskForTest(player, true);
+		check("双箱另一半来源匹配", (owned & 1) != 0, "owned=" + owned);
+		level.removeBlock(clicked, false);
+		level.removeBlock(other, false);
+		clearInventory(player);
+	}
+
+	/** 双箱两半都带表时，同一次交互只能消费一次来源窗口。 */
+	private static void checkDoubleChestSingleConsume(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		clearInventory(player);
+		ApocryphaAcquisition.clearAcquisitionForTest(player);
+		BlockPos first = player.blockPosition().offset(6, 0, 0);
+		BlockState left = Blocks.CHEST.defaultBlockState()
+				.setValue(net.minecraft.world.level.block.ChestBlock.FACING, Direction.NORTH)
+				.setValue(net.minecraft.world.level.block.ChestBlock.TYPE, ChestType.LEFT);
+		Direction connectedDirection = net.minecraft.world.level.block.ChestBlock.getConnectedDirection(left);
+		BlockPos second = first.relative(connectedDirection);
+		BlockState right = Blocks.CHEST.defaultBlockState()
+				.setValue(net.minecraft.world.level.block.ChestBlock.FACING, Direction.NORTH)
+				.setValue(net.minecraft.world.level.block.ChestBlock.TYPE, ChestType.RIGHT);
+		level.setBlockAndUpdate(first, left);
+		level.setBlockAndUpdate(second, right);
+		if (!(level.getBlockEntity(first) instanceof ChestBlockEntity firstChest)
+				|| !(level.getBlockEntity(second) instanceof ChestBlockEntity secondChest)) {
+			check("双箱只消费一次来源", false, "双箱方块实体不完整");
+			level.removeBlock(first, false);
+			level.removeBlock(second, false);
+			return;
+		}
+		ResourceLocation table = ResourceLocation.fromNamespaceAndPath("minecraft", "chests/simple_dungeon");
+		firstChest.setLootTable(table, 0L);
+		secondChest.setLootTable(table, 1L);
+		postBlockInteraction(player, first);
+		firstChest.unpackLootTable(player);
+		secondChest.unpackLootTable(player);
+		int count = countItem(player, Apocrypha.NEW_TESTAMENT.get());
+		check("双箱只消费一次来源", count == 1, "new_testament=" + count);
+		level.removeBlock(first, false);
+		level.removeBlock(second, false);
+		clearInventory(player);
+	}
+
+	private static void postBlockInteraction(ServerPlayer player, BlockPos pos) {
+		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
+		MinecraftForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(
+				player, InteractionHand.MAIN_HAND, pos, hit));
 	}
 
 	private static void checkItemProtection(ServerPlayer player) {
@@ -347,6 +552,202 @@ public final class ApocryphaDevCheck {
 		check("凋亡状态已同步", barTarget != null && Apoptosis.isInjured(barTarget), "barTarget=" + barTarget);
 	}
 
+	private static void checkProjectileRulesAndAirJumps(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		Arrow arrow = new Arrow(level, player);
+		SpectralArrow spectral = new SpectralArrow(level, player);
+		ThrownTrident trident = new ThrownTrident(level, player, new ItemStack(Items.TRIDENT));
+		check("普通箭被识别为弓箭", NewTestamentEffect.isPlayerBowArrowForTest(arrow), arrow.getType().toString());
+		check("光灵箭被识别为弓箭", NewTestamentEffect.isPlayerBowArrowForTest(spectral),
+				spectral.getType().toString());
+		check("三叉戟不会误触发旧箭矢机制", !NewTestamentEffect.isPlayerBowArrowForTest(trident),
+				trident.getType().toString());
+
+		ApocryphaClientInput.resetAirJumpForTest();
+		check("air_jumps=0 时无空中跳跃", !ApocryphaClientInput.consumeAirJumpForTest(0), "max=0");
+		ApocryphaClientInput.resetAirJumpForTest();
+		boolean firstOne = ApocryphaClientInput.consumeAirJumpForTest(1);
+		boolean secondOne = ApocryphaClientInput.consumeAirJumpForTest(1);
+		check("air_jumps=1 时只允许一次", firstOne && !secondOne, "first=" + firstOne + ", second=" + secondOne);
+		ApocryphaClientInput.resetAirJumpForTest();
+		boolean firstTwo = ApocryphaClientInput.consumeAirJumpForTest(2);
+		boolean secondTwo = ApocryphaClientInput.consumeAirJumpForTest(2);
+		boolean thirdTwo = ApocryphaClientInput.consumeAirJumpForTest(2);
+		check("air_jumps=2 时允许两次", firstTwo && secondTwo && !thirdTwo,
+				"results=" + firstTwo + "/" + secondTwo + "/" + thirdTwo);
+	}
+
+	private static void checkFear(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		Zombie mob = EntityType.ZOMBIE.create(level);
+		if (mob == null) {
+			check("恐惧生物测试目标", false, "Zombie 创建失败");
+			return;
+		}
+		mob.moveTo(player.position().add(2.0D, 0.0D, 0.0D));
+		mob.setNoAi(false);
+		level.addFreshEntity(mob);
+		WitheredBrush.applyFear(level, player, mob);
+		check("恐惧生物进入硬停状态", WitheredBrush.isFearedForTest(mob) && mob.isNoAi(),
+				"feared=" + WitheredBrush.isFearedForTest(mob) + ", noAi=" + mob.isNoAi());
+		WitheredBrush.clear(mob);
+		check("恐惧结束后恢复生物 AI", !WitheredBrush.isFearedForTest(mob) && !mob.isNoAi(),
+				"feared=" + WitheredBrush.isFearedForTest(mob) + ", noAi=" + mob.isNoAi());
+		mob.discard();
+
+		ApocryphaConfig.setFearAffectsPlayersForTest(true);
+		Minecart minecart = EntityType.MINECART.create(level);
+		if (minecart != null) {
+			minecart.moveTo(player.position());
+			level.addFreshEntity(minecart);
+			boolean mounted = player.startRiding(minecart, true);
+			WitheredBrush.applyFear(level, player, player);
+			double speed = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
+			check("玩家恐惧会强制下马并停止移动", mounted && !player.isPassenger()
+							&& WitheredBrush.isFearedForTest(player) && speed <= 1.0E-9D,
+					"mounted=" + mounted + ", passenger=" + player.isPassenger() + ", speed=" + speed);
+			WitheredBrush.clear(player);
+			check("玩家恐惧清理后恢复移动", !WitheredBrush.isFearedForTest(player)
+							&& player.getAttributeValue(Attributes.MOVEMENT_SPEED) > 0.0D,
+					"speed=" + player.getAttributeValue(Attributes.MOVEMENT_SPEED));
+			minecart.discard();
+		} else {
+			check("玩家恐惧下马测试", false, "Minecart 创建失败");
+		}
+		ApocryphaConfig.setFearAffectsPlayersForTest(false);
+	}
+
+	private static void checkElementAndExecute(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		Zombie fixedTarget = EntityType.ZOMBIE.create(level);
+		if (fixedTarget == null) {
+			check("固定元素伤害测试", false, "Zombie 创建失败");
+			return;
+		}
+		fixedTarget.moveTo(player.position().add(3.0D, 0.0D, 0.0D));
+		fixedTarget.setNoAi(true);
+		fixedTarget.setHealth(fixedTarget.getMaxHealth());
+		level.addFreshEntity(fixedTarget);
+		reduceTestElement = true;
+		boolean landed = Apoptosis.dealElementDamageForTest(player, fixedTarget, 10.0F);
+		reduceTestElement = false;
+		float lost = fixedTarget.getMaxHealth() - fixedTarget.getHealth();
+		check("元素伤害固定值覆盖减伤", landed && Math.abs(lost - 10.0F) < 0.05F,
+				"lost=" + lost + "（期望 10）");
+		Apoptosis.clearForTest(fixedTarget);
+		fixedTarget.discard();
+
+		PlayerFlags.setAngel(player, false);
+		PlayerFlags.setDemon(player, true);
+		forceSlots(player, false);
+		equip(player, ApocryphaSlots.PERDITION_MASS, Apocrypha.SCOURGED_HEART.get());
+		boolean wearsHeart = CurioHelper.wears(player, Apocrypha.SCOURGED_HEART.get());
+		check("笞心已佩戴（固定伤害斩杀测试）", wearsHeart, "wears=" + wearsHeart);
+		Zombie executeTarget = EntityType.ZOMBIE.create(level);
+		if (executeTarget == null) {
+			check("固定伤害激活斩杀", false, "Zombie 创建失败");
+			return;
+		}
+		executeTarget.moveTo(player.position().add(3.0D, 0.0D, 0.0D));
+		executeTarget.setNoAi(true);
+		executeTarget.setHealth(1.5F);
+		level.addFreshEntity(executeTarget);
+		Apoptosis.setStateForTest(executeTarget, 100, 0);
+		ResourceKey<DamageType> holyLightKey = ResourceKey.create(Registries.DAMAGE_TYPE,
+				ResourceLocation.fromNamespaceAndPath("summy-reliquary", "holy_light"));
+		var holder = level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolder(holyLightKey).orElse(null);
+		if (holder == null) {
+			check("固定伤害激活斩杀", false, "缺少 summy-reliquary:holy_light");
+		} else {
+			DamageSource fixedSource = new DamageSource(holder, null, player);
+			executeTarget.invulnerableTime = 0;
+			executeTarget.hurt(fixedSource, 0.5F);
+			check("玩家归属固定伤害可激活笞心斩杀", !executeTarget.isAlive(),
+					"health=" + executeTarget.getHealth() + ", wearsHeart=" + wearsHeart
+							+ ", executeUsed=" + Apoptosis.executeUsedForTest(executeTarget));
+		}
+		Apoptosis.clearForTest(executeTarget);
+		executeTarget.discard();
+	}
+
+	private static void checkStrictSwitch(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		ApocryphaConfig.setEnableForTest(false);
+		FallenPlumeWings.clear(player);
+		FallenPlumeWings.flash(player);
+		check("总开关关闭时不能展开恶魔翅膀", !FallenPlumeWings.isActiveForTest(player),
+				"active=" + FallenPlumeWings.isActiveForTest(player));
+
+		Zombie mob = EntityType.ZOMBIE.create(level);
+		if (mob != null) {
+			mob.moveTo(player.position().add(2.0D, 0.0D, 0.0D));
+			level.addFreshEntity(mob);
+			WitheredBrush.applyFear(level, player, mob);
+			check("总开关关闭时不能施加恐惧", !WitheredBrush.isFearedForTest(mob),
+					"feared=" + WitheredBrush.isFearedForTest(mob));
+			WitheredBrush.clear(mob);
+			mob.discard();
+		}
+		ApocryphaClientInput.resetAirJumpForTest();
+		check("总开关关闭时客户端不消费二段跳", !ApocryphaClientInput.consumeAirJumpForTest(1),
+				"max=1");
+		ApocryphaConfig.setEnableForTest(true);
+		check("总开关已恢复", ApocryphaConfig.enable(), "enable=" + ApocryphaConfig.enable());
+	}
+
+	private static void checkBilingualTooltipTemplates() {
+		try {
+			JsonObject zh = readLanguage("zh_cn");
+			JsonObject en = readLanguage("en_us");
+			String zhNew = renderTemplate(zh.get("item.summy-reliquary-apocrypha.new_testament.shift.2")
+					.getAsString(), 35, 8, 25, 3, 5);
+			String enNew = renderTemplate(en.get("item.summy-reliquary-apocrypha.new_testament.shift.2")
+					.getAsString(), 35, 8, 25, 3, 5);
+			String zhWing = renderTemplate(zh.get("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.7")
+					.getAsString(), 10, 2);
+			String enWing = renderTemplate(en.get("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.7")
+					.getAsString(), 10, 2);
+			zhNew = stripInlineMarkers(zhNew);
+			enNew = stripInlineMarkers(enNew);
+			zhWing = stripInlineMarkers(zhWing);
+			enWing = stripInlineMarkers(enWing);
+			check("中文新约提示参数顺序", zhNew.contains("35%") && zhNew.contains("8 格")
+							&& zhNew.contains("0~25°") && zhNew.contains("3~5"),
+					zhNew);
+			check("英文新约提示参数顺序", enNew.contains("35%") && enNew.contains("8 blocks")
+							&& enNew.contains("3~5") && enNew.contains("0~25°"),
+					enNew);
+			check("中文翼羽衰减参数顺序", zhWing.contains("10 秒后") && zhWing.contains("每 2 秒"),
+					zhWing);
+			check("英文翼羽衰减参数顺序", enWing.contains("after 10 s") && enWing.contains("every 2 s"),
+					enWing);
+		} catch (Throwable throwable) {
+			check("双语提示模板读取", false, throwable.toString());
+		}
+	}
+
+	private static JsonObject readLanguage(String locale) throws Exception {
+		String path = "/assets/summy-reliquary-apocrypha/lang/" + locale + ".json";
+		try (var stream = ApocryphaDevCheck.class.getResourceAsStream(path)) {
+			if (stream == null) {
+				throw new IllegalStateException("找不到语言文件 " + path);
+			}
+			return JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+		}
+	}
+
+	private static String renderTemplate(String template, Object... args) {
+		String result = template;
+		for (Object arg : args) {
+			result = result.replaceFirst("%s", java.util.regex.Matcher.quoteReplacement(String.valueOf(arg)));
+		}
+		return result;
+	}
+
+	private static String stripInlineMarkers(String value) {
+		return value.replaceAll("\\{[^|}]+\\|([^}]*)}", "$1");
+	}
+
 	private static void equip(ServerPlayer player, String slot, Item item) {
 		CuriosApi.getCuriosInventory(player).ifPresent(handler ->
 				handler.setEquippedCurio(slot, 0, new ItemStack(item)));
@@ -354,6 +755,20 @@ public final class ApocryphaDevCheck {
 
 	private static void clearInventory(ServerPlayer player) {
 		player.getInventory().clearContent();
+	}
+
+	private static int countItem(ServerPlayer player, Item item) {
+		int count = 0;
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			ItemStack stack = player.getInventory().getItem(slot);
+			if (stack.is(item)) {
+				count += stack.getCount();
+			}
+		}
+		if (CurioHelper.wears(player, item)) {
+			count++;
+		}
+		return count;
 	}
 
 	private static void forceSlots(ServerPlayer player, boolean angel) {
@@ -424,7 +839,7 @@ public final class ApocryphaDevCheck {
 				visualWait = 40;
 			}
 			case 8 -> {
-				if (PENDING_SCREENSHOTS.get() == 0) {
+				if (PENDING_SCREENSHOTS.get() == 0 && checksComplete) {
 					finish(client, "客户端自检结束");
 				}
 			}
@@ -442,7 +857,7 @@ public final class ApocryphaDevCheck {
 				});
 	}
 
-	private static void check(String label, boolean ok, String detail) {
+	private static synchronized void check(String label, boolean ok, String detail) {
 		checks++;
 		if (!ok) {
 			FAILURES.add(label + "｜" + detail);

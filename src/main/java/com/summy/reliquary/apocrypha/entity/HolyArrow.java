@@ -1,6 +1,7 @@
 package com.summy.reliquary.apocrypha.entity;
 
 import com.summy.reliquary.apocrypha.Apocrypha;
+import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import net.minecraft.core.registries.Registries;
@@ -110,6 +111,10 @@ public class HolyArrow extends AbstractArrow {
 
 	@Override
 	protected void onHitEntity(EntityHitResult result) {
+		if (!ApocryphaConfig.enable()) {
+			discard();
+			return;
+		}
 		// 穿透记账：同一个目标只吃一次；无限穿透，所以这里不设上限、也不消失
 		Entity hit = result.getEntity();
 		if (!hitEntities.add(hit.getId())) {
@@ -160,6 +165,10 @@ public class HolyArrow extends AbstractArrow {
 
 	@Override
 	public void tick() {
+		if (!ApocryphaConfig.enable()) {
+			discard();
+			return;
+		}
 		if (landed) {
 			setDeltaMovement(Vec3.ZERO);
 			if (++stuckTicks >= GROUND_STICK_TICKS) {

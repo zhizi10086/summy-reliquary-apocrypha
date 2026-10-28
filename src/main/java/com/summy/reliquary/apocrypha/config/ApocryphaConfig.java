@@ -180,7 +180,7 @@ public final class ApocryphaConfig {
 				.defineInRange("bar_max", 100.0D, 1.0D, 10000.0D);
 		APOPTOSIS_HITS_BASE = builder
 				.comment("未佩戴 2 号件（坠羽）时，打满损伤条需要的近战次数：每次攻击推 bar_max / 该值",
-						"（2 号件那轮会再加一个键，把该值改成 4）")
+						"（佩戴坠羽时改读 hits_with_second）")
 				.defineInRange("hits_base", 6, 1, 100);
 		APOPTOSIS_BURST_DAMAGE = builder
 				.comment("损伤爆发的元素伤害（点；元素伤害无视护甲/保护/抗性，且不吃增伤乘区）")
@@ -501,5 +501,19 @@ public final class ApocryphaConfig {
 	/** 佩戴「终歌」时损伤状态目标的受伤加成（%） */
 	public static double apoptosisDamageTakenBonusPercentWithFifth() {
 		return APOPTOSIS_DAMAGE_TAKEN_BONUS_PERCENT_WITH_FIFTH.get();
+	}
+
+	// ===== 真实客户端自检：只在 -Pdevcheck 下临时修改内存值，不写回配置文件 =====
+
+	public static void setEnableForTest(boolean value) {
+		if (Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			ENABLE.set(value);
+		}
+	}
+
+	public static void setFearAffectsPlayersForTest(boolean value) {
+		if (Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			APOPTOSIS_FEAR_AFFECTS_PLAYERS.set(value);
+		}
 	}
 }

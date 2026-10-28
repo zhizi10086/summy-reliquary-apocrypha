@@ -68,6 +68,9 @@ public final class HoverFlight {
 	 * 同时清空 {@code fallDistance} —— 云朵瓶口径：跳完不再吃跳之前那段坠落伤害。
 	 */
 	public static void jump(Player player) {
+		if (!ApocryphaConfig.enable()) {
+			return;
+		}
 		Vec3 velocity = player.getDeltaMovement();
 		player.setDeltaMovement(velocity.x, ApocryphaConfig.hoverAirJumpVelocity(), velocity.z);
 		player.hasImpulse = true;
@@ -127,6 +130,10 @@ public final class HoverFlight {
 
 	/** 服务端每 tick：维护离地状态与空跳计数，并处理缓降 */
 	public static void tickServer(MinecraftServer server) {
+		if (!ApocryphaConfig.enable()) {
+			STATES.clear();
+			return;
+		}
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			AirState state = STATES.computeIfAbsent(player.getUUID(), key -> new AirState());
 			if (player.onGround() || player.onClimbable()) {
@@ -142,7 +149,7 @@ public final class HoverFlight {
 
 	/** 缓降：空中长按潜行键时压低垂直速度，并把当 tick 的下降量从坠落高度里扣掉 */
 	private static void glide(ServerPlayer player) {
-		if (player.onGround() || !wears(player) || !player.isShiftKeyDown()) {
+		if (!ApocryphaConfig.enable() || player.onGround() || !wears(player) || !player.isShiftKeyDown()) {
 			return;
 		}
 		Vec3 velocity = player.getDeltaMovement();

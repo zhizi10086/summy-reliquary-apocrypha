@@ -1,6 +1,7 @@
 package com.summy.reliquary.apocrypha.client;
 
 import com.summy.reliquary.apocrypha.Apocrypha;
+import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.HoverFlight;
 import com.summy.reliquary.apocrypha.net.AirJumpMessage;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
@@ -20,7 +21,7 @@ import net.minecraftforge.fml.common.Mod;
  *
  * <p>两个状态位是手感的关键：
  * <ul>
- *     <li>{@code canAirJump}：落地 / 攀爬时补满，用掉一次后置假 —— 一段离地只给一次；</li>
+ *     <li>{@code airJumpsUsed}：按配置的 0~8 次计数，落地或攀爬时清零；</li>
  *     <li>{@code hasReleasedJumpKey}：落地 / 攀爬时置假，**空中松开过跳跃键**才置真 ——
  *     用来排除「地面起跳的那一次按键」，否则那一次就会把这段离地的额外跳跃提前吃掉。</li>
  * </ul>
@@ -32,8 +33,8 @@ import net.minecraftforge.fml.common.Mod;
  */
 @Mod.EventBusSubscriber(modid = Apocrypha.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class ApocryphaClientInput {
-	/** 本段离地是否还有可用的额外跳跃 */
-	private static boolean canAirJump;
+	/** 本段离地已经用掉多少次额外跳跃 */
+	private static int airJumpsUsed;
 	/** 离开地面之后是否松开过跳跃键（用来排除地面起跳的那次按键） */
 	private static boolean hasReleasedJumpKey;
 
@@ -48,13 +49,18 @@ public final class ApocryphaClientInput {
 		Minecraft minecraft = Minecraft.getInstance();
 		LocalPlayer player = minecraft.player;
 		if (player == null || minecraft.level == null) {
-			canAirJump = false;
+			airJumpsUsed = 0;
+			hasReleasedJumpKey = false;
+			return;
+		}
+		if (!ApocryphaConfig.enable()) {
+			airJumpsUsed = 0;
 			hasReleasedJumpKey = false;
 			return;
 		}
 		// 落地或攀爬：视为一段新的离地
 		if (player.onGround() || player.onClimbable()) {
-			canAirJump = true;
+			airJumpsUsed = 0;
 			hasReleasedJumpKey = false;
 			return;
 		}
@@ -63,16 +69,42 @@ public final class ApocryphaClientInput {
 			hasReleasedJumpKey = true;
 			return;
 		}
-		if (!canAirJump || !hasReleasedJumpKey || player.getAbilities().flying) {
+		if (!hasReleasedJumpKey || player.getAbilities().flying || player.isPassenger()) {
 			return;
 		}
 		// 客户端先自查一次（服务端还会再校验），避免对没戴饰品/不可用的玩家发无用的包
 		if (!CurioHelper.wears(player, Apocrypha.INVERSE_FEATHER_HOVER.get())) {
 			return;
 		}
-		canAirJump = false;
+		int max = ApocryphaConfig.hoverAirJumps();
+		if (!consumeAirJump(max)) {
+			return;
+		}
+		// 每一次额外跳跃都必须重新松开再按下，长按不能连续消耗多次预算。
+		hasReleasedJumpKey = false;
 		ApocryphaNetworking.CHANNEL.sendToServer(new AirJumpMessage());
 		// 本地预测：立刻起效，不用等服务端回包
 		HoverFlight.jump(player);
+	}
+
+	private static boolean consumeAirJump(int max) {
+		if (airJumpsUsed >= max) {
+			return false;
+		}
+		airJumpsUsed++;
+		return true;
+	}
+
+	/** 自检用：复位并测试与实战共用的空中跳跃预算状态机。 */
+	public static void resetAirJumpForTest() {
+		if (Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			airJumpsUsed = 0;
+			hasReleasedJumpKey = false;
+		}
+	}
+
+	/** 自检用：模拟一次空中按键消费。 */
+	public static boolean consumeAirJumpForTest(int max) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") && ApocryphaConfig.enable() && consumeAirJump(max);
 	}
 }

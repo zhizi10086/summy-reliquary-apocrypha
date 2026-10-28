@@ -10,9 +10,10 @@ displayName="Summy Reliquary: Apocrypha"
 authors="Summy"
 logoFile="assets/summy-reliquary-apocrypha/icon.png"
 description='''
-Summy Reliquary 的扩展包（Forge 1.20.1）。
+Summy Reliquary 的扩展包（Forge 1.20.1），提供「新约」与「凋亡」两套十件 Curios 饰品。
 · 前置：Summy Reliquary（必需）+ Curios（必需）
-· 内容：新栏位「新约-光环」、饰品「新约」（弓箭命中回血 + 落箭散射真实伤害，享受 SR 的全伤害增幅与圣心追踪）
+· 获取：以真实野箱首开为基础件保底，随后按概率与十箱保底补齐四件
+· 玩法：天使线弓箭/落箭/光羽/二段跳，以及恶魔线凋亡损伤/爆条/斩杀/恐惧/终歌
 · 粉丝二创：灵感与部分设定取自《以撒的结合》，非官方作品
 '''
 

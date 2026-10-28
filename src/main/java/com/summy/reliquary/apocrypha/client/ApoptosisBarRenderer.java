@@ -67,7 +67,11 @@ public final class ApoptosisBarRenderer {
 		if (event.phase != TickEvent.Phase.END) {
 			return;
 		}
-		ApoptosisBarState.tick(ApocryphaConfig.apoptosisBarMax(),
+		if (!ApocryphaConfig.enable()) {
+			ApoptosisBarState.clear();
+			return;
+		}
+		ApoptosisBarState.tick(Minecraft.getInstance().level, ApocryphaConfig.apoptosisBarMax(),
 				ApocryphaConfig.apoptosisInjuredSeconds() * 20);
 	}
 

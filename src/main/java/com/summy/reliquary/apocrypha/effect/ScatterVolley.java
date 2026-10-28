@@ -150,6 +150,11 @@ public final class ScatterVolley {
 		PENDING.clear();
 	}
 
+	/** 射手死亡 / 退服：只丢弃该玩家尚未生成的落箭。 */
+	public static void clearShooter(UUID shooter) {
+		PENDING.removeIf(pending -> pending.shooter.equals(shooter));
+	}
+
 	/** 目标当前的中心点（x/z 取实体中心、y 取包围盒顶部）；延迟补发落箭时用来登记"触发瞬间的中心点" */
 	public static Vec3 centerOf(LivingEntity target) {
 		return new Vec3(target.getX(), target.getBoundingBox().maxY, target.getZ());

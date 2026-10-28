@@ -69,11 +69,14 @@ public final class FeatherCharge {
 
 	/** 是否已达到「可消耗」门槛（片数 > 6，即攒到第 4 对） */
 	public static boolean canConsume(ServerPlayer player) {
-		return charge(player) > CONSUME_THRESHOLD;
+		return ApocryphaConfig.enable() && charge(player) > CONSUME_THRESHOLD;
 	}
 
 	/** 新约治疗触发：+1 对，并把脱战计时重置 */
 	public static void addPair(ServerPlayer player) {
+		if (!ApocryphaConfig.enable()) {
+			return;
+		}
 		setCharge(player, charge(player) + PER_PAIR);
 		root(player).putInt(DECAY_TIMER, ApocryphaConfig.sacramentDecayDelaySeconds());
 		// 立刻把新的一对实体补上：否则要等每秒兜底扫描，表现为"过一会儿才冒出来"
@@ -138,7 +141,8 @@ public final class FeatherCharge {
 	 * 是为了让 Curios 一定检测到变化并在下一 tick 把它同步给客户端。
 	 */
 	private static void syncWingFlag(ServerPlayer player) {
-		boolean want = visibleWings(player) > 0;
+		// 总开关关闭时只隐藏临时翅膀，底层计数与衰减进度仍保留。
+		boolean want = ApocryphaConfig.enable() && visibleWings(player) > 0;
 		CuriosApi.getCuriosInventory(player).ifPresent(handler ->
 				handler.getStacksHandler(ApocryphaSlots.NEW_TESTAMENT_GRACE).ifPresent(stacksHandler -> {
 					IDynamicStackHandler stacks = stacksHandler.getStacks();

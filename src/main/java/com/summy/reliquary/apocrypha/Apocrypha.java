@@ -143,7 +143,7 @@ public class Apocrypha {
 			ITEMS.register("withered_brush",
 					() -> new WitheredBrushItem(new Item.Properties().stacksTo(1)));
 
-	/** 终歌：装入「殁亡之终歌」栏位的饰品（需要恶魔标记；凋亡套系 #5 收官，每秒灼伤 + 减疗 80% + 受伤 +10%） */
+	/** 终歌：装入「殁亡之终歌」栏位的饰品（需要恶魔标记；凋亡套系 #5 收官，每秒灼伤 + 减疗 95% + 受伤 +30%） */
 	public static final RegistryObject<Item> FINAL_SONG =
 			ITEMS.register("final_song",
 					() -> new FinalSongItem(new Item.Properties().stacksTo(1)));
@@ -204,7 +204,7 @@ public class Apocrypha {
 		MinecraftForge.EVENT_BUS.register(ApocryphaItemProtection.class);
 		// 本模组的指令（/summyapocrypha fear players <on|off>）
 		MinecraftForge.EVENT_BUS.register(ApocryphaCommand.class);
-		// 本模组自己的网络通道（协议 "1"：目前只有"空中按下跳跃键"一条 C2S 包）
+		// 本模组自己的网络通道（协议 "2"：空中跳跃 C2S + 凋亡条 S2C）
 		ApocryphaNetworking.register();
 
 		LOGGER.info("[Summy Reliquary: Apocrypha] 初始化完成（前置 Summy Reliquary {}、本模组协议 {}、SR 协议 {}）",

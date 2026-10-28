@@ -4,7 +4,6 @@ import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.net.ApoptosisBarMessage;
-import com.summy.reliquary.effect.HolyLightEffect;
 import com.summy.reliquary.effect.ShadowDash;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.core.Holder;
@@ -60,7 +59,8 @@ import java.util.UUID;
  *
  * <p>**元素伤害**：独立伤害类型，自带四个 {@code bypasses_*} 标签（无视护甲 / 保护附魔 / 抗性 / 效果），
  * 并且金额**钉住** —— 在 {@link LivingHurtEvent}（LOWEST）把金额改回我们发出的固定值，因此不吃
- * SR 的七罪七德与全伤害乘区（"伤害减免"类效果仍照常生效）。与 SE 的配合：该类型挂在
+ * SR 的七罪七德与全伤害乘区；固定值绝对优先，事件链上的其它增伤与减伤也会被还原。
+ * 与 SE 的配合：该类型挂在
  * {@code #summy_enchantment:no_dodge} 标签里，因此不会被「灵动步伐」闪避。
  *
  * <p>数据存目标实体的持久数据（SRA 根键），随存档保存；计时只遍历 {@link #ACTIVE} 登记表，
@@ -212,8 +212,23 @@ public final class Apoptosis {
 		data.remove(RESIST_UNTIL);
 		data.remove(VALUE);
 		data.remove(PUSH_DAMAGE);
+		data.remove(EXTRA_PERCENT);
+		data.remove(LAST_PUSH);
 		data.remove(EXECUTE_USED);
 		clearBurstSnapshot(data);
+	}
+
+	/** 自检用：走与正式元素伤害一致的钉住、落地和日志路径。 */
+	public static boolean dealElementDamageForTest(ServerPlayer attacker, LivingEntity target, float amount) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck") || !(target.level() instanceof ServerLevel level)) {
+			return false;
+		}
+		return dealElementDamage(level, attacker, target, amount, "自检");
+	}
+
+	/** 自检用：读取本段损伤状态是否已经落地过斩杀。 */
+	public static boolean executeUsedForTest(LivingEntity target) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") && data(target).getBoolean(EXECUTE_USED);
 	}
 
 	// ==================== 事件 ====================
@@ -254,14 +269,11 @@ public final class Apoptosis {
 		if (event.isCanceled() || !ApocryphaConfig.enable()) {
 			return;
 		}
-		// 复用 SR 自己的判据，避免维护一份会随前置漂移的消息 id 名单。
-		boolean srFixed = HolyLightEffect.isDivine(source) || HolyLightEffect.isExactDamage(source);
-
 		// 取「触发那一刻」的损伤状态快照：这一刀若正好推满触发爆条，它本身不该再吃附加伤害
 		// （损伤状态是爆条之后才开始的，口径与天使线「在下落状态的那一刻判定」一致）
 		boolean wasInjured = isInjured(target);
 		// 终歌（5 号件）：本段损伤状态的目标受到的最终伤害 +N%（元素伤害在 ① 里已经钉住，不受影响）
-		double takenBonus = damageTakenBonusPercent(target);
+		double takenBonus = wasInjured ? damageTakenBonusPercent(target) : 0.0D;
 		if (takenBonus > 0.0D) {
 			event.setAmount((float) (event.getAmount() * (1.0D + takenBonus / 100.0D)));
 		}
@@ -286,9 +298,7 @@ public final class Apoptosis {
 			Entity causing = source.getEntity();
 			dealElementDamage(level, causing instanceof ServerPlayer player ? player : null, target, extra, "附加");
 			// ④ 斩杀：本次伤害结算完附加伤害之后再判 —— 只有「佩戴笞心的伤害造成者」才会激活这个判断
-			if (!srFixed) {
-				tryExecute(level, target, event);
-			}
+			tryExecute(level, target, event);
 		}
 	}
 
@@ -429,7 +439,7 @@ public final class Apoptosis {
 		if (!isInjured(event.getEntity())) {
 			return;
 		}
-		// 减疗比例取「本段损伤状态写下的值」：只戴堕天 50%，戴终歌 80%
+		// 减疗比例取「本段损伤状态写下的值」：只戴堕天 50%，戴终歌 95%
 		double factor = 1.0D - healReductionPercent(event.getEntity()) / 100.0D;
 		float clamped = (float) Math.max(0.0D, Math.min(1.0D, factor));
 		event.setAmount(event.getAmount() * clamped);
@@ -486,6 +496,21 @@ public final class Apoptosis {
 	}
 
 	@SubscribeEvent
+	public static void onStartTracking(PlayerEvent.StartTracking event) {
+		if (event.getEntity() instanceof ServerPlayer viewer && event.getTarget() instanceof LivingEntity target) {
+			sendSnapshot(viewer, target);
+		}
+	}
+
+	@SubscribeEvent
+	public static void onStopTracking(PlayerEvent.StopTracking event) {
+		if (event.getEntity() instanceof ServerPlayer viewer && event.getTarget() instanceof LivingEntity target) {
+			ApocryphaNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer),
+					new ApoptosisBarMessage(target.getId(), 0.0F, 0, 0));
+		}
+	}
+
+	@SubscribeEvent
 	public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
 		if (event.getEntity() instanceof ServerPlayer player) {
 			removeBar(player.getUUID());
@@ -504,11 +529,24 @@ public final class Apoptosis {
 		}
 	}
 
-	@SubscribeEvent
+	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public static void onLivingDeath(LivingDeathEvent event) {
-		if (event.getEntity() instanceof ServerPlayer player) {
-			removeBar(player.getUUID());
+		if (event.isCanceled() || !(event.getEntity() instanceof ServerPlayer player)) {
+			return;
 		}
+		// 玩家死亡后新实体不会继承临时战斗状态；在 Clone 复制根数据前先清净。
+		ACTIVE.remove(player.getUUID());
+		removeBar(player.getUUID());
+		CompoundTag data = data(player);
+		data.remove(VALUE);
+		data.remove(INJURED_UNTIL);
+		data.remove(RESIST_UNTIL);
+		data.remove(PUSH_DAMAGE);
+		data.remove(EXTRA_PERCENT);
+		data.remove(LAST_PUSH);
+		data.remove(EXECUTE_USED);
+		clearBurstSnapshot(data);
+		sync(player);
 	}
 
 	// ==================== 推条 / 爆条 ====================
@@ -666,6 +704,7 @@ public final class Apoptosis {
 		if (ACTIVE.isEmpty()) {
 			return;
 		}
+		boolean enabled = ApocryphaConfig.enable();
 		long serverTick = server.getTickCount();
 		Iterator<Map.Entry<UUID, ServerLevel>> iterator = ACTIVE.entrySet().iterator();
 		while (iterator.hasNext()) {
@@ -683,11 +722,17 @@ public final class Apoptosis {
 			long resistUntil = data.getLong(RESIST_UNTIL);
 			if (injuredUntil > now) {
 				// 5 号件「终歌」：损伤状态期间每秒一笔「本次爆伤 × 比例」
-				payFinalSong(active.getValue(), target, data, injuredUntil, now);
+				if (enabled) {
+					payFinalSong(active.getValue(), target, data, injuredUntil, now);
+				} else {
+					advanceFinalSongClock(data, injuredUntil, now);
+				}
 			} else if (injuredUntil > 0L) {
 				// 损伤状态刚好结束的这一刻：补上最后一笔
 				//（传 injuredUntil = now 使「已过时长」等于总时长，从而把第 `injured_seconds` 笔补齐）
-				payFinalSong(active.getValue(), target, data, now, now);
+				if (enabled) {
+					payFinalSong(active.getValue(), target, data, now, now);
+				}
 			}
 			if (injuredUntil <= now && resistUntil <= now) {
 				// 两种状态都不在了：把过期的状态收尾（损伤状态刚结束 → 进入损伤抵抗）
@@ -730,7 +775,11 @@ public final class Apoptosis {
 				sync(target);
 				continue;
 			}
-			updateBossBar(target);
+			if (enabled) {
+				updateBossBar(target);
+			} else {
+				removeBar(active.getKey());
+			}
 			if (phaseChanged || serverTick % SYNC_INTERVAL_TICKS == 0) {
 				sync(target);
 			}
@@ -754,9 +803,7 @@ public final class Apoptosis {
 		if (perSecond <= 0.0D) {
 			return;
 		}
-		int total = injuredTotalTicks();
-		int elapsed = (int) Math.max(0L, Math.min(total, total - (injuredUntil - now)));
-		int due = elapsed / 20;
+		int due = finalSongDue(data, injuredUntil, now);
 		int paid = data.getInt(SONG_TICKS_PAID);
 		if (due <= paid) {
 			return;
@@ -765,6 +812,23 @@ public final class Apoptosis {
 		for (int index = paid; index < due; index++) {
 			dealElementDamage(level, null, target, (float) perSecond, "终歌灼伤");
 		}
+	}
+
+	/** 总开关关闭时只推进终歌计时，不补发关闭期间本应结算的伤害。 */
+	private static void advanceFinalSongClock(CompoundTag data, long injuredUntil, long now) {
+		int due = finalSongDue(data, injuredUntil, now);
+		if (due > data.getInt(SONG_TICKS_PAID)) {
+			data.putInt(SONG_TICKS_PAID, due);
+		}
+	}
+
+	private static int finalSongDue(CompoundTag data, long injuredUntil, long now) {
+		if (data.getDouble(BURST_DAMAGE) <= 0.0D) {
+			return data.getInt(SONG_TICKS_PAID);
+		}
+		int total = injuredTotalTicks();
+		int elapsed = (int) Math.max(0L, Math.min(total, total - (injuredUntil - now)));
+		return elapsed / 20;
 	}
 
 	/** 本段损伤状态的快照（爆伤 / 减疗 / 受伤加成 / 灼伤笔数）：状态结束时清掉 */
@@ -776,9 +840,17 @@ public final class Apoptosis {
 	}
 
 	private static void sync(LivingEntity target) {
+		boolean enabled = ApocryphaConfig.enable();
 		ApocryphaNetworking.CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> target),
-				new ApoptosisBarMessage(target.getId(), (float) value(target), injuredTicks(target),
-						resistTicks(target)));
+				new ApoptosisBarMessage(target.getId(), enabled ? (float) value(target) : 0.0F,
+						enabled ? injuredTicks(target) : 0, enabled ? resistTicks(target) : 0));
+	}
+
+	private static void sendSnapshot(ServerPlayer viewer, LivingEntity target) {
+		boolean enabled = ApocryphaConfig.enable();
+		ApocryphaNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer),
+				new ApoptosisBarMessage(target.getId(), enabled ? (float) value(target) : 0.0F,
+						enabled ? injuredTicks(target) : 0, enabled ? resistTicks(target) : 0));
 	}
 
 	// ==================== 玩家侧 Boss 条 ====================
@@ -786,6 +858,10 @@ public final class Apoptosis {
 	/** 目标是玩家时，用原版 Boss 条在其屏幕顶部显示同一份状态（零自定义渲染） */
 	private static void updateBossBar(LivingEntity target) {
 		if (!(target instanceof ServerPlayer victim)) {
+			return;
+		}
+		if (!ApocryphaConfig.enable()) {
+			removeBar(victim.getUUID());
 			return;
 		}
 		int injured = injuredTicks(target);

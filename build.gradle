@@ -141,6 +141,7 @@ jar {
     from('LICENSE') {
         rename { "${it}_${project.base.archivesName.get()}" }
     }
+    from('CREDITS.md')
 }
 
 tasks.named('sourcesJar') {

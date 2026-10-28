@@ -16,7 +16,7 @@
   "item.summy-reliquary-apocrypha.new_testament.desc.1": "\"Behold, I make all things new.\"",
   "item.summy-reliquary-apocrypha.new_testament.desc.2": "Where the arrows fall, grace follows.",
   "item.summy-reliquary-apocrypha.new_testament.shift.1": "Bow hits heal {value|%s} health",
-  "item.summy-reliquary-apocrypha.new_testament.shift.2": "On hit, {value|%s%} chance to spawn {value|%s}~{value|%s} {arrow|falling arrows} at 0~{value|%s}° from {value|%s} blocks above the target's head",
+  "item.summy-reliquary-apocrypha.new_testament.shift.2": "On hit, {value|%s%} chance at {value|%s} blocks above the target's head to spawn {arrow|falling arrows} at 0~{value|%s}°, in groups of {value|%s}~{value|%s}",
   "item.summy-reliquary-apocrypha.new_testament.shift.3": "{arrow|Falling arrows} deal {value|%s} true damage and ignore invulnerability frames",
 
   "item.summy-reliquary-apocrypha.swift_feather_covenant": "Swift Plume Covenant",
@@ -35,7 +35,7 @@
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.4": "Damage {value|+%s%}",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.5": "Always triggers falling arrows",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.6": "Falling arrows are fixed at {value|%s}",
-  "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.7": "Out of combat, one {feather|light feather} pair fades every {value|%s} s after {value|%s} s",
+  "item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.7": "Out of combat, after {value|%s} s one {feather|light feather} pair fades every {value|%s} s",
 
   "item.summy-reliquary-apocrypha.inverse_feather_hover": "Inverse Feather Hover",
   "item.summy-reliquary-apocrypha.inverse_feather_hover.desc.1": "\"He makes me lie down in green pastures, He leads me beside still waters.\"",

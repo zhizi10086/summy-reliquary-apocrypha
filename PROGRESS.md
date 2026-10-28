@@ -66,7 +66,7 @@
 - **基础件**：新约 = `new_testament`，凋亡 = `fallen_heaven`。未获取时下一个合格野箱直接发放；发放后立即写获取位。
 - **后四件**：必须佩戴基础件；每次合格野箱默认 15% 概率，连续 10 次失败后下一箱必得，成功率重置保底。候选只包含该路线尚未获取的 2~5 号件，按数量等概率选择。
 - **交付**：直接进入玩家背包，满则掉在脚下并交给掉落实体保护。登录时扫描背包与 Curios 栏，`/give`、创造模式或旧存档已有物品会补记获取位。
-- **死亡保留**：10 件饰品统一实现 `ApocryphaKeptCurioItem`，Curios 掉落规则为 `ALWAYS_KEEP`；`LivingDropsEvent` 最低优先级移除所有背包副本，`PlayerEvent.Clone` 记录死亡前数量，下一 tick 在新玩家存活后按缺口恢复，兼容 `keepInventory` 与 Curios 自带复制。
+- **死亡保留**：10 件饰品统一实现 `ApocryphaKeptCurioItem`，Curios 掉落规则为 `ALWAYS_KEEP`；`LivingDeathEvent` 在背包清空前记录完整数量，`LivingDropsEvent` 最低优先级移除背包副本，重生后下一 tick 按缺口恢复，兼容 `keepInventory`、Curios 自带复制与死亡界面期间停服。
 - **掉落实体保护**：`EntityJoinLevelEvent` 对 10 件饰品的所有 `ItemEntity` 设置 `invulnerable` 与 `setUnlimitedLifetime()` —— 防火、岩浆、爆炸、仙人掌，且永不自然消失；虚空仍永久丢失。
 - **异界力量边界**：SR 创世纪只清理 SR 自身标记与物品，不清除 SRA 获取位、保底或 10 件饰品；标记消失导致缩栏时，饰品退回背包，背包满才落地并受保护。
 
@@ -74,7 +74,7 @@
 
 ### 3.1 本体箭矢命中（`LivingHurtEvent`，LOWEST）
 
-判定：`AbstractArrow` + owner 是玩家 + 目标不是自己；**排除** SR 的幻影矛 / 金刀片，以及本模组的落箭与圣光矢
+判定：`Arrow` / `SpectralArrow` + owner 是玩家 + 目标不是自己；**排除** 三叉戟、SR 的幻影矛 / 金刀片，以及本模组的落箭与圣光矢
 （避免重复触发与递归）。两件各自掷点（各自佩戴各自掷、各自消耗一次随机数），**两件都没戴则直接返回**。
 
 - **新约触发器**：回血 0.5（每次命中都回，与是否触发无关）；概率 35%（同戴迅羽 50%；逆羽下落中 ×1.5 → 52.5% / 75%）；
@@ -175,15 +175,16 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
 - **空闲清空**：累积阶段若连续 `idle_clear_seconds`（30）秒没被推过条（`apoptosis_last_push`），
   进度值与已累计的推条伤害一起清零；损伤 / 抵抗期（合计 10 秒）不会触发。
 - **斩杀（笞心）**：`LivingHurtEvent`（LOWEST）里、结算完附加伤害之后判定 —— 只有「本次伤害的**造成者**是佩戴笞心的玩家」
-  （近战 / 弓箭 / 落箭都算）才激活；目标处于损伤状态且**预计落地后血量 ≤ 最大生命 × 15%**（且 > 0）时，
+  （近战 / 弓箭 / 落箭 / 玩家归属固定伤害都算）才激活；目标处于损伤状态且**预计落地后血量 ≤ 最大生命 × 15%**（且 > 0）时，
   补一击「最大生命 × 100%」的元素伤害（钉住、无击退、算在该佩戴者头上）；**每段损伤状态只落地一次**
   （`apoptosis_execute_used`，爆条时重置），抵抗与累积期不判定。
 - **抵抗削减（枯笔）**：与推条共用同一套**可信近战**判定 —— 只有普通左键 / 横扫 / 遁入暗影实际斩击且该玩家戴枯笔、目标处于抵抗期时，
   把 `apoptosis_resist_until` 前移 `resistance_cut_seconds_with_fourth`（1）秒；每刀最多一次、可叠加，减到 0 即抵抗立刻结束。
 - **恐惧（枯笔）**：爆条那一刻若引爆者戴枯笔 → `effect/WitheredBrush` 给目标 1 秒恐惧（`fear_seconds_with_fourth`）：
-  **生物**每 tick（服务器 tick 末尾）清攻击目标 / 中立仇恨 + 停寻路 + 水平速度清零（垂直分量保留）；**玩家**（`fear_affects_players`，
-  默认 false，指令热切换）挂两条 `MULTIPLY_TOTAL −1` 的 transient 修饰符（移动速度、攻速归零）并拦 `AttackEntityEvent` 与
-  `PlayerInteractEvent.RightClickItem/RightClickBlock`；到期 / 死亡 / 登出 / 停机都会摘掉修饰符。
+  **生物**临时切到 noAI 并恢复原值，同时清攻击目标 / 中立仇恨、停寻路 / MoveControl、水平速度清零；
+  **玩家**（`fear_affects_players`，默认 false，指令热切换）强制下马，挂两条 `MULTIPLY_TOTAL −1` 的 transient 修饰符，
+  并拦普通攻击、`LivingAttackEvent` 兜底，以及物品 / 方块 / 实体 / 实体精确交互；到期 / 死亡 / 登出 / 换维度 / 停机 /
+  总开关关闭都会清理。爬梯、游泳和外部击退仍是已披露边界。
 - **终歌（第 5 件）**：同样在爆条那一刻由引爆者佩戴决定并写进目标状态 ——
   ① `apoptosis_burst_damage` 记下**本次爆伤**，损伤状态期间**每满 1 秒**结算一笔「爆伤 × `burst_percent_per_second_with_fifth`（25%）」的
   元素伤害（`apoptosis_song_ticks_paid` 记已付笔数，用「已过秒数 − 已付笔数」补结算，5 秒共 5 笔）；
@@ -196,7 +197,7 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
 - **元素伤害（`apoptosis_element`）**：四个 `bypasses_*` 标签全开（无视护甲 / 保护附魔 / 抗性 / 效果），
   命中前后各清一次无敌帧、结算前后保存并还原目标速度（**无击退**）；金额**钉住** ——
   在 LOWEST 把事件金额改回自己发出的固定值，因此**不吃 SR 的七罪七德与全伤害乘区**，
-  但"伤害减免"类效果（事件链上把金额改小的）仍照常生效。
+  事件链上的其它增伤与减伤也一律被固定值覆盖。
   伤害源**直接来源留空、造成者＝玩家**（这样 SR 不会把它当成玩家近战命中去做圣光等掷点）。
 - **不吃闪避**：该类型挂在 `#summy_enchantment:no_dodge` 标签里（SRA 提供标签内容、SE 侧读该标签判断），
   因此 SE 的「灵动步伐」不会闪避它；未装 SE 时该文件无副作用。
@@ -206,7 +207,8 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
 - **网络**：新增 S2C 包 `ApoptosisBarMessage`（协议从 `"1"` 升到 **`"2"`**），只在阶段切换与 5 tick 节流点补发，
   客户端收到后自己逐 tick 衰减；退出世界清缓存。
 - **数据**：损伤值 / 两项到期时刻 / 最近推条时刻 / 附加比例 / 斩杀标记都写在目标实体的持久数据（SRA 根键）里，
-  随存档保存；计时只遍历"活跃目标"登记表（不做全实体扫描），退服 / 死亡 / 登出 / 换维度各自清理 Boss 条。
+  随存档保存；计时只遍历"活跃目标"登记表（不做全实体扫描）。玩家死亡会清空自身凋亡状态与 Boss 条；
+  客户端按当前世界实体 prune，服务端开始/停止跟踪目标时主动发送快照或零状态。
 
 ### 3.9 调试日志（默认关闭）
 
@@ -219,7 +221,7 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
 
 | 段 | 键 | 默认 | 说明 |
 | --- | --- | --- | --- |
-| `[general]` | `enable` | true | 玩法总开关 |
+| `[general]` | `enable` | true | 严格玩法总开关；关闭后停用全部效果并隐藏临时状态 |
 | `[acquisition]` | `subsequent_chance_percent` | 15 | 佩戴基础件后，每个合格野箱获取缺失后四件之一的概率（%） |
 | | `pity_chests` | 10 | 连续失败多少箱后下一箱必得；0 = 关闭保底 |
 | `[new_testament]` | `heal_amount` | 0.5 | 命中回血 |
@@ -278,7 +280,9 @@ SR 1.8.6 原生实现：`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`（L
 
 - 开发命令：`gradlew runClient -Pdevcheck`；只应在专用测试世界运行，脚本会清理玩家物品并修改标记/栏位。
 - 自检入口：`devcheck/ApocryphaDevCheck`，仅在系统属性 `summy_apocrypha.devcheck=true` 时启用。
-- 当前覆盖：10 件物品、双方栏位与 Curios 佩戴、`/loot` 不触发、真实箱子基础件、掉落实体保护、凋亡头顶条截图。
+- 当前覆盖：46 项检查 —— 10 件物品、双方栏位与 Curios 佩戴、`/loot`、单箱/双箱来源、掉落实体保护、
+  三叉戟排除、普通箭/光灵箭保留、固定元素伤害与斩杀、总开关、二段跳 0/1/2、恐惧硬停/下马、
+  两轮真实死亡/重生（默认与 `keepInventory=true`）、凋亡条缓存、双语提示和凋亡头顶条截图。
 - 输出：日志前缀 `[DEVCHECK]`，截图写入 `run/screenshots/sra_devcheck_*.png`；截图由服务端测试阶段驱动，
   异步写入完成后自动退出客户端。
 - 正式 jar 排除 `com/summy/reliquary/apocrypha/devcheck/**`；复杂视觉和大规模行为矩阵仍需人工验收。
@@ -298,7 +302,8 @@ config/ApocryphaConfig             48 项配置
 command/ApocryphaCommand           本模组指令（/summyapocrypha fear players on|off）
 effect/Apoptosis                   凋亡核心：推条 / 爆条 / 损伤状态 / 抵抗 / 元素伤害钉住 / 玩家 Boss 条
 effect/FallenPlumeWings            「坠羽」爆条时背后展开的翅膀（写饰品 NBT 标志 + 到期清标志）
-effect/WitheredBrush               「枯笔」的恐惧（生物冻结 / 玩家定身与封禁近战·右击）
+effect/WitheredBrush               「枯笔」的恐惧（生物 noAI / 玩家定身、下马与全交互封禁）
+effect/ProjectileRules             弓 / 弩投射物白名单（排除三叉戟及特效投射物）
 effect/NewTestamentEffect          命中判定 / 掷点 / 协同 / 落箭调度 / 日志
 effect/ScatterVolley               落箭待落批次（错峰 + 延迟 + 天花板夹紧）
 effect/PairedWings                 圣光矢发射与协同补发队列
@@ -337,8 +342,9 @@ slot/ApocryphaSlots                栏位 id 常量、天使线与恶魔线列�
 → **恶魔线第五轮（收官）：栏位位置整理（新约 80~84 / 凋亡 90~94）+ 饰品「终歌」（每秒灼伤 + 减疗 80% + 受伤 +10%）**。
 → 修复：空闲清空日志的格式符崩服（%.0f 打印 int）。
 
-**当前状态**：新约系列 5 件全部实装并通过实机验收（概率、箭数、起点高度、钉住值、协同交叉账目、无击退、二段跳均以日志核对过）；
-恶魔线 5 件与核心机制已全部实现（待实机验收）；SE 侧同时加了 `#summy_enchantment:no_dodge` 伤害类型标签判断（版本号不升，单独提交）。
+**当前状态**：新约系列 5 件与凋亡系列 5 件均已实装；真实客户端开发自检 46 项全绿，
+最终仍需使用发布 jar 在 `log_trigger` 实例完成人工玩法验收。
+SE 侧同时加了 `#summy_enchantment:no_dodge` 伤害类型标签判断（版本号不升，单独提交）。
 jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 
 ## 七、待办与已知问题
@@ -346,7 +352,7 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 | 项 | 状态 / 说明 |
 | --- | --- |
 | 光羽渲染观感 | 已照 SR「邦邦咔邦光环」改成**饰品渲染层**（零延迟跟随 + 无旋转仅镜像 + 满 3 对才显现）；高度/间隙两个常量待实机复检微调 |
-| 物品图标 | **已完成**：5 件物品贴图由作者提供并入库（`textures/item/<id>.png`，32×32），创造页图标改用「比翼·连携」；`扩展包` 里的源文件已全部用掉，无遗留未命名素材 |
+| 物品图标 | **已完成**：两套共 10 件物品贴图由作者提供并入库（`textures/item/<id>.png`），MOD 图标与创造页图标均使用「比翼·连携」；`扩展包` 里的源文件已全部用掉，无遗留未命名素材 |
 | 凋亡 5 件 | **已完成**：五件全部实装、栏位与新约并列排布完成；套系收官（后续若作者给恶魔线专属美术，替换物品贴图与翅膀贴图即可） |
 | 素材 | **物品贴图已全部到位**：天使线 5 件（32×32）与恶魔线 5 件（含终歌）均由作者提供；坠羽翅膀为作者给的**整对**图（`demon_feather.png`，79×32，已按作者要求左裁 1px），光翼仍是单片 32×32 镜像画法。**仅剩栏位图标**暂借新约套（提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示） |
 | 凋亡头顶条美术（可选） | 现在是纯代码绘制、已可用；若作者要换美术，按 **64×16 PNG**（上行＝底槽、下行＝满填充、左右各 1px 描边）提供，代码按 `u ∈ [0, 比例]` 裁切 |
@@ -354,8 +360,8 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 | SR 2.0 接入（限伤） | **待办**：SR 2.0 的「真伤限伤破除」（`effect/TrueDamageLimits#hurt`，见 SR 的 `docs/SR真伤限伤破除-方案.md`）落地后，升级 `libs/` 并把本模组四个产伤点（`NewTestamentArrow` / `HolyArrow` / `Apoptosis.dealElementDamage` / `NewTestamentEffect` 瞬时结算）改走该统一出口；否则本模组的斩杀 / 圣光矢 / 爆条等真伤仍会被第三方 Boss 的数值上限（灾变默认 20~22/次）削平。清帧只解决无敌帧，解决不了数值上限 |
 | 圣心追踪 | 落箭与圣光矢都会**被 SR 圣心牵引**（owner 为玩家的 `AbstractArrow`），按既有口径接受；要排除须改 SR |
 | SR 圣光联动 | 玩家另戴 SR「圣光」时，本模组箭矢命中仍会按 SR 规则掷点出光柱（SR 的规则是"任何玩家命中"） |
-| `onSacramentHit` 扩展点 | 仍为空实现；#3 预留的「圣餐之矢同时触发圣光矢」已由协同规则覆盖，无需再接 |
-| 版本号 | 一直沿用 0.1.0 同名覆盖；正式发布前可考虑升版 |
+| `onSacramentHit` 扩展点 | 已删除空实现；「圣餐之矢同时触发圣光矢」由现有协同规则直接覆盖 |
+| 版本号 | 本轮按首次公开发布目标保持 `0.1.0`，发布后创建 `v0.1.0` 标签 |
 | 中文/英文 | 语言文件成对维护，改占位符时注意中英顺序一致（历史上踩过一次坑） |
 
 ## 八、准备转正（正式化前待办）

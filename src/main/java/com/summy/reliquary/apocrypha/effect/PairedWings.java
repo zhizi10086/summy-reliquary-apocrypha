@@ -193,4 +193,10 @@ public final class PairedWings {
 		HOLY_SHOTS.clear();
 		VOLLEY_SHOTS.clear();
 	}
+
+	/** 射手死亡 / 退服：只丢弃该玩家尚未发出的协同补发。 */
+	public static void clearShooter(UUID shooter) {
+		HOLY_SHOTS.removeIf(shot -> shot.shooter.equals(shooter));
+		VOLLEY_SHOTS.removeIf(shot -> shot.shooter.equals(shooter));
+	}
 }

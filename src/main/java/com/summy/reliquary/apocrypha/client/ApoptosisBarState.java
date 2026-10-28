@@ -3,6 +3,7 @@ package com.summy.reliquary.apocrypha.client;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import net.minecraft.world.level.Level;
 
 /**
  * 「凋亡损伤条」在客户端的缓存（**纯数据**：只用到基本类型与 Map，服务端加载也无副作用）。
@@ -40,14 +41,20 @@ public final class ApoptosisBarState {
 	}
 
 	/** 客户端每 tick：本地衰减（损伤状态期间条按同一速率回退），全部归零后移除 */
-	public static void tick(double barMax, int injuredTotalTicks) {
+	public static void tick(Level level, double barMax, int injuredTotalTicks) {
 		if (ENTRIES.isEmpty()) {
 			return;
 		}
 		double drain = injuredTotalTicks > 0 ? barMax / injuredTotalTicks : 0.0D;
 		Iterator<Map.Entry<Integer, Entry>> iterator = ENTRIES.entrySet().iterator();
 		while (iterator.hasNext()) {
-			Entry entry = iterator.next().getValue();
+			Map.Entry<Integer, Entry> mapEntry = iterator.next();
+			// 目标卸载、死亡或换维度后不再存在于当前客户端世界，立即丢弃旧缓存。
+			if (level == null || level.getEntity(mapEntry.getKey()) == null) {
+				iterator.remove();
+				continue;
+			}
+			Entry entry = mapEntry.getValue();
 			if (entry.injuredTicks > 0) {
 				entry.injuredTicks--;
 				entry.value = Math.max(0.0D, entry.value - drain);

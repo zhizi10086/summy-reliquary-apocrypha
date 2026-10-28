@@ -48,7 +48,10 @@ Forge 1.20.1（推荐 47.4.10+）
 - 登录时会扫描背包与 Curios 栏。旧存档、`/give` 或创造模式已经持有的饰品会补记获取位，不会重复发奖。
 - SRA 是“异界力量”：SR 的创世纪不会清除 SRA 获取位、保底或饰品；它清除标记后只会让对应栏位缩回，饰品先退回背包，背包满时落地并受保护。
 
-**独占物保护**：10 件饰品佩戴在 Curios 栏时死亡不掉；死亡时背包中的这些饰品也不会进入掉落列表，重生后按死亡前数量补回。所有来源产生的饰品掉落实体都不可被火焰、岩浆、爆炸、仙人掌破坏，且永远不会自然消失。掉入虚空仍会永久丢失；主动丢弃后不会由获取状态自动补发。
+**独占物保护**：10 件饰品佩戴在 Curios 栏时死亡不掉；死亡开始时先快照完整数量（同 tick 的重复死亡事件按逐物品最大值合并），
+背包副本不会进入掉落列表，重生后按缺口补回。兼容 `keepInventory`、Curios 自动复制和死亡界面期间停服。
+所有来源产生的饰品掉落实体都不可被火焰、岩浆、爆炸、仙人掌破坏，且永远不会自然消失。
+掉入虚空仍会永久丢失；主动丢弃后不会由获取状态自动补发。
 
 ## 散射观感
 
@@ -100,6 +103,8 @@ Forge 1.20.1（推荐 47.4.10+）
 
 ## 比翼·连携与圣光矢
 
+- **本体箭矢白名单**：只有弓 / 弩实际射出的 `Arrow` 与 `SpectralArrow` 会触发新约、比翼、圣餐标记和逆羽增伤；
+  三叉戟、SR 幻影矛 / 金刀片及本模组特效投射物一律排除。
 - **圣光矢**：本模组自建的投射物（`summy-reliquary-apocrypha:holy_arrow`）—— 外观是原版**光灵箭**，
   从玩家眼位沿**准心**射出，初速 3.0 格/tick（等同满蓄力箭矢）、**无重力**、**无限穿透生物**
   （同一目标只吃一次），撞到方块则贴地停留 10 tick 后消失；寿命兜底 200 tick。
@@ -137,8 +142,8 @@ Forge 1.20.1（推荐 47.4.10+）
 
 - **元素伤害**：本模组自建的伤害类型 `summy-reliquary-apocrypha:apoptosis_element`，四个 `bypasses_*` 标签全开
   （无视护甲 / 保护附魔 / 抗性 / 效果），命中前后各清一次无敌帧、不造成击退；金额**钉住**
-  （在 `LivingHurtEvent` 的 LOWEST 改回固定值，因此**不吃** SR 的七罪七德与全伤害乘区），
-  但"伤害减免"类效果（例如 SR 肉体套装那种事件链减免）仍照常生效。
+  （在 `LivingHurtEvent` 的 LOWEST 改回固定值，因此**不吃** SR 的七罪七德与全伤害乘区，
+  事件链上更早发生的增伤或减伤也不会改变固定值）。
 - **不吃闪避**：SE 的「灵动步伐」原本对所有来源生效，现在多了 `#summy_enchantment:no_dodge` 伤害类型标签
   （本模组提供标签内容，把元素伤害挂进去）；未装 SE 时该文件无副作用。
 - **时间口径（读档自愈）**：损伤状态与损伤抵抗都存**到期时刻**（关卡时间）而不是倒计时，所以中途退出游戏、
@@ -168,8 +173,9 @@ Forge 1.20.1（推荐 47.4.10+）
   在此期间**无法移动、无法攻击**。**生物**：每 tick（服务器 tick 末尾）清空攻击目标与寻路、并把水平速度清零（垂直分量保留，
   不冻结重力/跳跃），近战与远程都发不出来；**玩家**（默认关，`/summyapocrypha fear players on` 打开）：
   移动速度与攻速各挂一条归零修饰符（走不动、冷却不回复）+ 拦近战与**右击**（弓/药水/食物/放置/交互全部封禁，背包不受影响）。
-  已知边界：玩家档不拦**爬梯与游泳**（原版硬编码位移，不吃移动速度），也不拦被击退/爆炸推动；修饰符是 transient，
-  到期、死亡、登出与停机都会移除，不会残留定身。
+  恐惧生效时会强制玩家下马，期间实体交互与重新骑乘均被封锁。已知边界：玩家档不拦**爬梯与游泳**
+  （原版硬编码位移，不吃移动速度），也不拦被击退/爆炸推动；修饰符是 transient，
+  到期、死亡、登出、换维度与停机都会移除，不会残留定身。
 - **终歌（第 5 件）**：佩戴者**引爆**时给本段损伤状态写上三件事 ——
   ① **每秒**结算一笔「本次爆伤 × `burst_percent_per_second_with_fifth`（默认 25）%」的元素伤害（钉住、无击退），
   5 秒共 5 笔（用「已过秒数 − 已付笔数」补结算，卡顿 / 读档都不漏不多）；
@@ -219,7 +225,7 @@ Forge 1.20.1（推荐 47.4.10+）
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
-| `[general] enable` | true | 玩法总开关 |
+| `[general] enable` | true | 严格玩法总开关；关闭后立即停用全部效果、临时状态与待发投射物 |
 | `[acquisition] subsequent_chance_percent` | 15 | 佩戴基础件后，每个合格野箱获得缺失后四件之一的概率（%；设为 0 时仍受 `pity_chests` 保底） |
 | `pity_chests` | 10 | 连续多少箱未出货后下一箱必得；0 = 关闭保底 |
 | `[new_testament] heal_amount` | 0.5 | 弓 / 弩命中后的回血 |
@@ -252,7 +258,7 @@ Forge 1.20.1（推荐 47.4.10+）
 | `injured_seconds` | 5 | 损伤状态持续秒数（条在此期间从满线性回退到 0） |
 | `resistance_seconds` | 5 | 损伤抵抗持续秒数（期间不再累积凋亡损伤） |
 | `hits_with_second` | 4 | 佩戴「坠羽」时打满损伤条所需的近战次数 |
-| `burst_ratio_with_second_percent` | 120.0 | 佩戴「坠羽」时爆条伤害比例（%）：爆伤 = 本轮推条伤害之和 × 该值 |
+| `burst_ratio_with_second_percent` | 60.0 | 佩戴「坠羽」时爆条伤害比例（%）：爆伤 = 本轮推条伤害之和 × 该值 |
 | `extra_damage_percent_with_second` | 20.0 | 佩戴「坠羽」时损伤状态的附加伤害比例（%） |
 | `wing_seconds` | 5 | 「坠羽」爆条时翅膀的持续秒数（再次爆条刷新） |
 | `idle_clear_seconds` | 30 | 连续多少秒没被推过条就清空损伤进度（0 = 关闭） |
@@ -307,7 +313,8 @@ Forge 1.20.1（推荐 47.4.10+）
 ## 前置与依赖
 
 - **Summy Reliquary**：本模组的所有玩法耦合都走它的公开 API（`CurioItemSupport` 的天使门槛与读档放行、
-  `ReliquaryTooltips` 的提示格式、`CurioHelper` 的佩戴判定、`DamagePools.fabricSide()`、真实伤害与增伤乘区）。
+  `ReliquaryTooltips` 的提示格式、`CurioHelper` 的佩戴判定、`ReliquaryRef` 的版本与协议读取、
+  `HolyLightEffect` / `ShadowDash` 状态判断、`SlotSizing` 栏位同步、真实伤害与增伤乘区）。
 - **Curios**：栏位与栏位面板（SR 本身也硬依赖它）。
 - 开发运行期：`gradlew runClient` 会自动把 `libs/` 里的 SR jar 反转成 dev 映射并投放到 `run/mods`。
 
@@ -319,8 +326,9 @@ Forge 1.20.1（推荐 47.4.10+）
 - 运行：`gradlew runClient` / `gradlew runServer`
 - 本地测试用指令（都来自 SR）：`/summyreliquary angel grant`（天使标记，佩戴「新约」系列所需）、
   `/summyreliquary demon grant`（恶魔标记，佩戴恶魔线「堕天」所需；该子命令需要 OP 权限）
-- **真实客户端自检**：在专用测试世界运行 `gradlew runClient -Pdevcheck`。脚本会在当前世界准备物品和栏位、
-  验证 `/loot` 不触发 SRA 获取、创建真实箱子验证基础件、检查掉落实体保护，并自动截图
+- **真实客户端自检**：在专用测试世界运行 `gradlew runClient -Pdevcheck`。当前自检共 46 项，覆盖 10 件物品与栏位、
+  `/loot` 与双箱两半边来源、掉落实体保护、两轮实际死亡/重生、三叉戟排除、固定元素伤害与斩杀、
+  二段跳 0/1/2、恐惧下马、严格总开关、凋亡条缓存与双语提示顺序，并自动截图
   `run/screenshots/sra_devcheck_*.png` 后退出客户端。截图按服务端测试阶段触发，避免在物品或目标尚未同步时抢拍；
   脚本会清理测试世界内玩家物品，请勿在正式存档运行。
   不带 `-Pdevcheck` 的正式 jar 会排除 `com/summy/reliquary/apocrypha/devcheck/**`。
@@ -341,7 +349,8 @@ src/main/java/com/summy/reliquary/apocrypha/   本模组源码（包名挂在 SR
   loot/ApocryphaItemProtection 10 件饰品的死亡掉落剔除、不可摧毁与无限寿命
   effect/Apoptosis          凋亡核心：推条 / 爆条 / 损伤状态 / 损伤抵抗 / 元素伤害 / 玩家侧 Boss 条
   effect/FallenPlumeWings   「坠羽」爆条时背后展开的翅膀（写饰品 NBT 标志 + 到期清标志）
-  effect/WitheredBrush      「枯笔」的恐惧：生物冻结（清目标/寻路 + 水平速度清零）、玩家定身与封禁近战·右击
+  effect/WitheredBrush      「枯笔」的恐惧：生物临时 noAI、玩家定身/下马/封禁攻击与全部交互，换维度主动清理
+  effect/ProjectileRules    弓 / 弩投射物白名单（Arrow / SpectralArrow；排除三叉戟等 AbstractArrow）
   command/ApocryphaCommand  本模组指令（/summyapocrypha fear players <on|off>）
   text/ApocryphaText        提示行的行内彩色术语解析（{id|文本} → 灰色正文 + 带色术语）
   effect/NewTestamentEffect 命中判定、掷点、音效、落箭调度
@@ -353,7 +362,7 @@ src/main/java/com/summy/reliquary/apocrypha/   本模组源码（包名挂在 SR
   effect/PairedWings        比翼·连携：圣光矢发射、与落箭的协同补发队列
   client/WingFeatherSacramentRenderer  光翼渲染层（Curios，挂在玩家模型躯干骨骼上）
   entity/                   落箭实体、穿透圣光矢
-  integration/ReliquaryRef  **对 SR 的唯一访问出口**（含 SR 真伤名单与 Kilt/Forge 探测）
+  integration/ReliquaryRef  **对 SR 的唯一访问出口**（版本与网络协议读取）
   item/                     各件饰品（新约 / 迅羽·协约 / 翼羽·圣餐 / 逆羽·滞空 / 比翼·连携 / 堕天）
   net/                      网络通道（协议 "2"：二段跳的空中跳跃 C2S 包 + 凋亡损伤条 S2C 包）
   slot/                     栏位校验谓词（含恶魔线「殁亡之」系列的栏位常量与列表）
@@ -387,8 +396,8 @@ libs/                       前置模组 Summy Reliquary 的生产 jar（**必�
 6. **给 SR 接入新实体**：SR 的圣心追踪筛选的是「`AbstractArrow` + owner 是该玩家」，
    所以只要你的投掷物继承 `AbstractArrow` 且 owner 设为玩家，就会自动获得追踪（不需要任何代码）；
    反之若不想被追踪，得在 SR 侧加排除（本工程的原则是**不改 SR**）。
-7. **新增「无视无敌帧」的 SR 真伤类型**：如果 SR 将来加了新的真伤类型，把它登记进
-   `ReliquaryRef.TRUE_DAMAGE_MSG_IDS`，旁路清帧才会覆盖到它（漏登记时调试日志会提醒）。
+7. **新增 SR 真伤类型**：自 SR 1.8.6 起，真伤判据与命中后清帧由 SR 本体维护，SRA 不再保存或登记消息 ID 名单；
+   升级 SR 后若其原生判据覆盖新类型即自动生效。SRA 自己新增伤害类型时，仍需在对应落地路径前后自行清帧。
 8. **新增网络包**（需要把客户端输入送到服务端时）：在 `net/ApocryphaNetworking` 里按顺序追加
    `CHANNEL.registerMessage(序号, ...)` 并同步升协议版本；客户端发送侧照 `client/ApocryphaClientInput`
    的写法（FORGE 总线 + `Dist.CLIENT`）做**按下沿检测**，服务端在 handler 里再做一次完整校验。

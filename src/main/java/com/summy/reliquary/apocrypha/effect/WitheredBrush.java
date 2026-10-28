@@ -13,8 +13,11 @@ import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -26,6 +29,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
 
 /**
  * 4 号件「枯笔」的**恐惧**（服务端）：引爆者佩戴枯笔时，被爆条的目标获得一小段「无法移动 + 无法攻击」。
@@ -49,6 +53,8 @@ public final class WitheredBrush {
 	private static final UUID SPEED_MODIFIER = UUID.fromString("6f1c1a10-9f21-4c2f-9a7e-2b0f1d5c7a01");
 	/** 攻速归零的修饰符 UUID */
 	private static final UUID ATTACK_SPEED_MODIFIER = UUID.fromString("6f1c1a10-9f21-4c2f-9a7e-2b0f1d5c7a02");
+	/** 临时 noAI 的恢复值；区块卸载或停服后靠实体重新载入时恢复。 */
+	private static final String NO_AI_RESTORE = "ApocryphaFearRestoreNoAi";
 
 	/** 被恐惧的目标 → （所在关卡 + 剩余 tick） */
 	private static final Map<UUID, Fear> FEARED = new HashMap<>();
@@ -68,6 +74,9 @@ public final class WitheredBrush {
 
 	/** 引爆时调用：给目标施加（或刷新）恐惧 */
 	public static void applyFear(ServerLevel level, ServerPlayer source, LivingEntity target) {
+		if (!ApocryphaConfig.enable()) {
+			return;
+		}
 		int ticks = Math.max(0, ApocryphaConfig.apoptosisFearSecondsWithFourth() * 20);
 		if (ticks <= 0) {
 			return;
@@ -77,12 +86,26 @@ public final class WitheredBrush {
 			if (!ApocryphaConfig.apoptosisFearAffectsPlayers()) {
 				return;
 			}
+			// 骑乘会绕开移动速度归零；恐惧生效时先下马，恐惧期间实体交互也会被拦截。
+			if (player.isPassenger()) {
+				player.stopRiding();
+			}
 			setPlayerFrozen(player, true);
-		} else if (!(target instanceof Mob)) {
+		} else if (!(target instanceof Mob mob)) {
 			// 只对生物与玩家生效（盔甲架、展示实体之类没有"移动/攻击"的概念）
 			return;
+		} else {
+			// 1.20.1 没有公开的 MoveControl#setWait；临时关闭 AI 后恢复原值是最可靠的硬停方案。
+			CompoundTag persistent = mob.getPersistentData();
+			if (!persistent.contains(NO_AI_RESTORE)) {
+				persistent.putBoolean(NO_AI_RESTORE, mob.isNoAi());
+			}
+			mob.setNoAi(true);
+			FEARED.put(target.getUUID(), new Fear(level, ticks));
 		}
-		FEARED.put(target.getUUID(), new Fear(level, ticks));
+		if (target instanceof ServerPlayer) {
+			FEARED.put(target.getUUID(), new Fear(level, ticks));
+		}
 		if (ApocryphaConfig.logTrigger()) {
 			Apocrypha.LOGGER.info(String.format("[凋亡] 恐惧：%s ← %s（%.1f 秒，无法移动与攻击）",
 					target.getName().getString(), source.getName().getString(), ticks / 20.0D));
@@ -91,7 +114,16 @@ public final class WitheredBrush {
 
 	@SubscribeEvent
 	public static void onServerTick(TickEvent.ServerTickEvent event) {
-		if (event.phase != TickEvent.Phase.END || FEARED.isEmpty()) {
+		if (event.phase != TickEvent.Phase.END) {
+			return;
+		}
+		if (!ApocryphaConfig.enable()) {
+			if (!FEARED.isEmpty()) {
+				clearAll(event.getServer());
+			}
+			return;
+		}
+		if (FEARED.isEmpty()) {
 			return;
 		}
 		Iterator<Map.Entry<UUID, Fear>> iterator = FEARED.entrySet().iterator();
@@ -100,6 +132,12 @@ public final class WitheredBrush {
 			Fear fear = entry.getValue();
 			Entity entity = fear.level.getEntity(entry.getKey());
 			if (!(entity instanceof LivingEntity living) || !living.isAlive()) {
+				ServerPlayer movedPlayer = event.getServer().getPlayerList().getPlayer(entry.getKey());
+				if (movedPlayer != null) {
+					clear(movedPlayer);
+					iterator.remove();
+					continue;
+				}
 				release(entity);
 				iterator.remove();
 				continue;
@@ -124,6 +162,8 @@ public final class WitheredBrush {
 			neutral.setPersistentAngerTarget(null);
 		}
 		mob.getNavigation().stop();
+		mob.getMoveControl().setWantedPosition(mob.getX(), mob.getY(), mob.getZ(), 0.0D);
+		mob.setSpeed(0.0F);
 		Vec3 velocity = mob.getDeltaMovement();
 		mob.setDeltaMovement(0.0D, velocity.y, 0.0D);
 		// 让客户端立刻收到这次速度变化（否则本地预测会继续滑一小段）
@@ -133,6 +173,19 @@ public final class WitheredBrush {
 	@SubscribeEvent
 	public static void onAttackEntity(AttackEntityEvent event) {
 		if (event.getEntity() instanceof ServerPlayer player && FEARED.containsKey(player.getUUID())) {
+			event.setCanceled(true);
+		}
+	}
+
+	/** 某些模组攻击不经过 AttackEntityEvent，统一在最终攻击事件再拦一道。 */
+	@SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.HIGHEST)
+	public static void onLivingAttack(LivingAttackEvent event) {
+		if (event.getEntity().level().isClientSide()) {
+			return;
+		}
+		Entity attacker = event.getSource().getEntity();
+		if (attacker instanceof LivingEntity living && attacker != event.getEntity()
+				&& FEARED.containsKey(living.getUUID())) {
 			event.setCanceled(true);
 		}
 	}
@@ -152,14 +205,48 @@ public final class WitheredBrush {
 	}
 
 	@SubscribeEvent
+	public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+		if (event.getEntity() instanceof ServerPlayer player && FEARED.containsKey(player.getUUID())) {
+			event.setCanceled(true);
+		}
+	}
+
+	@SubscribeEvent
+	public static void onEntityInteractSpecific(PlayerInteractEvent.EntityInteractSpecific event) {
+		if (event.getEntity() instanceof ServerPlayer player && FEARED.containsKey(player.getUUID())) {
+			event.setCanceled(true);
+		}
+	}
+
+	@SubscribeEvent
 	public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+		clear(event.getEntity());
+	}
+
+	@SubscribeEvent
+	public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
+		if (event.getLevel().isClientSide() || !(event.getEntity() instanceof Mob mob)
+				|| FEARED.containsKey(mob.getUUID())) {
+			return;
+		}
+		CompoundTag persistent = mob.getPersistentData();
+		if (persistent.contains(NO_AI_RESTORE)) {
+			mob.setNoAi(persistent.getBoolean(NO_AI_RESTORE));
+			persistent.remove(NO_AI_RESTORE);
+		}
+	}
+
+	@SubscribeEvent
+	public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
 		clear(event.getEntity());
 	}
 
 	@SubscribeEvent
 	public static void onLivingDeath(LivingDeathEvent event) {
 		// 死亡即解除：避免复活后还带着"定身"
-		clear(event.getEntity());
+		if (!event.isCanceled()) {
+			clear(event.getEntity());
+		}
 	}
 
 	@SubscribeEvent
@@ -176,9 +263,22 @@ public final class WitheredBrush {
 		release(entity);
 	}
 
+	/** 自检用：判断目标是否仍登记为恐惧状态。 */
+	public static boolean isFearedForTest(Entity entity) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") && entity != null
+				&& FEARED.containsKey(entity.getUUID());
+	}
+
 	private static void clearAll(MinecraftServer server) {
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			setPlayerFrozen(player, false);
+			clear(player);
+		}
+		// 生物可能不在玩家列表里，按登记关卡逐个恢复原始 noAI 值。
+		for (Map.Entry<UUID, Fear> entry : new ArrayList<>(FEARED.entrySet())) {
+			Entity entity = entry.getValue().level.getEntity(entry.getKey());
+			if (entity != null) {
+				clear(entity);
+			}
 		}
 		FEARED.clear();
 	}
@@ -187,6 +287,12 @@ public final class WitheredBrush {
 	private static void release(Entity entity) {
 		if (entity instanceof ServerPlayer player) {
 			setPlayerFrozen(player, false);
+		} else if (entity instanceof Mob mob) {
+			CompoundTag persistent = mob.getPersistentData();
+			if (persistent.contains(NO_AI_RESTORE)) {
+				mob.setNoAi(persistent.getBoolean(NO_AI_RESTORE));
+				persistent.remove(NO_AI_RESTORE);
+			}
 		}
 	}
 
