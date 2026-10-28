@@ -9,6 +9,7 @@
 | --- | --- |
 | 名称 | Summy Reliquary: Apocrypha（SRA） |
 | 定位 | [Summy Reliquary](https://github.com/zhizi10086/summy-reliquary)（SR）的扩展包，**SR 为硬前置** |
+| 创作来源 | 新约/凋亡的题材、名词与机制设计灵感参考《明日方舟》；与《以撒的结合》无关联；全部贴图由本模组美术自行绘制 |
 | 平台 | Minecraft 1.20.1 / Forge 47.4.10（开发）/ Java 17 / 官方映射 / Gradle 8.7 |
 | 依赖 | Forge + Minecraft + `summy_reliquary` + `curios`（后两者 `ordering=AFTER`） |
 | 坐标 | modId `summy_reliquary_apocrypha`；命名空间 `summy-reliquary-apocrypha`；包 `com.summy.reliquary.apocrypha` |

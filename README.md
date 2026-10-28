@@ -5,6 +5,8 @@
 **前置：** [Summy Reliquary](https://github.com/zhizi10086/summy-reliquary)（必需）｜ Curios 5.14.1+1.20.1（必需）｜
 Forge 1.20.1（推荐 47.4.10+）
 
+> **创作来源澄清**：SRA 是 Summy Reliquary 的独立扩展包，与《以撒的结合》无任何关联；新约与凋亡的题材、名词和机制设计灵感参考《明日方舟》。本模组全部贴图均由本模组美术自行绘制，未使用第三方游戏贴图。
+
 [CHANGELOG](CHANGELOG.md) | [PROGRESS](PROGRESS.md) | [CREDITS](CREDITS.md) | [LICENSE](LICENSE)
 
 ## 内容

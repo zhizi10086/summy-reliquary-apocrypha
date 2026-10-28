@@ -12,29 +12,34 @@
 - [Curios](https://modrinth.com/mod/curios)：饰品槽位系统（**必需前置**，转由 SR 一并要求）。
 - [Forge](https://files.minecraftforge.net/) `47.4.10`（Minecraft 1.20.1）：模组加载器（**必需**）。
 
-## 致谢与二创声明（《以撒的结合》）
+## 创作来源与素材声明
 
-本模组与 Summy Reliquary 同属基于《以撒的结合》（The Binding of Isaac）与基督教传统宗教文化符号的
-**粉丝二创作品**。我们衷心感谢原作创作者 Edmund McMillen 与发行方 Nicalis, Inc.；本模组并非官方作品，
-与 Edmund McMillen、Nicalis, Inc. 及任何宗教组织均无隶属或合作关系。
+本模组是 Summy Reliquary 的独立扩展包。新约与凋亡的题材、名词和机制设计灵感参考《明日方舟》，
+但本模组不是《明日方舟》的官方作品，与相关权利人无隶属或合作关系，也未使用其代码或素材。
+
+本模组**与《以撒的结合》（The Binding of Isaac）没有任何关联**，未使用其代码、名称、设定、贴图或其它素材。
+全部贴图（含 10 件物品贴图、10 个栏位图标、光翼与恶魔翅膀）均由本模组美术自行绘制并提供。
 
 本模组完全免费，禁止任何商业用途。若任何内容无意中侵犯了您的权益，请联系 **525277385@qq.com**，
 一经核实我们将立即移除相关素材并发布修复版本。
 
-**English**: This is a **fan-made derivative work** inspired by *The Binding of Isaac*. It is completely free
-and **must not be used commercially**. If any content unintentionally infringes your rights, please contact
-**525277385@qq.com**; once verified, we will **remove the material immediately and publish a fixed release**.
+**English**: Summy Reliquary: Apocrypha is an independent expansion for Summy Reliquary. The New Testament
+and Apoptosis themes, terminology, and mechanics are inspired by *Arknights*, but this is not an official
+*Arknights* product and is not affiliated with or endorsed by its rights holders. The mod is **not associated
+with *The Binding of Isaac*** and does not use its code, names, settings, textures, or other assets. All textures,
+including the 10 item textures, 10 slot icons, and both wing textures, were independently drawn for this project.
+The mod is completely free and **must not be used commercially**.
 
 ## 贴图
 
 - **5 件饰品物品贴图**（`textures/item/new_testament.png`、`swift_feather_covenant.png`、`wing_feather_sacrament.png`、
-  `inverse_feather_hover.png`、`paired_wings.png`）：**由本模组作者绘制并提供**（32×32 原图，未经二次加工）。
+  `inverse_feather_hover.png`、`paired_wings.png`）：**由本模组美术自行绘制并提供**（32×32 原图，未经二次加工）。
   创造页标签图标的图案取自「比翼·连携」。
-- **栏位图标**「新约-光环」（`textures/slot/new_testament_halo.png`）：由本模组作者提供。
-- **恶魔线（凋亡）素材**：**物品贴图由本模组作者绘制并提供** —— 堕天 / 坠羽 / 笞心 / 枯笔 / 终歌
+- **全部 10 个栏位图标**：由本模组美术自行绘制并提供。
+- **恶魔线（凋亡）素材**：**物品贴图由本模组美术自行绘制并提供** —— 堕天 / 坠羽 / 笞心 / 枯笔 / 终歌
   （`textures/item/<物品id>.png`，未做加工）；**坠羽爆条翅膀**为作者提供的**整对**图
   `textures/entity/demon_feather.png`（79×32：左翼 + 中间核心 + 右翼；作者已按需求把左缘 1px 裁掉以保证居中）。
-  至此**两套共 10 件物品贴图全部由作者提供**；仅五个恶魔线**栏位图标**仍暂借新约套
+  至此**两套共 10 件物品贴图全部由本模组美术自行绘制**；仅五个恶魔线**栏位图标**仍暂借新约套
   （提喻←光环、释经←才能、弥撒←恩典、悲悯←祝福、终歌←启示），作者补图后逐项替换。
 - **MOD 图标**（`assets/summy-reliquary-apocrypha/icon.png`）：使用作者提供的「比翼·连携」物品贴图。
 
