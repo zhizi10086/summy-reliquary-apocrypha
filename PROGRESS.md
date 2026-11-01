@@ -11,9 +11,9 @@
 | 定位 | [Summy Reliquary](https://github.com/zhizi10086/summy-reliquary)（SR）的扩展包，**SR 为硬前置** |
 | 创作来源 | 新约/凋亡的题材、名词与机制设计灵感参考《明日方舟》；与《以撒的结合》无关联；全部贴图由本模组美术自行绘制 |
 | 平台 | Minecraft 1.20.1 / Forge 47.4.10（开发）/ Java 17 / 官方映射 / Gradle 8.7 |
-| 依赖 | Forge + Minecraft + `summy_reliquary` + `curios`（后两者 `ordering=AFTER`） |
+| 依赖 | Forge + Minecraft + `summy_reliquary` + `curios`（后两者 `ordering=AFTER`）；JEI 为可选客户端信息页兼容 |
 | 坐标 | modId `summy_reliquary_apocrypha`；命名空间 `summy-reliquary-apocrypha`；包 `com.summy.reliquary.apocrypha` |
-| 版本 | `0.1.0`（沿用同名覆盖，不随轮次升版） |
+| 版本 | `0.1.1` |
 | 源码 | `C:\Users\52527\Documents\ChatGPT\MC mod\summy-reliquary-apocrypha`（git，origin = `zhizi10086/summy-reliquary-apocrypha`） |
 | 产物 | 构建后自动复制到 `C:\Users\52527\Documents\ChatGPT\MC mod\JAR\summy-reliquary-apocrypha\` |
 | 测试实例 | `E:\MC\PCL2快照版\.minecraft\versions\1.20.1-Forge_47.4.23-test`（**jar 需手动拷进 `mods`**） |
@@ -70,6 +70,13 @@
 - **死亡保留**：10 件饰品统一实现 `ApocryphaKeptCurioItem`，Curios 掉落规则为 `ALWAYS_KEEP`；`LivingDeathEvent` 在背包清空前记录完整数量，`LivingDropsEvent` 最低优先级移除背包副本，重生后下一 tick 按缺口恢复，兼容 `keepInventory`、Curios 自带复制与死亡界面期间停服。
 - **掉落实体保护**：`EntityJoinLevelEvent` 对 10 件饰品的所有 `ItemEntity` 设置 `invulnerable` 与 `setUnlimitedLifetime()` —— 防火、岩浆、爆炸、仙人掌，且永不自然消失；虚空仍永久丢失。
 - **异界力量边界**：SR 创世纪只清理 SR 自身标记与物品，不清除 SRA 获取位、保底或 10 件饰品；标记消失导致缩栏时，饰品退回背包，背包满才落地并受保护。
+
+### JEI 获取信息（0.1.1）
+
+- **接入方式**：JEI API 仅 `compileOnly`，使用内置 `RecipeTypes.INFORMATION` 与 `addItemStackInfo`；不自定义分类、GUI 或贴图。
+- **页面范围**：天使五件与凋亡五件各自注册一页，显示路线位次、真实容器范围、标记条件、基础件保底、佩戴前置、当前概率、当前保底与保护摘要。
+- **配置口径**：概率与保底在 JEI 配方注册时读取当前配置；概率为 0 时仍展示保底，保底为 0 时展示“已关闭”。
+- **兼容边界**：JEI 不写入 `mods.toml`、不打包进正式 jar；未安装 JEI 时插件类不会加载，获取状态机与服务端逻辑不变。
 
 ## 三、核心机制与数值口径（当前定稿）
 
@@ -321,6 +328,7 @@ effect/ApocryphaSlotSizing         新约系列与凋亡系列栏位的动态格
 entity/NewTestamentArrow           落箭实体（钉住 / 视觉标记 / 无击退）
 entity/HolyArrow                   穿透圣光矢实体
 item/*                             10 件饰品（门槛 + 提示；含恶魔线五件与天使线五件）
+integration/ApocryphaJeiPlugin     JEI 原生信息页：10 件饰品的获取与保护摘要
 text/ApocryphaText                 提示行的行内彩色术语解析（{id|文本} → 灰色正文 + 带色术语）
 integration/ReliquaryRef           对 SR 的唯一访问出口（真伤名单、Kilt/Forge 探测）
 net/*                              网络通道（协议 "2"）：AirJumpMessage（C2S）+ ApoptosisBarMessage（S2C）
@@ -346,7 +354,7 @@ slot/ApocryphaSlots                栏位 id 常量、天使线与恶魔线列�
 **当前状态**：新约系列 5 件与凋亡系列 5 件均已实装；真实客户端开发自检 46 项全绿，
 最终仍需使用发布 jar 在 `log_trigger` 实例完成人工玩法验收。
 SE 侧同时加了 `#summy_enchantment:no_dodge` 伤害类型标签判断（版本号不升，单独提交）。
-jar 版本 0.1.0，最新提交见仓库 `main` 分支。
+jar 版本 0.1.1，最新提交见仓库 `main` 分支。
 
 ## 七、待办与已知问题
 
@@ -362,7 +370,7 @@ jar 版本 0.1.0，最新提交见仓库 `main` 分支。
 | 圣心追踪 | 落箭与圣光矢都会**被 SR 圣心牵引**（owner 为玩家的 `AbstractArrow`），按既有口径接受；要排除须改 SR |
 | SR 圣光联动 | 玩家另戴 SR「圣光」时，本模组箭矢命中仍会按 SR 规则掷点出光柱（SR 的规则是"任何玩家命中"） |
 | `onSacramentHit` 扩展点 | 已删除空实现；「圣餐之矢同时触发圣光矢」由现有协同规则直接覆盖 |
-| 版本号 | 本轮按首次公开发布目标保持 `0.1.0`，发布后创建 `v0.1.0` 标签 |
+| 版本号 | 当前 `0.1.1`；完成验证与推送授权后创建 `v0.1.1` 标签 |
 | 中文/英文 | 语言文件成对维护，改占位符时注意中英顺序一致（历史上踩过一次坑） |
 
 ## 八、准备转正（正式化前待办）

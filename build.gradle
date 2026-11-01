@@ -35,6 +35,11 @@ repositories {
         name = 'Curios'
         url = 'https://maven.theillusivec4.top/'
     }
+    // JEI：仅编译期接入原生的“信息”分类；运行期未安装 JEI 时不加载插件类
+    maven {
+        name = 'BlameJared'
+        url = 'https://maven.blamejared.com/'
+    }
     // 前置模组 Summy Reliquary 只有生产 jar（不在任何 Maven 上）→ 从 libs/ 解析
     flatDir {
         dirs 'libs'
@@ -83,6 +88,9 @@ dependencies {
 
     // Curios：SR 与本模组共同的前置（饰品栏位与栏位面板）
     implementation fg.deobf("top.theillusivec4.curios:curios-forge:${project.curios_version}")
+
+    // JEI API：compileOnly，不打包进模组，也不作为必需前置
+    compileOnly "mezz.jei:jei-1.20.1-forge-api:15.59.0.211"
 
     // Summy Reliquary：编译期直接引用它的公开 API
     // （生产 jar 只把原版成员名改写成 SRG 名、类名与 SR 自身成员不变，所以不必 deobf）

@@ -3,7 +3,7 @@
 > Summy Reliquary 的扩展包 · Minecraft 1.20.1 Forge
 
 **前置：** [Summy Reliquary](https://github.com/zhizi10086/summy-reliquary)（必需）｜ Curios 5.14.1+1.20.1（必需）｜
-Forge 1.20.1（推荐 47.4.10+）
+Forge 1.20.1（推荐 47.4.10+）｜ JEI 15.59.0.211（可选，仅提供获取信息页）
 
 > **创作来源澄清**：SRA 是 Summy Reliquary 的独立扩展包，与《以撒的结合》无任何关联；新约与凋亡的题材、名词和机制设计灵感参考《明日方舟》。本模组全部贴图均由本模组美术自行绘制，未使用第三方游戏贴图。
 
@@ -54,6 +54,16 @@ Forge 1.20.1（推荐 47.4.10+）
 背包副本不会进入掉落列表，重生后按缺口补回。兼容 `keepInventory`、Curios 自动复制和死亡界面期间停服。
 所有来源产生的饰品掉落实体都不可被火焰、岩浆、爆炸、仙人掌破坏，且永远不会自然消失。
 掉入虚空仍会永久丢失；主动丢弃后不会由获取状态自动补发。
+
+## JEI 获取信息（可选）
+
+安装 JEI 后，对 10 件饰品中的任意一件执行 R/U 查询，会出现 JEI 原生的“信息 / Information”分类页。
+每件饰品独立显示 1 页，不新增自定义 GUI，也不会把 JEI 设为必需前置。
+
+- 信息页标明该件属于天使或恶魔路线，以及 `1/5` 至 `5/5` 的位次。
+- 获取段列出真实野生容器范围、`/loot` 与玩家放置箱排除、标记条件、基础件保底、佩戴前置、当前概率和保底。
+- 保护段摘要说明死亡补齐、缩栏/背包满落地保护，以及已有 `/give`、创造模式或旧存档饰品会补记获取位。
+- 概率与保底读取当前配置；配置修改后重新进入世界或重载资源即可刷新。
 
 ## 散射观感
 
@@ -349,6 +359,7 @@ src/main/java/com/summy/reliquary/apocrypha/   本模组源码（包名挂在 SR
   loot/ApocryphaAcquisition 两套野箱获取状态机：标记、基础件、15% 概率、十箱保底、获取位与死亡恢复
   loot/ApocryphaLootModifier  Forge Global Loot Modifier 入口
   loot/ApocryphaItemProtection 10 件饰品的死亡掉落剔除、不可摧毁与无限寿命
+  integration/ApocryphaJeiPlugin JEI 原生“信息”分类：10 件饰品各自的获取与保护摘要（可选客户端）
   effect/Apoptosis          凋亡核心：推条 / 爆条 / 损伤状态 / 损伤抵抗 / 元素伤害 / 玩家侧 Boss 条
   effect/FallenPlumeWings   「坠羽」爆条时背后展开的翅膀（写饰品 NBT 标志 + 到期清标志）
   effect/WitheredBrush      「枯笔」的恐惧：生物临时 noAI、玩家定身/下马/封禁攻击与全部交互，换维度主动清理
