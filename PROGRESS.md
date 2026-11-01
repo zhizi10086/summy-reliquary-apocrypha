@@ -74,7 +74,7 @@
 ### JEI 获取信息（0.1.1）
 
 - **接入方式**：JEI API 仅 `compileOnly`，使用内置 `RecipeTypes.INFORMATION` 与 `addItemStackInfo`；不自定义分类、GUI 或贴图。
-- **页面范围**：天使五件与凋亡五件各自注册一页，显示路线位次、真实容器范围、标记条件、基础件保底、佩戴前置、当前概率、当前保底与保护摘要。
+- **页面范围**：共 4 页；新约与堕天各占一页，两条路线的后续四件分别共用一页。每页只保留标记/佩戴条件，以及基础件保底或后续概率与保底。
 - **配置口径**：概率与保底在 JEI 配方注册时读取当前配置；概率为 0 时仍展示保底，保底为 0 时展示“已关闭”。
 - **兼容边界**：JEI 不写入 `mods.toml`、不打包进正式 jar；未安装 JEI 时插件类不会加载，获取状态机与服务端逻辑不变。
 
@@ -328,7 +328,7 @@ effect/ApocryphaSlotSizing         新约系列与凋亡系列栏位的动态格
 entity/NewTestamentArrow           落箭实体（钉住 / 视觉标记 / 无击退）
 entity/HolyArrow                   穿透圣光矢实体
 item/*                             10 件饰品（门槛 + 提示；含恶魔线五件与天使线五件）
-integration/ApocryphaJeiPlugin     JEI 原生信息页：10 件饰品的获取与保护摘要
+integration/ApocryphaJeiPlugin     JEI 原生信息页：2 个基础件页 + 2 个后续共用页
 text/ApocryphaText                 提示行的行内彩色术语解析（{id|文本} → 灰色正文 + 带色术语）
 integration/ReliquaryRef           对 SR 的唯一访问出口（真伤名单、Kilt/Forge 探测）
 net/*                              网络通道（协议 "2"）：AirJumpMessage（C2S）+ ApoptosisBarMessage（S2C）

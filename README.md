@@ -57,13 +57,12 @@ Forge 1.20.1（推荐 47.4.10+）｜ JEI 15.59.0.211（可选，仅提供获取�
 
 ## JEI 获取信息（可选）
 
-安装 JEI 后，对 10 件饰品中的任意一件执行 R/U 查询，会出现 JEI 原生的“信息 / Information”分类页。
-每件饰品独立显示 1 页，不新增自定义 GUI，也不会把 JEI 设为必需前置。
+安装 JEI 后，对任意一件饰品执行 R/U 查询，会出现 JEI 原生的“信息 / Information”分类页。
+共 4 页：新约与堕天各占 1 页，两条路线的后续四件分别共用 1 页。
 
-- 信息页标明该件属于天使或恶魔路线，以及 `1/5` 至 `5/5` 的位次。
-- 获取段列出真实野生容器范围、`/loot` 与玩家放置箱排除、标记条件、基础件保底、佩戴前置、当前概率和保底。
-- 保护段摘要说明死亡补齐、缩栏/背包满落地保护，以及已有 `/give`、创造模式或旧存档饰品会补记获取位。
-- 概率与保底读取当前配置；配置修改后重新进入世界或重载资源即可刷新。
+- 基础件页只显示标记条件，以及“下一个合格宝箱必得、获得后去重”。
+- 后续共用页只显示“持有标记并佩戴基础件”、当前概率和当前保底。
+- 不新增自定义 GUI，也不会把 JEI 设为必需前置；配置值在 JEI 刷新后更新。
 
 ## 散射观感
 
@@ -359,7 +358,7 @@ src/main/java/com/summy/reliquary/apocrypha/   本模组源码（包名挂在 SR
   loot/ApocryphaAcquisition 两套野箱获取状态机：标记、基础件、15% 概率、十箱保底、获取位与死亡恢复
   loot/ApocryphaLootModifier  Forge Global Loot Modifier 入口
   loot/ApocryphaItemProtection 10 件饰品的死亡掉落剔除、不可摧毁与无限寿命
-  integration/ApocryphaJeiPlugin JEI 原生“信息”分类：10 件饰品各自的获取与保护摘要（可选客户端）
+  integration/ApocryphaJeiPlugin JEI 原生“信息”分类：2 个基础件页 + 2 个后续共用页（可选客户端）
   effect/Apoptosis          凋亡核心：推条 / 爆条 / 损伤状态 / 损伤抵抗 / 元素伤害 / 玩家侧 Boss 条
   effect/FallenPlumeWings   「坠羽」爆条时背后展开的翅膀（写饰品 NBT 标志 + 到期清标志）
   effect/WitheredBrush      「枯笔」的恐惧：生物临时 noAI、玩家定身/下马/封禁攻击与全部交互，换维度主动清理
