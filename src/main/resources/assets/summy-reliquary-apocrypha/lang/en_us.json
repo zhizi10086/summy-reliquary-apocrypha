@@ -63,10 +63,8 @@
   "jei.summy-reliquary-apocrypha.info.base.fallen_heaven": "If Fallen Heaven is not owned, the next eligible chest grants it. Once obtained, it will not be granted again.",
   "jei.summy-reliquary-apocrypha.info.later.angel": "Can only be obtained by opening wild loot chests while holding the Angel mark and equipping the New Testament.",
   "jei.summy-reliquary-apocrypha.info.later.demon": "Can only be obtained by opening wild loot chests while holding the Demon mark and equipping Fallen Heaven.",
-  "jei.summy-reliquary-apocrypha.info.later.route.new_testament": "New Testament accessory",
-  "jei.summy-reliquary-apocrypha.info.later.route.apoptosis": "Apoptosis accessory",
-  "jei.summy-reliquary-apocrypha.info.later.chance_with_pity": "Each eligible chest has a %s chance to grant one still-missing %s. After %s failed chests, the next one is guaranteed.",
-  "jei.summy-reliquary-apocrypha.info.later.chance": "Each eligible chest has a %s chance to grant one still-missing %s.",
+  "jei.summy-reliquary-apocrypha.info.later.chance": "Each eligible chest has a %s chance to grant one of the four accessories shown above that you do not yet own.",
+  "jei.summy-reliquary-apocrypha.info.later.pity": "After %s failed chests, the next one is guaranteed.",
   "jei.summy-reliquary-apocrypha.info.later.no_pity": "The consecutive-failure guarantee is currently disabled.",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s was pierced by falling arrows",

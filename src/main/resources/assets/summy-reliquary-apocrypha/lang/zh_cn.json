@@ -63,10 +63,8 @@
   "jei.summy-reliquary-apocrypha.info.base.fallen_heaven": "尚未获得堕天时，下一个合格宝箱必定给予；获得后不再重复。",
   "jei.summy-reliquary-apocrypha.info.later.angel": "只能在持有天使标记且佩戴新约时，通过开启野生战利品宝箱获取。",
   "jei.summy-reliquary-apocrypha.info.later.demon": "只能在持有恶魔标记且佩戴堕天时，通过开启野生战利品宝箱获取。",
-  "jei.summy-reliquary-apocrypha.info.later.route.new_testament": "新约后续饰品",
-  "jei.summy-reliquary-apocrypha.info.later.route.apoptosis": "凋亡后续饰品",
-  "jei.summy-reliquary-apocrypha.info.later.chance_with_pity": "每个合格宝箱有 %s 概率获得一件尚未拥有的%s；连续 %s 箱未获得后，下一箱必得。",
-  "jei.summy-reliquary-apocrypha.info.later.chance": "每个合格宝箱有 %s 概率获得一件尚未拥有的%s。",
+  "jei.summy-reliquary-apocrypha.info.later.chance": "每个合格宝箱有%s概率获得上方四件中尚未拥有的一件。",
+  "jei.summy-reliquary-apocrypha.info.later.pity": "连续%s箱未获得后，下一箱必得。",
   "jei.summy-reliquary-apocrypha.info.later.no_pity": "当前未启用连续失败保底。",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s 被落下的箭矢贯穿",

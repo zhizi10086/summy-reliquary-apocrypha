@@ -49,10 +49,8 @@ public final class ApocryphaJeiPlugin implements IModPlugin {
 		registerBase(registration, Apocrypha.FALLEN_HEAVEN,
 				text("base.demon"), text("base.fallen_heaven"));
 
-		registerLater(registration, ANGEL_LATER,
-				text("later.angel"), text("later.route.new_testament"));
-		registerLater(registration, DEMON_LATER,
-				text("later.demon"), text("later.route.apoptosis"));
+		registerLater(registration, ANGEL_LATER, text("later.angel"));
+		registerLater(registration, DEMON_LATER, text("later.demon"));
 	}
 
 	private static void registerBase(IRecipeRegistration registration, Supplier<? extends Item> item,
@@ -61,7 +59,7 @@ public final class ApocryphaJeiPlugin implements IModPlugin {
 	}
 
 	private static void registerLater(IRecipeRegistration registration, List<Supplier<? extends Item>> items,
-			Component condition, Component routeName) {
+			Component condition) {
 		int chancePercent = ApocryphaConfig.acquisitionChancePercent();
 		int pityChests = ApocryphaConfig.acquisitionPityChests();
 		List<ItemStack> stacks = items.stream()
@@ -69,10 +67,11 @@ public final class ApocryphaJeiPlugin implements IModPlugin {
 				.toList();
 		if (pityChests > 0) {
 			registration.addItemStackInfo(stacks, condition,
-					text("later.chance_with_pity", chancePercent + "%", routeName, pityChests));
+					text("later.chance", chancePercent + "%"),
+					text("later.pity", pityChests));
 		} else {
 			registration.addItemStackInfo(stacks, condition,
-					text("later.chance", chancePercent + "%", routeName),
+					text("later.chance", chancePercent + "%"),
 					text("later.no_pity"));
 		}
 	}
