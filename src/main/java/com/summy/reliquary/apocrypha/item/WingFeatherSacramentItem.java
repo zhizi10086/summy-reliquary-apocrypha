@@ -90,6 +90,8 @@ public class WingFeatherSacramentItem extends Item implements ApocryphaKeptCurio
 		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.7",
 						ReliquaryTooltips.number(ApocryphaConfig.sacramentDecayDelaySeconds()),
 				ReliquaryTooltips.number(ApocryphaConfig.sacramentDecayIntervalSeconds())));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.8"));
+		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.wing_feather_sacrament.shift.9"));
 		return lines;
 	}
 

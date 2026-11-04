@@ -1,6 +1,8 @@
 package com.summy.reliquary.apocrypha.effect;
 
+import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
+import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
@@ -36,7 +38,8 @@ public final class ArrowDamageBonuses {
 			return;
 		}
 		int percent = 0;
-		if (SacramentArrows.isSacrament(event.getSource())) {
+		if (SacramentArrows.isSacrament(event.getSource())
+				&& CurioHelper.wears(shooter, Apocrypha.NEW_TESTAMENT.get())) {
 			percent += ApocryphaConfig.sacramentDamageBonusPercent();
 		}
 		// 逆羽·滞空：命中那一刻射手仍在下落

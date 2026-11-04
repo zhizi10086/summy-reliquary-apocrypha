@@ -14,9 +14,10 @@ import top.theillusivec4.curios.api.type.inventory.IDynamicStackHandler;
 // 「光羽」的计数、脱战衰减与实体维护（服务端）。
 //
 // 规则（与设计一致）：
-//   每次「新约治疗触发」+1 对（2 片）；存储上限 8 片（4 对）；
+//   全部光羽能力要求当前佩戴新约；普通「新约治疗触发」+1 对（2 片），存储上限 8 片（4 对）；
 //   只有攒满 6 片（3 对）时背后才出现那一对光翼（1、2 对时完全不显示），跌破门槛立刻消失；
 //   只有片数 > 6（攒到第 4 对）才允许射击时消耗 1 对；脱战（自最后一次治疗触发起）满 N 秒后每 M 秒熄 1 对。
+//   圣餐之矢自身命中不回补光羽；卸下新约后隐藏并冻结全部计时，重新佩戴后继续。
 // 计数写在玩家 Forge 持久数据（随存档保存，键根 summy_reliquary_apocrypha），与 SR 的根键互不干扰。
 // 光翼本身没有实体：显隐状态写在「翼羽·圣餐」的堆栈 NBT 上，由客户端的 Curios 渲染层读取（见 WingFeatherSacramentRenderer）。
 public final class FeatherCharge {
@@ -69,12 +70,15 @@ public final class FeatherCharge {
 
 	/** 是否已达到「可消耗」门槛（片数 > 6，即攒到第 4 对） */
 	public static boolean canConsume(ServerPlayer player) {
-		return ApocryphaConfig.enable() && charge(player) > CONSUME_THRESHOLD;
+		return activeNewTestament(player)
+				&& CurioHelper.wears(player, Apocrypha.WING_FEATHER_SACRAMENT.get())
+				&& charge(player) > CONSUME_THRESHOLD;
 	}
 
 	/** 新约治疗触发：+1 对，并把脱战计时重置 */
 	public static void addPair(ServerPlayer player) {
-		if (!ApocryphaConfig.enable()) {
+		if (!activeNewTestament(player)
+				|| !CurioHelper.wears(player, Apocrypha.WING_FEATHER_SACRAMENT.get())) {
 			return;
 		}
 		setCharge(player, charge(player) + PER_PAIR);
@@ -97,7 +101,8 @@ public final class FeatherCharge {
 	 * （3 对 / 6 片）才显现 —— 1、2 对时背后什么都看不到。
 	 */
 	public static int visibleWings(ServerPlayer player) {
-		if (!CurioHelper.wears(player, Apocrypha.WING_FEATHER_SACRAMENT.get())) {
+		if (!activeNewTestament(player)
+				|| !CurioHelper.wears(player, Apocrypha.WING_FEATHER_SACRAMENT.get())) {
 			return 0;
 		}
 		return charge(player) >= WING_GATE_CHARGE ? 1 : 0;
@@ -116,6 +121,9 @@ public final class FeatherCharge {
 
 	// 脱战衰减：计时归零时熄一对；若还有剩余，按配置间隔续上
 	private static void tickDecay(ServerPlayer player) {
+		if (!hasNewTestament(player)) {
+			return;
+		}
 		if (charge(player) <= 0) {
 			root(player).putInt(DECAY_TIMER, 0);
 			return;
@@ -169,5 +177,35 @@ public final class FeatherCharge {
 	/** 立即校正（装备 / 卸下 / 指令等需要立刻反馈的场合） */
 	public static void syncNow(ServerPlayer player) {
 		syncWingFlag(player);
+	}
+
+	/** 自检用：设置底层计数与脱战计时。 */
+	public static void setStateForTest(ServerPlayer player, int value, int decayTimer) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return;
+		}
+		setCharge(player, value);
+		root(player).putInt(DECAY_TIMER, Math.max(0, decayTimer));
+		syncNow(player);
+	}
+
+	/** 自检用：读取脱战计时。 */
+	public static int decayTimerForTest(ServerPlayer player) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") ? root(player).getInt(DECAY_TIMER) : 0;
+	}
+
+	/** 自检用：独立推进一次每秒衰减逻辑。 */
+	public static void tickDecayForTest(ServerPlayer player) {
+		if (Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			tickDecay(player);
+		}
+	}
+
+	private static boolean activeNewTestament(ServerPlayer player) {
+		return ApocryphaConfig.enable() && hasNewTestament(player);
+	}
+
+	private static boolean hasNewTestament(ServerPlayer player) {
+		return CurioHelper.wears(player, Apocrypha.NEW_TESTAMENT.get());
 	}
 }

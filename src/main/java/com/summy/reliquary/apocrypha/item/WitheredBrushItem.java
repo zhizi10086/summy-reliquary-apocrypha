@@ -26,7 +26,7 @@ import java.util.List;
  * 枯笔：装入「殁亡之悲悯」栏位的饰品（**需要恶魔标记**），恶魔线「凋亡」套系的第四件。
  *
  * <p>两个效果：① **近战直击「损伤抵抗中」的目标 → 它的抵抗时间每次减少若干秒**（减到 0 抵抗立刻结束）；
- * ② 佩戴者引爆时，**目标获得一小段恐惧**（无法移动 + 无法攻击；玩家档默认关闭，
+ * ② 同戴堕天与枯笔并亲手引爆时，**目标获得一小段恐惧**（无法移动 + 无法攻击；玩家档默认关闭，
  * 可用指令 {@code /summyapocrypha fear players <on|off>} 打开）。
  */
 public class WitheredBrushItem extends Item implements ApocryphaKeptCurioItem {

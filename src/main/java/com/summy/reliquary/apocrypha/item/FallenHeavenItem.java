@@ -86,7 +86,8 @@ public class FallenHeavenItem extends Item implements ApocryphaKeptCurioItem {
 		List<Component> lines = new ArrayList<>();
 		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_heaven.shift.1"));
 		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_heaven.shift.2",
-				ApocryphaConfig.apoptosisHitsBase(),
+				ApocryphaText.number2(ApocryphaConfig.apoptosisPushPerHitBase()),
+				ReliquaryTooltips.number(ApocryphaConfig.apoptosisBarMax()),
 				ReliquaryTooltips.number(ApocryphaConfig.apoptosisBurstDamage())));
 		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_heaven.shift.3",
 				ReliquaryTooltips.number(ApocryphaConfig.apoptosisInjuredSeconds()),

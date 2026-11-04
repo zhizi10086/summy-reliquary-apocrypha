@@ -21,5 +21,8 @@ run/
 /compilejava*.log
 /logs/
 
+# 内部交接与进度文档：只保存在本地 _内部文档，不进入公开仓库
+/PROGRESS.md
+
 # 注意：libs/ 必须入库 —— 前置模组 Summy Reliquary 不发布在任何 Maven 上，
 # 仓库里那份 jar 是「clone 之后就能直接构建」的前提（见 README 的《更新前置 jar》）。

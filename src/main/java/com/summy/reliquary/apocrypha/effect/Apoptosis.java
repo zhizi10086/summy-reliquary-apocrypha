@@ -43,12 +43,12 @@ import java.util.UUID;
 /**
  * 恶魔线「凋亡」套系的核心机制（服务端）：凋亡损伤条、爆条、损伤状态、损伤抵抗、元素伤害。
  *
- * <p>**循环**：佩戴「堕天」或「坠羽」的玩家用**近战直击**命中目标 → 损伤值 +`bar_max / 刀数`
- * （堕天 6 刀、坠羽 4 刀）；满 `bar_max` → **爆条**（元素伤害）→ 条置满并随**损伤状态**（默认 5 秒）
+ * <p>**循环**：只有佩戴「堕天」的玩家可用**近战直击**推进损伤；每次增加固定点数，达到 `bar_max`
+ * → **爆条**（元素伤害）→ 条置满并随**损伤状态**（默认 5 秒）
  * 线性回退到 0 —— 期间目标每次受伤额外附加元素伤害、治疗被削减；条归 0 后进入**损伤抵抗**（默认 5 秒）。
  * **损伤状态与损伤抵抗期间都不再累积损伤值**，所以一次爆条后 10 秒内同一目标不会再爆条。
  *
- * <p>**两件饰品的差别**（口径全部由「引爆者」的佩戴决定，并落到目标状态上）：戴「坠羽」时爆伤改为
+ * <p>**扩充件口径**（全部由「引爆者」的佩戴决定，并落到目标状态上）：同戴「堕天」与「坠羽」时爆伤改为
  * 「本轮推条那几刀伤害之和 × 比例」、附加比例换成坠羽那一档，且爆条瞬间在引爆者背后展开翅膀
  * （见 {@link FallenPlumeWings}）；只戴「堕天」时是固定的 {@code burst_damage} 与基础附加比例；
  * 戴「笞心」时最终爆伤与附加比例再各 ×1.5，并给本段损伤状态开启**斩杀**（见 {@link #tryExecute}）。
@@ -88,8 +88,12 @@ public final class Apoptosis {
 	private static final String LAST_PUSH = "apoptosis_last_push";
 	/** 本段损伤状态是否已经斩杀过（每段状态只落地一次） */
 	private static final String EXECUTE_USED = "apoptosis_execute_used";
+	/** 本段损伤状态的斩杀归属：爆条时同戴堕天与笞心的引爆者 UUID */
+	private static final String EXECUTE_OWNER = "apoptosis_execute_owner";
 	/** 本次损伤爆发的实际结算值：5 号件（终歌）的每秒灼伤与日志要用它 */
 	private static final String BURST_DAMAGE = "apoptosis_burst_damage";
+	/** 本段状态是否由终歌引爆者开启每秒灼伤 */
+	private static final String SONG_ENABLED = "apoptosis_song_enabled";
 	/** 本段损伤状态的减疗比例（%）：爆条那一刻由引爆者的佩戴决定 */
 	private static final String HEAL_REDUCTION = "apoptosis_heal_reduction";
 	/** 本段损伤状态目标的受伤加成（%）：爆条那一刻由引爆者的佩戴决定 */
@@ -179,6 +183,11 @@ public final class Apoptosis {
 
 	/** 自检用：直接构造损伤/抵抗状态，避免依赖随机攻击时序 */
 	public static void setStateForTest(LivingEntity target, int injuredTicks, int resistTicks) {
+		setStateForTest(target, injuredTicks, resistTicks, null);
+	}
+
+	/** 自检用：构造带斩杀归属的损伤状态 */
+	public static void setStateForTest(LivingEntity target, int injuredTicks, int resistTicks, UUID executeOwner) {
 		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
 			return;
 		}
@@ -193,9 +202,15 @@ public final class Apoptosis {
 		data.putDouble(PUSH_DAMAGE, 0.0D);
 		data.putBoolean(EXECUTE_USED, false);
 		data.putDouble(BURST_DAMAGE, 0.0D);
+		data.putBoolean(SONG_ENABLED, false);
 		data.putDouble(HEAL_REDUCTION, 0.0D);
 		data.putDouble(DAMAGE_TAKEN_BONUS, 0.0D);
 		data.putInt(SONG_TICKS_PAID, 0);
+		if (executeOwner == null) {
+			data.remove(EXECUTE_OWNER);
+		} else {
+			data.putUUID(EXECUTE_OWNER, executeOwner);
+		}
 		data.putLong(LAST_PUSH, now);
 		markActive(level, target);
 	}
@@ -229,6 +244,40 @@ public final class Apoptosis {
 	/** 自检用：读取本段损伤状态是否已经落地过斩杀。 */
 	public static boolean executeUsedForTest(LivingEntity target) {
 		return Boolean.getBoolean("summy_apocrypha.devcheck") && data(target).getBoolean(EXECUTE_USED);
+	}
+
+	/** 自检用：读取本段损伤状态的斩杀归属。 */
+	public static UUID executeOwnerForTest(LivingEntity target) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return null;
+		}
+		CompoundTag data = data(target);
+		return data.contains(EXECUTE_OWNER) ? data.getUUID(EXECUTE_OWNER) : null;
+	}
+
+	/** 自检用：读取本段爆伤快照。 */
+	public static double burstDamageForTest(LivingEntity target) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") ? data(target).getDouble(BURST_DAMAGE) : 0.0D;
+	}
+
+	/** 自检用：本段状态是否开启终歌灼伤。 */
+	public static boolean songEnabledForTest(LivingEntity target) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") && data(target).getBoolean(SONG_ENABLED);
+	}
+
+	/** 自检用：读取本段附加伤害比例。 */
+	public static double extraPercentForTest(LivingEntity target) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") ? extraPercent(target) : 0.0D;
+	}
+
+	/** 自检用：读取本段减疗比例。 */
+	public static double healReductionForTest(LivingEntity target) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") ? healReductionPercent(target) : 0.0D;
+	}
+
+	/** 自检用：读取本段受伤加成。 */
+	public static double damageTakenBonusForTest(LivingEntity target) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") ? damageTakenBonusPercent(target) : 0.0D;
 	}
 
 	// ==================== 事件 ====================
@@ -284,7 +333,7 @@ public final class Apoptosis {
 		// 投掷短矛、电刀、追加魔法与其它直接以玩家为来源的特效不会进入这里。
 		ServerPlayer meleeAttacker = trustedMeleeAttacker(level, source, target);
 		if (meleeAttacker != null) {
-			if (wearsElementCurio(meleeAttacker)) {
+			if (wearsFallenHeaven(meleeAttacker)) {
 				push(level, meleeAttacker, target, event.getAmount());
 			}
 			if (CurioHelper.wears(meleeAttacker, Apocrypha.WITHERED_BRUSH.get())) {
@@ -362,8 +411,8 @@ public final class Apoptosis {
 	/**
 	 * 斩杀（3 号件「笞心」）：**目标受伤后**若生命值 ≤ 最大生命 × 阈值%，补上一击「最大生命 × 比例%」的元素伤害。
 	 *
-	 * <p>激活条件：本次伤害的**造成者**是佩戴「笞心」的玩家（近战 / 弓箭 / 落箭都算）——
-	 * 没有这个激活者就完全不判断。每段损伤状态只落地一次；这一刀本身就打死目标时不补
+	 * <p>激活条件：本次爆条的引爆者同时佩戴「堕天」与「笞心」，且之后每次造成伤害时仍是该玩家并
+	 * 继续同时佩戴两件。没有这个归属就完全不判断。每段损伤状态只落地一次；这一刀本身就打死目标时不补
 	 * （避免抢走原本的死亡信息）。
 	 */
 	private static void tryExecute(ServerLevel level, LivingEntity target, LivingHurtEvent event) {
@@ -373,12 +422,17 @@ public final class Apoptosis {
 				|| !CurioHelper.wears(player, Apocrypha.SCOURGED_HEART.get())) {
 			return; // 没有被佩戴笞心的人激活 —— 连判断都不做（也不记日志）
 		}
+		UUID owner = data.contains(EXECUTE_OWNER) ? data.getUUID(EXECUTE_OWNER) : null;
+		String gateReason = !wearsFallenHeaven(player) ? "未同戴堕天"
+				: owner == null ? "本段未登记斩杀"
+				: !player.getUUID().equals(owner) ? "非本段引爆者" : "";
 		float maxHealth = target.getMaxHealth();
 		// 「受伤后」的血量：我们的附加伤害是嵌套即时落地的，所以读数已含那一笔；这里再扣掉本次尚未落地的金额
 		float remaining = target.getHealth() - event.getAmount();
 		double threshold = maxHealth * (ApocryphaConfig.apoptosisExecuteThresholdPercent() / 100.0D);
 		boolean used = data.getBoolean(EXECUTE_USED);
-		String reason = used ? "本段已斩"
+		String reason = !gateReason.isEmpty() ? gateReason
+				: used ? "本段已斩"
 				: remaining <= 0.0F ? "这一刀已致死"
 				: remaining > threshold ? "血量未达阈值" : "";
 		if (ApocryphaConfig.logTrigger()) {
@@ -406,10 +460,9 @@ public final class Apoptosis {
 		}
 	}
 
-	/** 是否佩戴恶魔线「凋亡」的两件之一（堕天 / 坠羽）—— 两件都能推条 */
-	private static boolean wearsElementCurio(ServerPlayer player) {
-		return CurioHelper.wears(player, Apocrypha.FALLEN_HEAVEN.get())
-				|| CurioHelper.wears(player, Apocrypha.FALLEN_PLUME.get());
+	/** 是否佩戴凋亡唯一基础入口「堕天」。 */
+	private static boolean wearsFallenHeaven(ServerPlayer player) {
+		return CurioHelper.wears(player, Apocrypha.FALLEN_HEAVEN.get());
 	}
 
 	/** 本段损伤状态的附加伤害比例（%）：爆条时写死，读不到就退回配置默认值 */
@@ -551,15 +604,18 @@ public final class Apoptosis {
 
 	// ==================== 推条 / 爆条 ====================
 
-	private static void push(ServerLevel level, ServerPlayer attacker, LivingEntity target, float hitDamage) {
+	private static boolean push(ServerLevel level, ServerPlayer attacker, LivingEntity target, float hitDamage) {
+		if (!wearsFallenHeaven(attacker)) {
+			return false;
+		}
 		CompoundTag data = data(target);
 		long now = now(target);
 		// 损伤状态与损伤抵抗一样：期间既不累计、也不能再次爆条（一次爆条后 10 秒内同一目标不会再爆）
 		if (data.getLong(INJURED_UNTIL) > now || data.getLong(RESIST_UNTIL) > now) {
-			return;
+			return false;
 		}
 		double barMax = Math.max(1.0D, ApocryphaConfig.apoptosisBarMax());
-		double gain = barMax / requiredHits(attacker);
+		double gain = pushPerHit(attacker);
 		double next = data.getDouble(VALUE) + gain;
 		// 先把这一刀的金额记进本轮累计：2 号件（坠羽）的爆伤就是这几刀之和 × 比例
 		double pushDamage = data.getDouble(PUSH_DAMAGE) + Math.max(0.0F, hitDamage);
@@ -567,34 +623,45 @@ public final class Apoptosis {
 		// 空闲清空的计时起点：每次成功推条都刷新
 		data.putLong(LAST_PUSH, now);
 		if (next >= barMax - 1.0E-6D) {
-			burst(level, attacker, target, barMax, pushDamage);
-			return;
+			burst(level, attacker, target, pushDamage);
+			return true;
 		}
 		data.putDouble(VALUE, next);
 		markActive(level, target);
 		sync(target);
+		return true;
 	}
 
-	/** 打满损伤条需要的近战次数：佩戴「坠羽」时为 hits_with_second（4），否则为 hits_base（6） */
-	private static int requiredHits(ServerPlayer attacker) {
-		return CurioHelper.wears(attacker, Apocrypha.FALLEN_PLUME.get())
-				? Math.max(1, ApocryphaConfig.apoptosisHitsWithSecond())
-				: Math.max(1, ApocryphaConfig.apoptosisHitsBase());
+	/** 每次可信近战推进的固定点数：只有同戴堕天与坠羽时才使用坠羽档。 */
+	private static double pushPerHit(ServerPlayer attacker) {
+		boolean plume = wearsFallenHeaven(attacker)
+				&& CurioHelper.wears(attacker, Apocrypha.FALLEN_PLUME.get());
+		return Math.max(0.01D, plume
+				? ApocryphaConfig.apoptosisPushPerHitWithSecond()
+				: ApocryphaConfig.apoptosisPushPerHitBase());
+	}
+
+	/** 自检用：直接走与可信近战相同的定值推条入口。 */
+	public static boolean pushForTest(ServerPlayer attacker, LivingEntity target, float hitDamage) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck")
+				&& attacker.level() instanceof ServerLevel level
+				&& push(level, attacker, target, hitDamage);
 	}
 
 	/**
 	 * 爆条：口径（刀数 / 爆伤 / 附加比例）全部由**引爆者**的佩戴决定，并把附加比例落到目标状态上。
 	 *
-	 * <p>戴「坠羽」→ 爆伤 = 本轮推条伤害之和 × 比例（取代固定的 burst_damage）、附加比例取坠羽那一档；
+	 * <p>同戴「堕天」与「坠羽」→ 爆伤 = 本轮推条伤害之和 × 比例（取代固定的 burst_damage）、附加比例取坠羽那一档；
 	 * 只戴「堕天」→ 固定 burst_damage 与基础附加比例；戴「笞心」→ 最终爆伤与附加比例再各 ×1.5。
 	 */
-	private static void burst(ServerLevel level, ServerPlayer attacker, LivingEntity target, double barMax,
-			double pushDamage) {
+	private static void burst(ServerLevel level, ServerPlayer attacker, LivingEntity target, double pushDamage) {
 		CompoundTag data = data(target);
 		long now = now(target);
-		boolean plume = CurioHelper.wears(attacker, Apocrypha.FALLEN_PLUME.get());
-		boolean third = CurioHelper.wears(attacker, Apocrypha.SCOURGED_HEART.get());
-		boolean fifth = CurioHelper.wears(attacker, Apocrypha.FINAL_SONG.get());
+		boolean base = wearsFallenHeaven(attacker);
+		boolean plume = base && CurioHelper.wears(attacker, Apocrypha.FALLEN_PLUME.get());
+		boolean third = base && CurioHelper.wears(attacker, Apocrypha.SCOURGED_HEART.get());
+		boolean fourth = base && CurioHelper.wears(attacker, Apocrypha.WITHERED_BRUSH.get());
+		boolean fifth = base && CurioHelper.wears(attacker, Apocrypha.FINAL_SONG.get());
 		double burstDamage = plume
 				? pushDamage * (ApocryphaConfig.apoptosisBurstRatioWithSecondPercent() / 100.0D)
 				: ApocryphaConfig.apoptosisBurstDamage();
@@ -616,8 +683,14 @@ public final class Apoptosis {
 		data.putDouble(PUSH_DAMAGE, 0.0D);
 		data.putLong(LAST_PUSH, now);
 		data.putBoolean(EXECUTE_USED, false);
-		// 5 号件「终歌」：本次爆伤（供每秒灼伤与日志）、减疗比例、受伤加成
+		if (third) {
+			data.putUUID(EXECUTE_OWNER, attacker.getUUID());
+		} else {
+			data.remove(EXECUTE_OWNER);
+		}
+		// 本次爆伤始终留档；只有引爆者同戴终歌时才开启每秒灼伤
 		data.putDouble(BURST_DAMAGE, burstDamage);
+		data.putBoolean(SONG_ENABLED, fifth);
 		data.putDouble(HEAL_REDUCTION, fifth
 				? ApocryphaConfig.apoptosisHealReductionPercentWithFifth()
 				: ApocryphaConfig.apoptosisHealReductionPercent());
@@ -632,15 +705,15 @@ public final class Apoptosis {
 			FallenPlumeWings.flash(attacker);
 		}
 		// 4 号件：爆条瞬间让目标陷入恐惧（无法移动与攻击；玩家档默认关闭）
-		if (CurioHelper.wears(attacker, Apocrypha.WITHERED_BRUSH.get())) {
+		if (fourth) {
 			WitheredBrush.applyFear(level, attacker, target);
 		}
 		if (ApocryphaConfig.logTrigger()) {
 			Apocrypha.LOGGER.info(String.format("[凋亡] 爆条：%s ← %s（元素伤害 %.2f 点%s%s%s）",
 					target.getName().getString(), attacker.getName().getString(),
 					burstDamage,
-					plume ? String.format("，口径：坠羽 %d 刀推条之和 %.2f × %.0f%%、附加 %.0f%%",
-							requiredHits(attacker), pushDamage,
+					plume ? String.format("，口径：坠羽推条之和 %.2f × %.0f%%、附加 %.0f%%",
+							pushDamage,
 							ApocryphaConfig.apoptosisBurstRatioWithSecondPercent(), extraPercent) : "",
 					third ? String.format("，笞心 ×%.1f", ApocryphaConfig.apoptosisBurstMultiplierWithThird()) : "",
 					fifth ? String.format("，终歌：每秒 %.0f%%、减疗 %.0f%%、受伤 +%.0f%%",
@@ -798,6 +871,9 @@ public final class Apoptosis {
 	 */
 	private static void payFinalSong(ServerLevel level, LivingEntity target, CompoundTag data, long injuredUntil,
 			long now) {
+		if (!data.getBoolean(SONG_ENABLED)) {
+			return;
+		}
 		double perSecond = data.getDouble(BURST_DAMAGE)
 				* (ApocryphaConfig.apoptosisBurstPercentPerSecondWithFifth() / 100.0D);
 		if (perSecond <= 0.0D) {
@@ -831,12 +907,14 @@ public final class Apoptosis {
 		return elapsed / 20;
 	}
 
-	/** 本段损伤状态的快照（爆伤 / 减疗 / 受伤加成 / 灼伤笔数）：状态结束时清掉 */
+	/** 本段损伤状态的快照（爆伤 / 减疗 / 受伤加成 / 灼伤笔数 / 斩杀归属）：状态结束时清掉 */
 	private static void clearBurstSnapshot(CompoundTag data) {
 		data.putDouble(BURST_DAMAGE, 0.0D);
 		data.putDouble(HEAL_REDUCTION, 0.0D);
 		data.putDouble(DAMAGE_TAKEN_BONUS, 0.0D);
 		data.putInt(SONG_TICKS_PAID, 0);
+		data.putBoolean(SONG_ENABLED, false);
+		data.remove(EXECUTE_OWNER);
 	}
 
 	private static void sync(LivingEntity target) {

@@ -49,13 +49,13 @@ public final class ApocryphaConfig {
 
 	// ===== 凋亡（恶魔线 #1：核心机制 + 堕天）=====
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BAR_MAX;
-	private static final ForgeConfigSpec.IntValue APOPTOSIS_HITS_BASE;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_PUSH_PER_HIT_BASE;
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_DAMAGE;
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_DAMAGE_PERCENT;
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_HEAL_REDUCTION_PERCENT;
 	private static final ForgeConfigSpec.IntValue APOPTOSIS_INJURED_SECONDS;
 	private static final ForgeConfigSpec.IntValue APOPTOSIS_RESISTANCE_SECONDS;
-	private static final ForgeConfigSpec.IntValue APOPTOSIS_HITS_WITH_SECOND;
+	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_PUSH_PER_HIT_WITH_SECOND;
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_RATIO_WITH_SECOND_PERCENT;
 	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_DAMAGE_PERCENT_WITH_SECOND;
 	private static final ForgeConfigSpec.IntValue APOPTOSIS_WING_SECONDS;
@@ -178,10 +178,10 @@ public final class ApocryphaConfig {
 		APOPTOSIS_BAR_MAX = builder
 				.comment("凋亡损伤条的总点数（满值即触发爆条）")
 				.defineInRange("bar_max", 100.0D, 1.0D, 10000.0D);
-		APOPTOSIS_HITS_BASE = builder
-				.comment("未佩戴 2 号件（坠羽）时，打满损伤条需要的近战次数：每次攻击推 bar_max / 该值",
-						"（佩戴坠羽时改读 hits_with_second）")
-				.defineInRange("hits_base", 6, 1, 100);
+		APOPTOSIS_PUSH_PER_HIT_BASE = builder
+				.comment("基础档每次可信近战推进的损伤点数（提示与默认配置保留两位小数）",
+						"默认 16.67：在 bar_max=100 时需要 6 次命中")
+				.defineInRange("push_per_hit_base", 16.67D, 0.01D, 10000.0D);
 		APOPTOSIS_BURST_DAMAGE = builder
 				.comment("损伤爆发的元素伤害（点；元素伤害无视护甲/保护/抗性，且不吃增伤乘区）")
 				.defineInRange("burst_damage", 30.0D, 0.0D, 10000.0D);
@@ -197,12 +197,13 @@ public final class ApocryphaConfig {
 		APOPTOSIS_RESISTANCE_SECONDS = builder
 				.comment("损伤抵抗持续秒数（期间不再累积凋亡损伤）")
 				.defineInRange("resistance_seconds", 5, 0, 600);
-		APOPTOSIS_HITS_WITH_SECOND = builder
-				.comment("佩戴 2 号件「坠羽」时，打满损伤条需要的近战次数（定稿为「6 − 2 = 4」）")
-				.defineInRange("hits_with_second", 4, 1, 100);
+		APOPTOSIS_PUSH_PER_HIT_WITH_SECOND = builder
+				.comment("同时佩戴「堕天」与 2 号件「坠羽」时，每次可信近战推进的损伤点数",
+						"默认 25.00：在 bar_max=100 时需要 4 次命中")
+				.defineInRange("push_per_hit_with_second", 25.00D, 0.01D, 10000.0D);
 		APOPTOSIS_BURST_RATIO_WITH_SECOND_PERCENT = builder
 				.comment("佩戴「坠羽」时，爆条伤害 = 本轮「推条那几刀」伤害之和 × 该比例（%）",
-						"（取代固定的 burst_damage；刀数为 hits_with_second）")
+						"（取代固定的 burst_damage；必须同时佩戴堕天）")
 				.defineInRange("burst_ratio_with_second_percent", 60.0D, 0.0D, 1000.0D);
 		APOPTOSIS_EXTRA_DAMAGE_PERCENT_WITH_SECOND = builder
 				.comment("佩戴「坠羽」时，损伤状态期间额外附加的元素伤害比例（%）",
@@ -221,7 +222,7 @@ public final class ApocryphaConfig {
 				.comment("斩杀伤害 = 目标最大生命 × 该比例（%），作为一笔元素伤害结算")
 				.defineInRange("execute_damage_percent_of_max", 100.0D, 0.0D, 1000.0D);
 		APOPTOSIS_BURST_MULTIPLIER_WITH_THIRD = builder
-				.comment("佩戴「笞心」时，最终爆条伤害的乘数（1.5 = 固定 30 → 45、坠羽档 60% → 90%）")
+				.comment("同戴「堕天」与「笞心」并亲手引爆时，最终爆条伤害的乘数（1.5 = 固定 30 → 45、坠羽档 60% → 90%）")
 				.defineInRange("burst_multiplier_with_third", 1.5D, 0.0D, 10.0D);
 		APOPTOSIS_EXTRA_MULTIPLIER_WITH_THIRD = builder
 				.comment("佩戴「笞心」时，损伤状态附加伤害比例的乘数（1.5 = 10% → 15%、坠羽档 20% → 30%）")
@@ -231,14 +232,14 @@ public final class ApocryphaConfig {
 						"（减到 0 即抵抗立刻结束）")
 				.defineInRange("resistance_cut_seconds_with_fourth", 1, 0, 100);
 		APOPTOSIS_FEAR_SECONDS_WITH_FOURTH = builder
-				.comment("佩戴「枯笔」引爆时，目标获得的恐惧持续时间（秒）：期间无法移动与攻击")
+				.comment("同戴「堕天」与「枯笔」并亲手引爆时，目标获得的恐惧持续时间（秒）：期间无法移动与攻击")
 				.defineInRange("fear_seconds_with_fourth", 1, 0, 600);
 		APOPTOSIS_FEAR_AFFECTS_PLAYERS = builder
 				.comment("恐惧是否也对玩家生效（默认 false）。",
 						"玩家档 = 移动速度与攻速归零 + 近战与右击全部封禁；可用指令 /summyapocrypha fear players <on|off> 切换")
 				.define("fear_affects_players", false);
 		APOPTOSIS_BURST_PERCENT_PER_SECOND_WITH_FIFTH = builder
-				.comment("佩戴 5 号件「终歌」时，损伤状态期间每秒结算的元素伤害 = 本次爆伤 × 该比例（%）")
+				.comment("同戴「堕天」与 5 号件「终歌」并亲手引爆时，损伤状态期间每秒结算的元素伤害 = 本次爆伤 × 该比例（%）")
 				.defineInRange("burst_percent_per_second_with_fifth", 25.0D, 0.0D, 100.0D);
 		APOPTOSIS_HEAL_REDUCTION_PERCENT_WITH_FIFTH = builder
 				.comment("佩戴「终歌」时，损伤状态的减疗比例提升到的值（%，取代 heal_reduction_percent）")
@@ -392,9 +393,9 @@ public final class ApocryphaConfig {
 		return APOPTOSIS_BAR_MAX.get();
 	}
 
-	/** 打满损伤条需要的近战次数（每次推 bar_max / 该值） */
-	public static int apoptosisHitsBase() {
-		return APOPTOSIS_HITS_BASE.get();
+	/** 基础档每次可信近战推进的损伤点数 */
+	public static double apoptosisPushPerHitBase() {
+		return APOPTOSIS_PUSH_PER_HIT_BASE.get();
 	}
 
 	/** 损伤爆发的元素伤害 */
@@ -422,9 +423,9 @@ public final class ApocryphaConfig {
 		return APOPTOSIS_RESISTANCE_SECONDS.get();
 	}
 
-	/** 佩戴「坠羽」时打满损伤条需要的近战次数 */
-	public static int apoptosisHitsWithSecond() {
-		return APOPTOSIS_HITS_WITH_SECOND.get();
+	/** 同时佩戴「堕天」与「坠羽」时每次可信近战推进的损伤点数 */
+	public static double apoptosisPushPerHitWithSecond() {
+		return APOPTOSIS_PUSH_PER_HIT_WITH_SECOND.get();
 	}
 
 	/** 佩戴「坠羽」时爆条伤害的比例（%，乘以本轮推条伤害之和） */

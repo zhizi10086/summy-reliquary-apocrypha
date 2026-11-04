@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * 终歌：装入「殁亡之终歌」栏位的饰品（**需要恶魔标记**），恶魔线「凋亡」套系的收官件。
  *
- * <p>佩戴者引爆时，本段**损伤状态**额外获得三件事：① 目标**每秒**再吃一笔「本次爆伤 × 25%」的元素伤害；
+ * <p>同戴堕天与终歌并亲手引爆时，本段**损伤状态**额外获得三件事：① 目标**每秒**再吃一笔「本次爆伤 × 25%」的元素伤害；
  * ② 减疗从 50% 提升到 95%；③ 目标受到的（非本模组元素）最终伤害 +30%（见 {@code effect/Apoptosis}）。
  */
 public class FinalSongItem extends Item implements ApocryphaKeptCurioItem {

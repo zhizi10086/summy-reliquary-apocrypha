@@ -128,12 +128,7 @@ public final class NewTestamentEffect {
 					: baseChance;
 			ntSuccess = sacrament || roll < chance;
 
-			// 命中回血（这一次就是「新约治疗触发」）
-			shooter.heal((float) ApocryphaConfig.healAmount());
-			// 翼羽·圣餐：每次治疗触发在背后凝聚一对光羽
-			if (CurioHelper.wears(shooter, Apocrypha.WING_FEATHER_SACRAMENT.get())) {
-				FeatherCharge.addPair(shooter);
-			}
+			applyHealingTrigger(shooter, sacrament);
 		}
 
 		// 协同（仅两件同戴）：任一自然触发都必定带出另一个（延迟 0.1 秒）；
@@ -229,6 +224,21 @@ public final class NewTestamentEffect {
 		lastArrowHitHoly = holy;
 		lastArrowHitPinnedValue = pinned;
 		lastArrowHitAmount = event.isCanceled() ? 0.0F : event.getAmount();
+	}
+
+	/** 新约命中回血；普通箭命中可为翼羽凝聚光羽，圣餐之矢本身不回补。 */
+	private static void applyHealingTrigger(ServerPlayer shooter, boolean sacrament) {
+		shooter.heal((float) ApocryphaConfig.healAmount());
+		if (!sacrament && CurioHelper.wears(shooter, Apocrypha.WING_FEATHER_SACRAMENT.get())) {
+			FeatherCharge.addPair(shooter);
+		}
+	}
+
+	/** 自检用：走与真实命中一致的新约治疗触发分支。 */
+	public static void applyHealingTriggerForTest(ServerPlayer shooter, boolean sacrament) {
+		if (Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			applyHealingTrigger(shooter, sacrament);
+		}
 	}
 
 	/**

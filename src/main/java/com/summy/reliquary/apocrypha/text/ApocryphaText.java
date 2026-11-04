@@ -46,6 +46,11 @@ public final class ApocryphaText {
 	private ApocryphaText() {
 	}
 
+	/** 固定两位小数，供凋亡定值推条等需要明确精度的手工文案使用。 */
+	public static String number2(double value) {
+		return String.format(java.util.Locale.ROOT, "%.2f", value);
+	}
+
 	/** 正文颜色（未标记部分） */
 	private static final ChatFormatting BASE = ChatFormatting.GRAY;
 

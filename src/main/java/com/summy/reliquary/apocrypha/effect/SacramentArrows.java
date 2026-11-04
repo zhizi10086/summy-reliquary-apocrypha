@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-// 「圣餐之矢」：放出箭矢时若光羽已攒到第 4 对，就消耗 1 对把这一发变成圣餐之矢。
+// 「圣餐之矢」：同时佩戴新约与翼羽，且光羽已攒到第 4 对时，消耗 1 对把这一发变成圣餐之矢。
 //
 // 三步：
 //   ① ArrowLooseEvent（弓与弩都会触发）→ 检查门槛、消耗 1 对、登记"本玩家刚放箭"；
@@ -42,6 +42,9 @@ public final class SacramentArrows {
 			return;
 		}
 		if (!CurioHelper.wears(player, Apocrypha.WING_FEATHER_SACRAMENT.get())) {
+			return;
+		}
+		if (!CurioHelper.wears(player, Apocrypha.NEW_TESTAMENT.get())) {
 			return;
 		}
 		if (!FeatherCharge.canConsume(player)) {

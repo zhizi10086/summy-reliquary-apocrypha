@@ -84,7 +84,7 @@ public class FallenPlumeItem extends Item implements ApocryphaKeptCurioItem {
 	public static List<Component> shiftLines() {
 		List<Component> lines = new ArrayList<>();
 		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_plume.shift.1",
-				ApocryphaConfig.apoptosisHitsWithSecond()));
+				ApocryphaText.number2(ApocryphaConfig.apoptosisPushPerHitWithSecond())));
 		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_plume.shift.2",
 				ReliquaryTooltips.number(ApocryphaConfig.apoptosisBurstRatioWithSecondPercent())));
 		lines.add(ApocryphaText.line("item.summy-reliquary-apocrypha.fallen_plume.shift.3",

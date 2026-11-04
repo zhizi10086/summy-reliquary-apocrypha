@@ -6,10 +6,14 @@ import com.summy.reliquary.apocrypha.client.ApoptosisBarState;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.Apoptosis;
 import com.summy.reliquary.apocrypha.effect.FallenPlumeWings;
+import com.summy.reliquary.apocrypha.effect.FeatherCharge;
+import com.summy.reliquary.apocrypha.effect.HoverFlight;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
+import com.summy.reliquary.apocrypha.effect.PairedWings;
 import com.summy.reliquary.apocrypha.effect.WitheredBrush;
 import com.summy.reliquary.apocrypha.loot.ApocryphaAcquisition;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
+import com.summy.reliquary.apocrypha.text.ApocryphaText;
 import com.summy.reliquary.effect.PlayerFlags;
 import com.summy.reliquary.effect.SlotSizing;
 import com.summy.reliquary.util.CurioHelper;
@@ -58,6 +62,7 @@ import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.nio.charset.StandardCharsets;
 import java.io.InputStreamReader;
@@ -140,6 +145,7 @@ public final class ApocryphaDevCheck {
 				case 480 -> checkElementAndExecute(player);
 				case 500 -> checkStrictSwitch(player);
 				case 520 -> checkBilingualTooltipTemplates();
+				case 540 -> checkDependencyRules(player);
 				case 600 -> prepareDeathScenario(player, false);
 				case 620 -> killTestPlayer(player);
 				case 660 -> respawnTestPlayer(player);
@@ -224,6 +230,9 @@ public final class ApocryphaDevCheck {
 
 	private static void prepareWorld(ServerPlayer player) {
 		ServerLevel level = player.serverLevel();
+		// 自检必须在内存中启用玩法：正式测试实例可能保留 enable=false，
+		// 但严格总开关本身由后续专用用例验证，不能让它压掉其余检查。
+		ApocryphaConfig.setEnableForTest(true);
 		run(player, "gamerule doMobSpawning false");
 		run(player, "gamerule keepInventory false");
 		run(player, "gamerule doDaylightCycle false");
@@ -640,9 +649,12 @@ public final class ApocryphaDevCheck {
 		PlayerFlags.setAngel(player, false);
 		PlayerFlags.setDemon(player, true);
 		forceSlots(player, false);
+		equip(player, ApocryphaSlots.PERDITION_SYNECDOCHE, Apocrypha.FALLEN_HEAVEN.get());
 		equip(player, ApocryphaSlots.PERDITION_MASS, Apocrypha.SCOURGED_HEART.get());
 		boolean wearsHeart = CurioHelper.wears(player, Apocrypha.SCOURGED_HEART.get());
-		check("笞心已佩戴（固定伤害斩杀测试）", wearsHeart, "wears=" + wearsHeart);
+		boolean wearsHeaven = CurioHelper.wears(player, Apocrypha.FALLEN_HEAVEN.get());
+		check("堕天与笞心已佩戴（固定伤害斩杀测试）", wearsHeart && wearsHeaven,
+				"wearsHeart=" + wearsHeart + ", wearsHeaven=" + wearsHeaven);
 		Zombie executeTarget = EntityType.ZOMBIE.create(level);
 		if (executeTarget == null) {
 			check("固定伤害激活斩杀", false, "Zombie 创建失败");
@@ -652,7 +664,7 @@ public final class ApocryphaDevCheck {
 		executeTarget.setNoAi(true);
 		executeTarget.setHealth(1.5F);
 		level.addFreshEntity(executeTarget);
-		Apoptosis.setStateForTest(executeTarget, 100, 0);
+		Apoptosis.setStateForTest(executeTarget, 100, 0, player.getUUID());
 		ResourceKey<DamageType> holyLightKey = ResourceKey.create(Registries.DAMAGE_TYPE,
 				ResourceLocation.fromNamespaceAndPath("summy-reliquary", "holy_light"));
 		var holder = level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolder(holyLightKey).orElse(null);
@@ -668,6 +680,219 @@ public final class ApocryphaDevCheck {
 		}
 		Apoptosis.clearForTest(executeTarget);
 		executeTarget.discard();
+	}
+
+	private static void checkDependencyRules(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		check("凋亡定值配置使用两位小数", Math.abs(ApocryphaConfig.apoptosisPushPerHitBase() - 16.67D) < 1.0E-9D
+						&& Math.abs(ApocryphaConfig.apoptosisPushPerHitWithSecond() - 25.00D) < 1.0E-9D,
+				"base=" + ApocryphaConfig.apoptosisPushPerHitBase()
+						+ ", plume=" + ApocryphaConfig.apoptosisPushPerHitWithSecond());
+		check("定值推条提示固定两位小数",
+				"16.67".equals(ApocryphaText.number2(ApocryphaConfig.apoptosisPushPerHitBase()))
+						&& "25.00".equals(ApocryphaText.number2(ApocryphaConfig.apoptosisPushPerHitWithSecond())),
+				"base=" + ApocryphaText.number2(ApocryphaConfig.apoptosisPushPerHitBase())
+						+ ", plume=" + ApocryphaText.number2(ApocryphaConfig.apoptosisPushPerHitWithSecond()));
+
+		clearCurios(player);
+		PlayerFlags.setDemon(player, false);
+		PlayerFlags.setAngel(player, true);
+		forceSlots(player, true);
+		equip(player, ApocryphaSlots.NEW_TESTAMENT_HALO, Apocrypha.NEW_TESTAMENT.get());
+		equip(player, ApocryphaSlots.NEW_TESTAMENT_GRACE, Apocrypha.WING_FEATHER_SACRAMENT.get());
+		FeatherCharge.setStateForTest(player, 8, 1);
+		FeatherCharge.consumePair(player);
+		NewTestamentEffect.applyHealingTriggerForTest(player, true);
+		check("圣餐之矢命中不回补光羽", FeatherCharge.charge(player) == 6,
+				"charge=" + FeatherCharge.charge(player) + "（期望 6）");
+		NewTestamentEffect.applyHealingTriggerForTest(player, false);
+		check("普通箭命中回补光羽", FeatherCharge.charge(player) == 8,
+				"charge=" + FeatherCharge.charge(player) + "（期望 8）");
+		FeatherCharge.setStateForTest(player, 8, 1);
+		unequip(player, ApocryphaSlots.NEW_TESTAMENT_HALO);
+		boolean noConsumeWithoutNewTestament = !FeatherCharge.canConsume(player);
+		FeatherCharge.tickDecayForTest(player);
+		check("卸下新约后光羽冻结并禁止消耗",
+				noConsumeWithoutNewTestament && FeatherCharge.charge(player) == 8
+						&& FeatherCharge.decayTimerForTest(player) == 1,
+				"canConsume=" + !noConsumeWithoutNewTestament + ", charge=" + FeatherCharge.charge(player)
+						+ ", timer=" + FeatherCharge.decayTimerForTest(player));
+		equip(player, ApocryphaSlots.NEW_TESTAMENT_HALO, Apocrypha.NEW_TESTAMENT.get());
+		FeatherCharge.tickDecayForTest(player);
+		check("重新佩戴新约后光羽继续衰减", FeatherCharge.charge(player) == 6,
+				"charge=" + FeatherCharge.charge(player) + "（期望 6）");
+		clearCurios(player);
+		equip(player, ApocryphaSlots.NEW_TESTAMENT_BLESSING, Apocrypha.INVERSE_FEATHER_HOVER.get());
+		check("逆羽被动可脱离新约独立佩戴", HoverFlight.wears(player)
+						&& !CurioHelper.wears(player, Apocrypha.NEW_TESTAMENT.get()),
+				"wearsInverse=" + HoverFlight.wears(player));
+		clearCurios(player);
+		equip(player, ApocryphaSlots.NEW_TESTAMENT_REVELATION, Apocrypha.PAIRED_WINGS.get());
+		check("比翼主效果可脱离新约独立佩戴", PairedWings.wears(player)
+						&& !CurioHelper.wears(player, Apocrypha.NEW_TESTAMENT.get()),
+				"wearsPaired=" + PairedWings.wears(player));
+
+		clearCurios(player);
+		PlayerFlags.setAngel(player, false);
+		PlayerFlags.setDemon(player, true);
+		forceSlots(player, false);
+		equip(player, ApocryphaSlots.PERDITION_EXEGESIS, Apocrypha.FALLEN_PLUME.get());
+		Zombie plumeOnly = spawnCheckZombie(player, 100.0D);
+		boolean plumeOnlyPushed = plumeOnly != null && Apoptosis.pushForTest(player, plumeOnly, 10.0F);
+		check("仅佩戴坠羽不能推凋亡条", plumeOnly != null && !plumeOnlyPushed,
+				"pushed=" + plumeOnlyPushed + ", value=" + (plumeOnly == null ? -1 : Apoptosis.value(plumeOnly)));
+		if (plumeOnly != null) {
+			Apoptosis.clearForTest(plumeOnly);
+			plumeOnly.discard();
+		}
+
+		unequip(player, ApocryphaSlots.PERDITION_EXEGESIS);
+		equip(player, ApocryphaSlots.PERDITION_SYNECDOCHE, Apocrypha.FALLEN_HEAVEN.get());
+		Zombie baseTarget = spawnCheckZombie(player, 100.0D);
+		if (baseTarget == null) {
+			check("定值推条测试目标", false, "Zombie 创建失败");
+		} else {
+			for (int hit = 0; hit < 5; hit++) {
+				Apoptosis.pushForTest(player, baseTarget, 10.0F);
+			}
+			double fiveHitValue = Apoptosis.value(baseTarget);
+			boolean notBurstYet = !Apoptosis.isInjured(baseTarget)
+					&& Math.abs(fiveHitValue - 83.35D) < 0.02D;
+			Apoptosis.pushForTest(player, baseTarget, 10.0F);
+			check("基础档第 6 刀按定值爆条", notBurstYet && Apoptosis.isInjured(baseTarget),
+					"fiveHit=" + fiveHitValue + ", injured=" + Apoptosis.isInjured(baseTarget));
+			check("未佩戴终歌时不开启灼伤", !Apoptosis.songEnabledForTest(baseTarget),
+					"songEnabled=" + Apoptosis.songEnabledForTest(baseTarget)
+							+ ", burstDamage=" + Apoptosis.burstDamageForTest(baseTarget));
+			Apoptosis.clearForTest(baseTarget);
+			baseTarget.discard();
+		}
+
+		equip(player, ApocryphaSlots.PERDITION_EXEGESIS, Apocrypha.FALLEN_PLUME.get());
+		Zombie plumeTarget = spawnCheckZombie(player, 100.0D);
+		if (plumeTarget == null) {
+			check("坠羽定值推条测试目标", false, "Zombie 创建失败");
+		} else {
+			for (int hit = 0; hit < 3; hit++) {
+				Apoptosis.pushForTest(player, plumeTarget, 10.0F);
+			}
+			double threeHitValue = Apoptosis.value(plumeTarget);
+			Apoptosis.pushForTest(player, plumeTarget, 10.0F);
+			check("堕天加坠羽第 4 刀按定值爆条",
+					Math.abs(threeHitValue - 75.0D) < 0.01D && Apoptosis.isInjured(plumeTarget)
+							&& Math.abs(Apoptosis.burstDamageForTest(plumeTarget) - 24.0D) < 0.01D
+							&& Math.abs(Apoptosis.extraPercentForTest(plumeTarget) - 20.0D) < 0.01D,
+					"threeHit=" + threeHitValue + ", burst=" + Apoptosis.burstDamageForTest(plumeTarget)
+							+ ", extra=" + Apoptosis.extraPercentForTest(plumeTarget));
+			Apoptosis.clearForTest(plumeTarget);
+			plumeTarget.discard();
+		}
+
+		equip(player, ApocryphaSlots.PERDITION_MASS, Apocrypha.SCOURGED_HEART.get());
+		Zombie ownerTarget = spawnCheckZombie(player, 100.0D);
+		if (ownerTarget == null) {
+			check("笞心归属测试目标", false, "Zombie 创建失败");
+		} else {
+			for (int hit = 0; hit < 6; hit++) {
+				Apoptosis.pushForTest(player, ownerTarget, 10.0F);
+			}
+			check("笞心爆条登记引爆者", player.getUUID().equals(Apoptosis.executeOwnerForTest(ownerTarget)),
+					"owner=" + Apoptosis.executeOwnerForTest(ownerTarget));
+			Apoptosis.clearForTest(ownerTarget);
+			ownerTarget.discard();
+		}
+
+		Zombie ownerExecute = spawnCheckZombie(player, 20.0D, 1.5F);
+		if (ownerExecute != null) {
+			Apoptosis.setStateForTest(ownerExecute, 100, 0, player.getUUID());
+			ownerExecute.invulnerableTime = 0;
+			ownerExecute.hurt(player.damageSources().playerAttack(player), 0.5F);
+			check("笞心引爆者可斩杀自己的损伤状态", !ownerExecute.isAlive(),
+					"health=" + ownerExecute.getHealth() + ", used=" + Apoptosis.executeUsedForTest(ownerExecute));
+			Apoptosis.clearForTest(ownerExecute);
+			ownerExecute.discard();
+		}
+
+		Zombie foreignState = spawnCheckZombie(player, 20.0D, 1.5F);
+		if (foreignState != null) {
+			Apoptosis.setStateForTest(foreignState, 100, 0, UUID.randomUUID());
+			foreignState.invulnerableTime = 0;
+			foreignState.hurt(player.damageSources().playerAttack(player), 0.5F);
+			check("笞心不能接手他人的损伤状态", foreignState.isAlive(),
+					"health=" + foreignState.getHealth());
+			Apoptosis.clearForTest(foreignState);
+			foreignState.discard();
+		}
+
+		unequip(player, ApocryphaSlots.PERDITION_SYNECDOCHE);
+		Zombie noBaseExecute = spawnCheckZombie(player, 20.0D, 1.5F);
+		if (noBaseExecute != null) {
+			Apoptosis.setStateForTest(noBaseExecute, 100, 0, player.getUUID());
+			noBaseExecute.invulnerableTime = 0;
+			noBaseExecute.hurt(player.damageSources().playerAttack(player), 0.5F);
+			check("笞心缺少堕天时不能斩杀", noBaseExecute.isAlive(),
+					"health=" + noBaseExecute.getHealth());
+			Apoptosis.clearForTest(noBaseExecute);
+			noBaseExecute.discard();
+		}
+		equip(player, ApocryphaSlots.PERDITION_SYNECDOCHE, Apocrypha.FALLEN_HEAVEN.get());
+		unequip(player, ApocryphaSlots.PERDITION_MASS);
+		Zombie noHeartExecute = spawnCheckZombie(player, 20.0D, 1.5F);
+		if (noHeartExecute != null) {
+			Apoptosis.setStateForTest(noHeartExecute, 100, 0, player.getUUID());
+			noHeartExecute.invulnerableTime = 0;
+			noHeartExecute.hurt(player.damageSources().playerAttack(player), 0.5F);
+			check("笞心卸下后不能斩杀", noHeartExecute.isAlive(),
+					"health=" + noHeartExecute.getHealth());
+			Apoptosis.clearForTest(noHeartExecute);
+			noHeartExecute.discard();
+		}
+
+		clearCurios(player);
+		equip(player, ApocryphaSlots.PERDITION_SYNECDOCHE, Apocrypha.FALLEN_HEAVEN.get());
+		equip(player, ApocryphaSlots.PERDITION_REQUIEM, Apocrypha.FINAL_SONG.get());
+		Zombie songTarget = spawnCheckZombie(player, 100.0D);
+		if (songTarget != null) {
+			for (int hit = 0; hit < 6; hit++) {
+				Apoptosis.pushForTest(player, songTarget, 10.0F);
+			}
+			check("终歌需同戴堕天并亲手引爆",
+					Apoptosis.isInjured(songTarget)
+							&& Math.abs(Apoptosis.healReductionForTest(songTarget) - 95.0D) < 0.01D
+							&& Math.abs(Apoptosis.damageTakenBonusForTest(songTarget) - 30.0D) < 0.01D,
+					"heal=" + Apoptosis.healReductionForTest(songTarget)
+							+ ", bonus=" + Apoptosis.damageTakenBonusForTest(songTarget));
+			Apoptosis.clearForTest(songTarget);
+			songTarget.discard();
+		}
+
+		clearCurios(player);
+		equip(player, ApocryphaSlots.PERDITION_MERCY, Apocrypha.WITHERED_BRUSH.get());
+		Zombie fearWithoutBase = spawnCheckZombie(player, 100.0D);
+		boolean fearPush = fearWithoutBase != null && Apoptosis.pushForTest(player, fearWithoutBase, 10.0F);
+		check("枯笔缺少堕天时不能引发恐惧", fearWithoutBase != null && !fearPush
+						&& !WitheredBrush.isFearedForTest(fearWithoutBase),
+				"pushed=" + fearPush);
+		if (fearWithoutBase != null) {
+			Apoptosis.clearForTest(fearWithoutBase);
+			WitheredBrush.clear(fearWithoutBase);
+			fearWithoutBase.discard();
+		}
+		equip(player, ApocryphaSlots.PERDITION_SYNECDOCHE, Apocrypha.FALLEN_HEAVEN.get());
+		Zombie fearTarget = spawnCheckZombie(player, 100.0D);
+		if (fearTarget != null) {
+			for (int hit = 0; hit < 6; hit++) {
+				Apoptosis.pushForTest(player, fearTarget, 10.0F);
+			}
+			check("枯笔同戴堕天并引爆后施加恐惧", WitheredBrush.isFearedForTest(fearTarget),
+					"feared=" + WitheredBrush.isFearedForTest(fearTarget));
+			Apoptosis.clearForTest(fearTarget);
+			WitheredBrush.clear(fearTarget);
+			fearTarget.discard();
+		}
+
+		clearCurios(player);
+		FallenPlumeWings.clear(player);
 	}
 
 	private static void checkStrictSwitch(ServerPlayer player) {
@@ -751,6 +976,43 @@ public final class ApocryphaDevCheck {
 	private static void equip(ServerPlayer player, String slot, Item item) {
 		CuriosApi.getCuriosInventory(player).ifPresent(handler ->
 				handler.setEquippedCurio(slot, 0, new ItemStack(item)));
+	}
+
+	private static void unequip(ServerPlayer player, String slot) {
+		CuriosApi.getCuriosInventory(player).ifPresent(handler ->
+				handler.setEquippedCurio(slot, 0, ItemStack.EMPTY));
+	}
+
+	private static void clearCurios(ServerPlayer player) {
+		CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
+			for (var entry : handler.getCurios().entrySet()) {
+				for (int slot = 0; slot < entry.getValue().getSlots(); slot++) {
+					handler.setEquippedCurio(entry.getKey(), slot, ItemStack.EMPTY);
+				}
+			}
+		});
+	}
+
+	private static Zombie spawnCheckZombie(ServerPlayer player, double maxHealth) {
+		return spawnCheckZombie(player, maxHealth, (float) maxHealth);
+	}
+
+	private static Zombie spawnCheckZombie(ServerPlayer player, double maxHealth, float health) {
+		ServerLevel level = player.serverLevel();
+		Zombie zombie = EntityType.ZOMBIE.create(level);
+		if (zombie == null) {
+			return null;
+		}
+		zombie.moveTo(player.position().add(3.0D, 0.0D, 0.0D));
+		zombie.setNoAi(true);
+		zombie.setInvulnerable(false);
+		var maxHealthAttribute = zombie.getAttribute(Attributes.MAX_HEALTH);
+		if (maxHealthAttribute != null) {
+			maxHealthAttribute.setBaseValue(maxHealth);
+		}
+		zombie.setHealth(Math.min(health, zombie.getMaxHealth()));
+		level.addFreshEntity(zombie);
+		return zombie;
 	}
 
 	private static void clearInventory(ServerPlayer player) {

@@ -27,8 +27,8 @@ import java.util.List;
  *
  * <p>它同时做两件事：① 放大整套的数值 —— 由佩戴者引爆时，**最终爆伤与损伤状态的附加比例各 ×1.5**；
  * ② 给本段损伤状态装上**斩杀** —— 目标受伤后（本次伤害结算完附加伤害再判）若生命值 ≤ 最大生命的 15%，
- * 就补上一击「最大生命 × 100%」的元素伤害，**每段损伤状态只落地一次**，且只有
- * **「本次伤害的造成者是佩戴笞心的玩家」**时才激活这个判断（见 {@code effect/Apoptosis#tryExecute}）。
+ * 就补上一击「最大生命 × 100%」的元素伤害，**每段损伤状态只落地一次**。只有爆条时同戴堕天与笞心的
+ * 引爆者取得归属，后续仍须该玩家且继续同戴两件时才激活（见 {@code effect/Apoptosis#tryExecute}）。
  */
 public class ScourgedHeartItem extends Item implements ApocryphaKeptCurioItem {
 	/** 暗红（恶魔线经文用色） */
