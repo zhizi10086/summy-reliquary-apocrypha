@@ -11,6 +11,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
@@ -18,8 +19,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
@@ -32,6 +36,7 @@ import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -103,8 +108,13 @@ public final class Apoptosis {
 
 	/** 本模组元素伤害类型的 id：钉住与「防递归」判定都用它 */
 	private static final String ELEMENT_ID = "summy-reliquary-apocrypha.apoptosis_element";
-	/** 原版近战伤害的唯一消息 id；用于把普通左键与同名伪造伤害区分开 */
-	private static final String PLAYER_ATTACK_ID = "minecraft.player_attack";
+	/** SE 的可选软兼容附魔 id；SE 未安装时注册表返回 null。 */
+	private static final ResourceLocation SE_SURPRISE = ResourceLocation.fromNamespaceAndPath(
+			"summy_enchantment", "surprise");
+	private static final ResourceLocation SE_ELECTRIC_BLADE = ResourceLocation.fromNamespaceAndPath(
+			"summy_enchantment", "electric_blade");
+	/** SE 电刀配置上限为每段 20 tick、最高 4 段；额外留出结算缓冲。 */
+	private static final long ELECTRIC_CREDIT_WINDOW_TICKS = 100L;
 	/** 同步节流：客户端会本地衰减，所以每 N tick 补发一次即可 */
 	private static final int SYNC_INTERVAL_TICKS = 5;
 
@@ -119,11 +129,37 @@ public final class Apoptosis {
 	private static final Map<UUID, ServerBossEvent> BOSS_BARS = new HashMap<>();
 	/** 玩家 → 本 tick 发生过普通左键攻击的标记；横扫沿用同一 tick 窗口 */
 	private static final Map<UUID, Long> MELEE_ATTACK_TICKS = new HashMap<>();
+	/** 普通攻击主目标，仅用于日志区分左键与横扫。 */
+	private static final Map<UUID, Integer> MELEE_MAIN_TARGETS = new HashMap<>();
 	/** 本 tick 已经计入的可信近战命中：同一攻击者对同一目标最多推一次 */
 	private static final Set<MeleeHit> MELEE_HITS = new HashSet<>();
+	/** 普通攻击跨越后续数 tick 的 SE 出其不意/电刀信用。 */
+	private static final Map<UUID, MeleeContext> MELEE_CONTEXTS = new HashMap<>();
 
 	/** 一次可信近战命中的去重键（攻击者 + 目标实体 id + 服务端 tick） */
 	private record MeleeHit(UUID attacker, int targetId, long tick) {
+	}
+
+	/** 一次计入推条的来源说明。 */
+	private record MeleeCredit(ServerPlayer attacker, String source) {
+	}
+
+	/** 普通攻击及其可选 SE 追加伤害的信用窗口。 */
+	private static final class MeleeContext {
+		private final long attackTick;
+		private final long electricExpiresTick;
+		private final int surpriseLevel;
+		private final int electricLevel;
+		private final Set<Integer> initialTargets = new HashSet<>();
+		private final Set<Integer> surpriseTargets = new HashSet<>();
+		private final Set<Integer> electricTargets = new HashSet<>();
+
+		private MeleeContext(long attackTick, long electricExpiresTick, int surpriseLevel, int electricLevel) {
+			this.attackTick = attackTick;
+			this.electricExpiresTick = electricExpiresTick;
+			this.surpriseLevel = surpriseLevel;
+			this.electricLevel = electricLevel;
+		}
 	}
 
 	private Apoptosis() {
@@ -295,7 +331,15 @@ public final class Apoptosis {
 				|| !(attacker.level() instanceof ServerLevel level)) {
 			return;
 		}
-		MELEE_ATTACK_TICKS.put(attacker.getUUID(), (long) level.getServer().getTickCount());
+		long tick = level.getServer().getTickCount();
+		ItemStack weapon = attacker.getMainHandItem();
+		int surpriseLevel = seEnchantmentLevel(weapon, SE_SURPRISE);
+		int electricLevel = seEnchantmentLevel(weapon, SE_ELECTRIC_BLADE);
+		MELEE_ATTACK_TICKS.put(attacker.getUUID(), tick);
+		MELEE_MAIN_TARGETS.put(attacker.getUUID(), event.getTarget().getId());
+		MELEE_CONTEXTS.put(attacker.getUUID(), new MeleeContext(tick,
+				tick + (electricLevel > 0 ? ELECTRIC_CREDIT_WINDOW_TICKS : 1L),
+				surpriseLevel, electricLevel));
 	}
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
@@ -329,12 +373,13 @@ public final class Apoptosis {
 		// 读档 / 长时间离线后残留的状态或进度：只要目标被碰过，就重新纳入计时表（自愈 + 让头顶条重新同步）
 		resumeIfCarrying(level, target);
 
-		// ② 只有可信近战才推条 / 削减抵抗：普通左键、横扫、遁入暗影实际斩击。
-		// 投掷短矛、电刀、追加魔法与其它直接以玩家为来源的特效不会进入这里。
-		ServerPlayer meleeAttacker = trustedMeleeAttacker(level, source, target);
-		if (meleeAttacker != null) {
+	// ② 只有可信近战才推条 / 削减抵抗：普通左键、横扫、遁入暗影实际斩击，
+	// 以及 SE「出其不意」和「电刀」的可核验追加命中。投掷物、弓箭与其它法术特效不会进入这里。
+		MeleeCredit meleeCredit = trustedMeleeCredit(level, source, target);
+		if (meleeCredit != null) {
+			ServerPlayer meleeAttacker = meleeCredit.attacker();
 			if (wearsFallenHeaven(meleeAttacker)) {
-				push(level, meleeAttacker, target, event.getAmount());
+				push(level, meleeAttacker, target, event.getAmount(), meleeCredit.source());
 			}
 			if (CurioHelper.wears(meleeAttacker, Apocrypha.WITHERED_BRUSH.get())) {
 				cutResistance(meleeAttacker, target);
@@ -358,20 +403,90 @@ public final class Apoptosis {
 	 * 由 {@link ShadowDash#isResolving(ServerPlayer)} 识别。最后用攻击者、目标、tick 去重，
 	 * 所以同一次挥刀随后产生的出其不意、斩杀追加或其它 {@code player_attack} 不会重复计数。
 	 */
-	private static ServerPlayer trustedMeleeAttacker(ServerLevel level, DamageSource source, LivingEntity target) {
+	private static MeleeCredit trustedMeleeCredit(ServerLevel level, DamageSource source, LivingEntity target) {
 		if (!(source.getDirectEntity() instanceof ServerPlayer attacker)
 				|| source.getEntity() != attacker
 				|| attacker == target
-				|| !PLAYER_ATTACK_ID.equals(source.getMsgId())) {
+				// getMsgId() 返回伤害类型的 message_id（原版近战是 "player"），
+				// 不能拿注册表 id "minecraft:player_attack" 比较。
+				|| !source.is(DamageTypes.PLAYER_ATTACK)) {
 			return null;
 		}
+		UUID attackerId = attacker.getUUID();
 		long tick = level.getServer().getTickCount();
-		boolean normalAttack = MELEE_ATTACK_TICKS.getOrDefault(attacker.getUUID(), Long.MIN_VALUE) == tick;
-		if (!normalAttack && !ShadowDash.isResolving(attacker)) {
+		MeleeHit hit = new MeleeHit(attackerId, target.getId(), tick);
+		boolean normalAttack = MELEE_ATTACK_TICKS.getOrDefault(attackerId, Long.MIN_VALUE) == tick;
+		MeleeContext context = MELEE_CONTEXTS.get(attackerId);
+		if (normalAttack) {
+			if (MELEE_HITS.add(hit)) {
+				if (context != null) {
+					context.initialTargets.add(target.getId());
+				}
+				String kind = MELEE_MAIN_TARGETS.getOrDefault(attackerId, Integer.MIN_VALUE) == target.getId()
+						? "普通左键"
+						: "横扫";
+				return new MeleeCredit(attacker, kind);
+			}
+			// SE 的出其不意会在同一 Player.attack 内、同一目标同一 tick 再打一次。
+			// 只有主命中实际落地、且主手确实带 SE surprise 时才发一次额外信用。
+			if (context != null && context.surpriseLevel > 0
+					&& context.initialTargets.contains(target.getId())
+					&& context.surpriseTargets.add(target.getId())) {
+				return new MeleeCredit(attacker, "出其不意");
+			}
 			return null;
 		}
-		MeleeHit hit = new MeleeHit(attacker.getUUID(), target.getId(), tick);
-		return MELEE_HITS.add(hit) ? attacker : null;
+		if (ShadowDash.isResolving(attacker)) {
+			return MELEE_HITS.add(hit) ? new MeleeCredit(attacker, "遁入暗影") : null;
+		}
+		// SE 电刀在同 tick（0 延迟）或后续 tick 用 player_attack 结算。按攻击时记录的电刀等级、
+		// 最大配置窗口，要求主命中实际落地，排除本次主命中/横扫目标，
+		// 并限制最多 electricLevel 个新增目标。
+		if (context != null && context.electricLevel > 0
+				&& !context.initialTargets.isEmpty()
+				// SE 允许 0 tick 延迟；此时电刀会在同一服务端 tick 的 END 阶段结算。
+				&& tick >= context.attackTick && tick <= context.electricExpiresTick
+				&& !context.initialTargets.contains(target.getId())
+				&& !context.electricTargets.contains(target.getId())
+				&& context.electricTargets.size() < context.electricLevel) {
+			context.electricTargets.add(target.getId());
+			return new MeleeCredit(attacker, "电刀");
+		}
+		return null;
+	}
+
+	/** 通过注册表 id 读取可选 SE 附魔等级；未安装 SE 或无该附魔时返回 0。 */
+	private static int seEnchantmentLevel(ItemStack stack, ResourceLocation id) {
+		var enchantment = ForgeRegistries.ENCHANTMENTS.getValue(id);
+		return enchantment == null || stack.isEmpty()
+				? 0
+				: EnchantmentHelper.getItemEnchantmentLevel(enchantment, stack);
+	}
+
+	/** 自检用：清掉同 tick 的近战窗口，避免测试攻击污染后续伤害用例。 */
+	public static void clearMeleeWindowsForTest() {
+		if (Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			MELEE_ATTACK_TICKS.clear();
+			MELEE_MAIN_TARGETS.clear();
+			MELEE_HITS.clear();
+			MELEE_CONTEXTS.clear();
+		}
+	}
+
+	/** 自检用：构造指定 SE 追加命中等级的近战信用窗口。 */
+	public static void prepareSeMeleeContextForTest(ServerPlayer player, LivingEntity mainTarget,
+			long attackTick, int surpriseLevel, int electricLevel) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return;
+		}
+		clearMeleeWindowsForTest();
+		MELEE_ATTACK_TICKS.put(player.getUUID(), attackTick);
+		MELEE_MAIN_TARGETS.put(player.getUUID(), mainTarget.getId());
+		MeleeContext context = new MeleeContext(attackTick,
+				attackTick + (electricLevel > 0 ? ELECTRIC_CREDIT_WINDOW_TICKS : 1L),
+				surpriseLevel, electricLevel);
+		context.initialTargets.add(mainTarget.getId());
+		MELEE_CONTEXTS.put(player.getUUID(), context);
 	}
 
 	/** 目标身上还留着未过期的状态或未清空的进度时，把它重新纳入计时表（读档自愈） */
@@ -515,6 +630,9 @@ public final class Apoptosis {
 		}
 		if (event.phase == TickEvent.Phase.END) {
 			MELEE_ATTACK_TICKS.clear();
+			MELEE_MAIN_TARGETS.clear();
+			MELEE_CONTEXTS.entrySet().removeIf(entry ->
+					event.getServer().getTickCount() > entry.getValue().electricExpiresTick);
 		}
 	}
 
@@ -568,6 +686,8 @@ public final class Apoptosis {
 		if (event.getEntity() instanceof ServerPlayer player) {
 			removeBar(player.getUUID());
 			MELEE_ATTACK_TICKS.remove(player.getUUID());
+			MELEE_MAIN_TARGETS.remove(player.getUUID());
+			MELEE_CONTEXTS.remove(player.getUUID());
 		}
 	}
 
@@ -604,7 +724,8 @@ public final class Apoptosis {
 
 	// ==================== 推条 / 爆条 ====================
 
-	private static boolean push(ServerLevel level, ServerPlayer attacker, LivingEntity target, float hitDamage) {
+	private static boolean push(ServerLevel level, ServerPlayer attacker, LivingEntity target, float hitDamage,
+			String sourceName) {
 		if (!wearsFallenHeaven(attacker)) {
 			return false;
 		}
@@ -622,6 +743,12 @@ public final class Apoptosis {
 		data.putDouble(PUSH_DAMAGE, pushDamage);
 		// 空闲清空的计时起点：每次成功推条都刷新
 		data.putLong(LAST_PUSH, now);
+		if (ApocryphaConfig.logTrigger()) {
+			Apocrypha.LOGGER.info(String.format(
+					"[凋亡] 推条：%s ← %s（来源：%s，%.2f → %.2f / %.2f）",
+					target.getName().getString(), attacker.getName().getString(), sourceName,
+					next - gain, next, barMax));
+		}
 		if (next >= barMax - 1.0E-6D) {
 			burst(level, attacker, target, pushDamage);
 			return true;
@@ -645,7 +772,7 @@ public final class Apoptosis {
 	public static boolean pushForTest(ServerPlayer attacker, LivingEntity target, float hitDamage) {
 		return Boolean.getBoolean("summy_apocrypha.devcheck")
 				&& attacker.level() instanceof ServerLevel level
-				&& push(level, attacker, target, hitDamage);
+				&& push(level, attacker, target, hitDamage, "自检");
 	}
 
 	/**
@@ -990,7 +1117,9 @@ public final class Apoptosis {
 	public static void clear() {
 		ACTIVE.clear();
 		MELEE_ATTACK_TICKS.clear();
+		MELEE_MAIN_TARGETS.clear();
 		MELEE_HITS.clear();
+		MELEE_CONTEXTS.clear();
 		for (ServerBossEvent bar : BOSS_BARS.values()) {
 			bar.removeAllPlayers();
 		}

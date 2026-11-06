@@ -788,6 +788,60 @@ public final class ApocryphaDevCheck {
 			plumeTarget.discard();
 		}
 
+		Zombie realMeleeTarget = spawnCheckZombie(player, 100.0D, 80.0F);
+		if (realMeleeTarget == null) {
+			check("真实玩家近战可推进凋亡条", false, "Zombie 创建失败");
+		} else {
+			realMeleeTarget.invulnerableTime = 0;
+			player.attack(realMeleeTarget);
+			double gained = Apoptosis.value(realMeleeTarget);
+			check("真实玩家近战可推进凋亡条", Math.abs(gained - 25.0D) < 0.01D,
+					"value=" + gained + ", source=player_attack");
+			Apoptosis.clearMeleeWindowsForTest();
+			Apoptosis.clearForTest(realMeleeTarget);
+			realMeleeTarget.discard();
+		}
+
+		Zombie surpriseTarget = spawnCheckZombie(player, 100.0D, 90.0F);
+		if (surpriseTarget == null) {
+			check("SE 出其不意可追加推条", false, "Zombie 创建失败");
+		} else {
+			long tick = player.serverLevel().getServer().getTickCount();
+			Apoptosis.prepareSeMeleeContextForTest(player, surpriseTarget, tick, 1, 0);
+			var source = player.damageSources().playerAttack(player);
+			surpriseTarget.invulnerableTime = 0;
+			surpriseTarget.hurt(source, 1.0F);
+			surpriseTarget.invulnerableTime = 0;
+			surpriseTarget.hurt(source, 1.0F);
+			double value = Apoptosis.value(surpriseTarget);
+			check("SE 出其不意可追加推条", Math.abs(value - 50.0D) < 0.01D,
+					"value=" + value + "（期望 50 = 主命中 25 + 出其不意 25）");
+			Apoptosis.clearMeleeWindowsForTest();
+			Apoptosis.clearForTest(surpriseTarget);
+			surpriseTarget.discard();
+		}
+
+		Zombie electricMain = spawnCheckZombie(player, 100.0D, 90.0F);
+		Zombie electricTarget = spawnCheckZombie(player, 100.0D, 90.0F);
+		if (electricMain == null || electricTarget == null) {
+			check("SE 电刀可追加推条", false, "Zombie 创建失败");
+		} else {
+			long tick = player.serverLevel().getServer().getTickCount();
+			Apoptosis.prepareSeMeleeContextForTest(player, electricMain, tick, 0, 1);
+			var source = player.damageSources().playerAttack(player);
+			electricTarget.invulnerableTime = 0;
+			electricTarget.hurt(source, 1.0F);
+			electricTarget.invulnerableTime = 0;
+			electricTarget.hurt(source, 1.0F);
+			double value = Apoptosis.value(electricTarget);
+			check("SE 电刀可追加推条", Math.abs(value - 25.0D) < 0.01D,
+					"value=" + value + "（期望 25，覆盖 0 tick 延迟且同目标不重复）");
+			Apoptosis.clearMeleeWindowsForTest();
+			Apoptosis.clearForTest(electricTarget);
+			electricTarget.discard();
+			electricMain.discard();
+		}
+
 		equip(player, ApocryphaSlots.PERDITION_MASS, Apocrypha.SCOURGED_HEART.get());
 		Zombie ownerTarget = spawnCheckZombie(player, 100.0D);
 		if (ownerTarget == null) {
