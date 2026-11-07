@@ -3,6 +3,7 @@ package com.summy.reliquary.apocrypha.entity;
 import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
+import com.summy.reliquary.effect.TrueDamageLimits;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -39,7 +40,7 @@ import net.minecraft.world.phys.Vec3;
  *
  * <p>伤害口径：固定 {@code pinnedDamage}（= 触发之箭「各类倍率后」的金额 × 配置比例），
  * 伤害类型 {@code summy-reliquary-apocrypha:holy_arrow} 的四个 {@code bypasses_*} 标签全开
- * → 无视护甲 / 保护附魔 / 抗性；命中时先在 LOWEST 优先级把金额改回钉住值（不再吃第二次 SR 乘区），
+ * → 无视护甲 / 保护附魔 / 抗性；命中时先在 LOWEST 优先级把金额改回钉住值（不吃 SR / SE 正面增伤），
  * 命中前后各清一次无敌帧，并还原目标速度实现**无击退**。
  */
 public class HolyArrow extends AbstractArrow {
@@ -135,7 +136,8 @@ public class HolyArrow extends AbstractArrow {
 		float healthBefore = target.getHealth();
 		// 无视无敌帧：先清零，保证这一箭不会被目标身上残留的无敌帧吞掉
 		target.invulnerableTime = 0;
-		boolean landedHit = target.hurt(damageSource(serverLevel, shooter), damage);
+		boolean landedHit = TrueDamageLimits.hurt(
+				target, damageSource(serverLevel, shooter), damage);
 		if (landedHit) {
 			// 先取一次「原版施加击退后」的速度作对照（日志里它与命中前速度的差就是被抵消掉的击退量）
 			Vec3 velocityKnocked = target.getDeltaMovement();

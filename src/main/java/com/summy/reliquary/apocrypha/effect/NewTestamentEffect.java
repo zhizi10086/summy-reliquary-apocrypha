@@ -4,6 +4,7 @@ import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
+import com.summy.reliquary.effect.TrueDamageLimits;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -107,7 +108,7 @@ public final class NewTestamentEffect {
 			// 迅羽·协约：与「新约」同戴时改写落箭的三项参数（概率 / 初速 / 伤害口径）
 			boolean upgraded = CurioHelper.wears(shooter, Apocrypha.SWIFT_FEATHER_COVENANT.get());
 			speedMultiplier = upgraded ? 1.0D + ApocryphaConfig.swiftSpeedBonusPercent() / 100.0D : 1.0D;
-			// 落箭的单支伤害**一律钉住**（不吃 SR 的增伤乘区）：
+			// 落箭的单支伤害**一律钉住**（不吃 SR / SE 正面增伤）：
 			// 同戴迅羽 → 触发之箭金额 × 比例；未同戴 → 固定用 arrow_damage。
 			// 钉住值 <= 0 时才退化回"不钉住"（例如把 arrow_damage 配成 0）。
 			pinnedDamage = upgraded
@@ -242,7 +243,7 @@ public final class NewTestamentEffect {
 	}
 
 	/**
-	 * 命中的口径说明（只服务调试日志）：本模组的落箭与圣光矢都**钉住**，不再吃 SR 的增伤乘区。
+	 * 命中的口径说明（只服务调试日志）：本模组的落箭与圣光矢都**钉住**，不吃 SR / SE 正面增伤。
 	 *
 	 * <p>钉住值 {@code <= 0} 是"没有钉住"的退化情形（例如把 {@code arrow_damage} 配成 0），
 	 * 那时仍按"各类倍率后"措辞。
@@ -252,7 +253,7 @@ public final class NewTestamentEffect {
 			return String.format("钉住：触发箭伤害的 %d%%", ApocryphaConfig.holyArrowDamageRatioPercent());
 		}
 		if (pinned > 0.0F) {
-			return String.format("钉住：%.1f 点（不吃 SR 增伤乘区）", pinned);
+			return String.format("钉住：%.1f 点（不吃 SR/SE 正面增伤）", pinned);
 		}
 		return "各类倍率后";
 	}
@@ -305,7 +306,8 @@ public final class NewTestamentEffect {
 		for (int index = 0; index < count; index++) {
 			Vec3 velocityBefore = target.getDeltaMovement();
 			target.invulnerableTime = 0;
-			boolean landed = target.hurt(source.damageSource(level, shooter), perHit);
+			boolean landed = TrueDamageLimits.hurt(
+					target, source.damageSource(level, shooter), perHit);
 			if (!landed) {
 				continue;
 			}

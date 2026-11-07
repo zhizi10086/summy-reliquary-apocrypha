@@ -3,6 +3,7 @@ package com.summy.reliquary.apocrypha.entity;
 import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
+import com.summy.reliquary.effect.TrueDamageLimits;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -33,10 +34,8 @@ import net.minecraft.world.phys.Vec3;
  * <p>伤害口径：固定 [new_testament] arrow_damage（默认 5），
  * 伤害类型是 summy-reliquary-apocrypha:new_testament_arrow，它的四个 bypasses_* 标签全开
  * → 无视护甲 / 保护附魔 / 抗性。伤害源的直接来源是本实体、造成者是玩家，因此：
- * <ul>
- *     <li>SR 会把这一击当作「玩家造成的远程伤害」，自动叠加七罪 / 七德与「全伤害最终倍率」乘区；</li>
- *     <li>本类型不在 SR 的 isDivine / isExactDamage 名单里，不会被 SR 当成自家特效伤害排除。</li>
- * </ul>
+ * 本类型登记在 SR 的固定真伤免增伤标签中：可以经 TrueDamageLimits 破除第三方
+ * 数值上限，但不会叠加 SR 的七罪 / 七德 / 最终倍率或 SE 死神祝福。
  *
  * <p>本实体不播放任何音效：听感反馈由 NewTestamentEffect 在散射触发时一次性给出。
  */
@@ -63,7 +62,7 @@ public class NewTestamentArrow extends AbstractArrow {
 	private int lifeTicks;
 	/**
 	 * 钉住的单支伤害（&gt; 0 时生效）：迅羽·协约档把伤害改成「触发之箭最终伤害的 N%」，
-	 * 命中时会在 LOWEST 处理器里把事件金额改回这个值，因此不再叠加 SR 的增伤乘区。
+	 * 命中时会在 LOWEST 处理器里把事件金额改回这个值，因此不叠加 SR / SE 正面增伤。
 	 */
 	private float pinnedDamage = -1.0F;
 	/**
@@ -158,7 +157,10 @@ public class NewTestamentArrow extends AbstractArrow {
 		// 无视无敌帧：先清零，保证这一箭不会被目标身上残留的无敌帧吞掉
 		// （伤害减免交给伤害类型的 bypasses_* 标签）
 		target.invulnerableTime = 0;
-		boolean landedHit = target.hurt(damageSource(serverLevel, shooter), (float) ApocryphaConfig.arrowDamage());
+		float damage = pinnedDamage > 0.0F
+				? pinnedDamage : (float) ApocryphaConfig.arrowDamage();
+		boolean landedHit = TrueDamageLimits.hurt(
+				target, damageSource(serverLevel, shooter), damage);
 		// 真伤不留帧：命中后再清一次，避免把无敌帧留给同批的其它落箭与随后落下的近战/箭矢。
 		// 只在真的打中时清 —— 被免疫/没落地时不该剥掉目标自己的保护帧。
 		if (landedHit) {

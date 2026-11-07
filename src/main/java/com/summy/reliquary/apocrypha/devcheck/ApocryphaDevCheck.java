@@ -14,8 +14,10 @@ import com.summy.reliquary.apocrypha.effect.WitheredBrush;
 import com.summy.reliquary.apocrypha.loot.ApocryphaAcquisition;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import com.summy.reliquary.apocrypha.text.ApocryphaText;
+import com.summy.reliquary.effect.HolyLightEffect;
 import com.summy.reliquary.effect.PlayerFlags;
 import com.summy.reliquary.effect.SlotSizing;
+import com.summy.reliquary.effect.TrueDamageLimits;
 import com.summy.reliquary.util.CurioHelper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -28,6 +30,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -147,6 +150,7 @@ public final class ApocryphaDevCheck {
 				case 500 -> checkStrictSwitch(player);
 				case 520 -> checkBilingualTooltipTemplates();
 				case 540 -> checkDependencyRules(player);
+				case 560 -> checkFixedDamageBlacklist(player);
 				case 600 -> prepareDeathScenario(player, false);
 				case 620 -> killTestPlayer(player);
 				case 660 -> respawnTestPlayer(player);
@@ -985,6 +989,89 @@ public final class ApocryphaDevCheck {
 
 		clearCurios(player);
 		FallenPlumeWings.clear(player);
+	}
+
+	/** SR 2.0.0：三类 SRA 真伤同时免 SR 正面增伤与 SE 死神祝福，但仍按固定基础值破限伤。 */
+	private static void checkFixedDamageBlacklist(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		TagKey<DamageType> srTag = TagKey.create(Registries.DAMAGE_TYPE,
+				ResourceLocation.fromNamespaceAndPath("summy-reliquary",
+						"fixed_true_damage_no_bonus"));
+		TagKey<DamageType> seTag = TagKey.create(Registries.DAMAGE_TYPE,
+				ResourceLocation.fromNamespaceAndPath("summy_enchantment",
+						"no_deaths_blessing_outgoing"));
+		String[] paths = {"new_testament_arrow", "holy_arrow", "apoptosis_element"};
+		boolean tagsOk = true;
+		for (String path : paths) {
+			DamageSource source = sraDamageSource(level, player, path);
+			boolean srTagged = source != null && source.is(srTag);
+			boolean seTagged = source != null && source.is(seTag);
+			boolean srNoBonus = source != null
+					&& HolyLightEffect.isFixedDamageWithoutBonus(source)
+					&& !HolyLightEffect.shouldApplyPlayerDamageBonuses(source);
+			tagsOk &= srTagged && seTagged && srNoBonus;
+			log("固定真伤标签 " + path + "：SR=" + srTagged
+					+ "、SE=" + seTagged + "、免SR增伤=" + srNoBonus);
+		}
+		check("SRA 三类固定真伤同时进入 SR/SE 标签", tagsOk, "types=" + String.join(",", paths));
+
+		DamageSource source = sraDamageSource(level, player, "new_testament_arrow");
+		if (source == null) {
+			check("固定真伤基础值补差", false, "缺少 new_testament_arrow 伤害类型");
+			return;
+		}
+		boolean originalEnabled = com.summy.reliquary.config.ReliquaryConfig
+				.trueDamageIgnoresDamageLimits();
+		FixedCapZombie target = new FixedCapZombie(level, 5.0F, 30.0F);
+		target.moveTo(player.position().add(4.0D, 0.0D, 0.0D));
+		target.setNoAi(true);
+		var maxHealth = target.getAttribute(Attributes.MAX_HEALTH);
+		if (maxHealth != null) {
+			maxHealth.setBaseValue(100.0D);
+		}
+		target.setHealth(100.0F);
+		level.addFreshEntity(target);
+		try {
+			com.summy.reliquary.config.ReliquaryConfig
+					.setTrueDamageIgnoresDamageLimitsForDevCheck(true);
+			float before = target.getHealth();
+			boolean landed = TrueDamageLimits.hurt(target, source, 20.0F);
+			float lost = before - target.getHealth();
+			check("固定真伤只按基础 20 补差", landed && Math.abs(lost - 20.0F) < 1.0E-4F,
+					"lost=" + lost + "（观察值 30，实际受理 5，期望总损失 20）");
+		} finally {
+			com.summy.reliquary.config.ReliquaryConfig
+					.setTrueDamageIgnoresDamageLimitsForDevCheck(originalEnabled);
+			target.discard();
+		}
+	}
+
+	private static DamageSource sraDamageSource(ServerLevel level, ServerPlayer attacker, String path) {
+		ResourceKey<DamageType> key = ResourceKey.create(Registries.DAMAGE_TYPE, Apocrypha.id(path));
+		return level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+				.getHolder(key)
+				.map(holder -> new DamageSource(holder, attacker, attacker))
+				.orElse(null);
+	}
+
+	/** 模拟第三方把事件金额观察为不同值、实际 hurt 只受理固定上限。 */
+	private static final class FixedCapZombie extends Zombie {
+		private final float cap;
+		private final float observedAmount;
+
+		private FixedCapZombie(ServerLevel level, float cap, float observedAmount) {
+			super(EntityType.ZOMBIE, level);
+			this.cap = cap;
+			this.observedAmount = observedAmount;
+		}
+
+		@Override
+		public boolean hurt(DamageSource source, float amount) {
+			TrueDamageLimits.capture(new LivingHurtEvent(this, source, observedAmount));
+			float accepted = Math.min(Math.max(0.0F, amount), cap);
+			setHealth(Math.max(0.0F, getHealth() - accepted));
+			return true;
+		}
 	}
 
 	private static void checkStrictSwitch(ServerPlayer player) {

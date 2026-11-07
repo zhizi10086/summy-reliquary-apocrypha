@@ -28,7 +28,7 @@ import java.util.List;
  * 触发概率 → {@code [swift_feather_covenant] chance_percent}；
  * 落箭初速 ×(1 + {@code speed_bonus_percent}%)；
  * 落箭伤害 = 触发之箭（在 LivingHurtEvent 里）金额的 {@code damage_ratio_percent}%，
- * 且该值**钉住**、不再叠加 SR 的增伤乘区。改写逻辑在 {@code effect/NewTestamentEffect} 的命中分支里。
+ * 且该值**钉住**、不叠加 SR / SE 正面增伤。改写逻辑在 {@code effect/NewTestamentEffect} 的命中分支里。
  */
 public class SwiftFeatherCovenantItem extends Item implements ApocryphaKeptCurioItem {
 	/** 淡金（天使线经文用色） */

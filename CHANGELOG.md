@@ -1,5 +1,20 @@
 # 更新日志
 
+## 0.1.3（2026-11-08）
+
+### SR 2.0.0 固定真伤破限闭环
+
+- 最低前置改为 Summy Reliquary `[2.0.0-forge,)`，编译依赖更新为最终 SR 候选 JAR。
+- `new_testament_arrow`、`holy_arrow`、`apoptosis_element` 同时加入 SR
+  `#summy-reliquary:fixed_true_damage_no_bonus` 与 SE `#summy_enchantment:no_deaths_blessing_outgoing`。
+- 普通落箭、逆羽瞬时结算、穿透圣光矢与凋亡元素伤害全部改走 `TrueDamageLimits.hurt`；
+  可突破第三方单笔上限与金额折算，但始终按 SRA 固定基础值结算，不吃 SR / SE 正面增伤。
+- `NewTestamentArrow` 的固定基础值优先使用实际 `pinnedDamage`，只有未钉值时回退 `arrow_damage`，
+  确保迅羽档补差目标与落箭真实固定值一致。
+- 保留 LOWEST 钉值、命中前后清帧、无击退速度恢复、原伤害源、逐笔瞬时结算、斩杀与 Loot 归属。
+- 真实客户端自检 **72 项、0 失败**；三类标签均命中，固定补差测试为事件观察 30、第三方实际受理 5、最终补到 20。
+- 配置仍 48 项，网络协议仍 `"2"`，服务端 Curio 栏位加载 28。
+
 ## 0.1.2-fix（2026-11-07 兼容补充）
 
 ### 慈善捆绑包 BONUS 开箱保底桥接

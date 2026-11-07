@@ -5,6 +5,7 @@ import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.net.ApoptosisBarMessage;
 import com.summy.reliquary.effect.ShadowDash;
+import com.summy.reliquary.effect.TrueDamageLimits;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -63,8 +64,8 @@ import java.util.UUID;
  * 累积阶段若连续 {@code idle_clear_seconds}（默认 30）秒没被推过条，进度与累计伤害一起清零。
  *
  * <p>**元素伤害**：独立伤害类型，自带四个 {@code bypasses_*} 标签（无视护甲 / 保护附魔 / 抗性 / 效果），
- * 并且金额**钉住** —— 在 {@link LivingHurtEvent}（LOWEST）把金额改回我们发出的固定值，因此不吃
- * SR 的七罪七德与全伤害乘区；固定值绝对优先，事件链上的其它增伤与减伤也会被还原。
+ * 并且金额**钉住** —— 在 {@link LivingHurtEvent}（LOWEST）把金额改回我们发出的固定值，并登记在
+ * SR 固定真伤黑名单与 SE 死神祝福排除标签中；固定值绝对优先，事件链上的其它增伤与减伤也会被还原。
  * 与 SE 的配合：该类型挂在
  * {@code #summy_enchantment:no_dodge} 标签里，因此不会被「灵动步伐」闪避。
  *
@@ -350,7 +351,7 @@ public final class Apoptosis {
 		LivingEntity target = event.getEntity();
 		DamageSource source = event.getSource();
 
-		// ① 本模组的元素伤害：把金额钉回固定值（不吃 SR 的七罪七德与全伤害乘区）
+		// ① 本模组的元素伤害：把金额钉回固定值（不吃 SR / SE 正面增伤）
 		if (ELEMENT_ID.equals(source.getMsgId())) {
 			if (!event.isCanceled()) {
 				event.setAmount(pendingElementDamage);
@@ -869,7 +870,8 @@ public final class Apoptosis {
 		Vec3 velocityBefore = target.getDeltaMovement();
 		// 无视无敌帧：先清零
 		target.invulnerableTime = 0;
-		boolean landed = target.hurt(elementSource(level, attacker), amount);
+		boolean landed = TrueDamageLimits.hurt(
+				target, elementSource(level, attacker), amount);
 		if (landed) {
 			target.setDeltaMovement(velocityBefore);
 			target.hurtMarked = true;

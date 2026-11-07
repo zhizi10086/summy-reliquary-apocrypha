@@ -124,7 +124,7 @@ public final class ApocryphaConfig {
 				.defineInRange("speed_bonus_percent", 50, 0, 400);
 		SWIFT_DAMAGE_RATIO_PERCENT = builder
 				.comment("落箭伤害：触发之箭「各类倍率结算后」金额的百分比",
-						"该值会被钉住 —— 落箭不再叠加 SR 的七罪/七德/最终倍率乘区")
+						"该值会被钉住 —— 落箭可破第三方限伤，但不叠加 SR / SE 正面增伤")
 				.defineInRange("damage_ratio_percent", 40, 0, 1000);
 		builder.pop();
 
@@ -170,7 +170,7 @@ public final class ApocryphaConfig {
 				.defineInRange("holy_arrow_chance_percent", 20, 0, 100);
 		PAIRED_HOLY_DAMAGE_RATIO_PERCENT = builder
 				.comment("圣光矢的伤害比例（百分比）：伤害 = 触发之箭「各类倍率后」的金额 × 该比例",
-						"该值会被钉住 —— 圣光矢命中时不再叠加 Summy Reliquary 的增伤乘区")
+						"该值会被钉住 —— 圣光矢可破第三方限伤，但不叠加 SR / SE 正面增伤")
 				.defineInRange("holy_arrow_damage_ratio_percent", 100, 0, 1000);
 		builder.pop();
 
@@ -183,7 +183,7 @@ public final class ApocryphaConfig {
 						"默认 16.67：在 bar_max=100 时需要 6 次命中")
 				.defineInRange("push_per_hit_base", 16.67D, 0.01D, 10000.0D);
 		APOPTOSIS_BURST_DAMAGE = builder
-				.comment("损伤爆发的元素伤害（点；元素伤害无视护甲/保护/抗性，且不吃增伤乘区）")
+				.comment("损伤爆发的元素伤害（点；无视护甲/保护/抗性，可破第三方限伤，但不吃 SR / SE 正面增伤）")
 				.defineInRange("burst_damage", 30.0D, 0.0D, 10000.0D);
 		APOPTOSIS_EXTRA_DAMAGE_PERCENT = builder
 				.comment("损伤状态期间，目标每次受伤额外附加的元素伤害（百分比，按该次伤害计算）")
