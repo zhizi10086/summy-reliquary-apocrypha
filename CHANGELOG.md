@@ -1,5 +1,16 @@
 # 更新日志
 
+## 0.1.2-fix（2026-11-07 兼容补充）
+
+### 慈善捆绑包 BONUS 开箱保底桥接
+
+- 监听 SR 公共事件 `HumbleingBundleBonusChestEvent`，在慈善捆绑包的额外开箱 pass 中直接调用
+  `ApocryphaAcquisition.tryGrantForBonusPass`，不依赖第二次真实右键窗口。
+- BONUS 仍遵守 SRA 当前单阵营、基础件获取与佩戴、后续概率和十箱保底规则；每个物理开箱最多推进一次额外 pass。
+- 真实客户端自检新增桥接用例：预置天使基础件与满保底后发布一次 BONUS 事件，断言只新增一件且保底清零；
+  总计 **70 项、0 失败**。
+- SR 编译依赖更新为 `summy-reliquary-2.0.0-forge.jar`；SRA 自身配置、网络协议 `"2"` 与 Curio 栏位不变。
+
 ## 0.1.2-fix（2026-11-06）
 
 ### 紧急修复：真实近战无法推进凋亡条

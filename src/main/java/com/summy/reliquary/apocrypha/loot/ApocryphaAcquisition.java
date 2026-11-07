@@ -121,7 +121,28 @@ public final class ApocryphaAcquisition {
 		}
 		// 一次实际开箱最多消费一个来源窗口，后续同名战利品表不会再被当作开箱。
 		CONTAINER_WINDOWS.remove(player.getUUID());
+		settle(player, context);
+	}
 
+	/**
+	 * 慈善捆绑包 BONUS 开箱入口。
+	 *
+	 * <p>事件本身保证每个物理开箱最多调用一次，这里不再要求第二次右键窗口。
+	 */
+	public static void tryGrantForBonusPass(LootContext context) {
+		if (!ApocryphaConfig.enable()) {
+			return;
+		}
+		ResourceLocation table = context.getQueriedLootTableId();
+		if (table == null || !table.getPath().startsWith("chests/")
+				|| !(context.getParamOrNull(LootContextParams.THIS_ENTITY) instanceof ServerPlayer player)
+				|| player.isSpectator()) {
+			return;
+		}
+		settle(player, context);
+	}
+
+	private static void settle(ServerPlayer player, LootContext context) {
 		boolean angel = PlayerFlags.hasAngel(player);
 		boolean demon = PlayerFlags.isDemon(player);
 		// 双标记或完全无标记都不结算；这也避免异常状态被误判成任一战线。
@@ -284,6 +305,16 @@ public final class ApocryphaAcquisition {
 		state.remove(DEMON_OWNED);
 		state.remove(ANGEL_PITY);
 		state.remove(DEMON_PITY);
+	}
+
+	/** 自检用：直接设置一条路线的取得位与保底计数。 */
+	public static void setStateForTest(ServerPlayer player, boolean angel, int owned, int pity) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return;
+		}
+		CompoundTag state = state(player);
+		state.putInt(angel ? ANGEL_OWNED : DEMON_OWNED, owned);
+		state.putInt(angel ? ANGEL_PITY : DEMON_PITY, pity);
 	}
 
 	/** 自检用：读取死亡快照内容。 */

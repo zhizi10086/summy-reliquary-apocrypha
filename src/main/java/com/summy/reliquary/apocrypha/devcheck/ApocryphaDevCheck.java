@@ -137,6 +137,7 @@ public final class ApocryphaDevCheck {
 				case 200 -> prepareInventoryVisual(player);
 				case 320 -> checkLootCommand(player);
 				case 340 -> checkRealChest(player);
+				case 350 -> checkHumbleingBundleBonus(player);
 				case 360 -> checkItemProtection(player);
 				case 400 -> setupApoptosisBar(player);
 				case 420 -> checkApoptosisBar();
@@ -433,6 +434,43 @@ public final class ApocryphaDevCheck {
 
 		checkDoubleChestConnectedHalf(player);
 		checkDoubleChestSingleConsume(player);
+	}
+
+	/** 慈善捆绑包 BONUS 事件应直接推进当前路线一次，不依赖第二次真实右键。 */
+	private static void checkHumbleingBundleBonus(ServerPlayer player) {
+		clearInventory(player);
+		PlayerFlags.setDemon(player, false);
+		PlayerFlags.setAngel(player, true);
+		forceSlots(player, true);
+		ApocryphaAcquisition.clearAcquisitionForTest(player);
+		ApocryphaAcquisition.setStateForTest(player, true, 1,
+				ApocryphaConfig.acquisitionPityChests());
+		equip(player, ApocryphaSlots.NEW_TESTAMENT_HALO, Apocrypha.NEW_TESTAMENT.get());
+
+		ServerLevel level = player.serverLevel();
+		ResourceLocation table = ResourceLocation.fromNamespaceAndPath(
+				"minecraft", "chests/simple_dungeon");
+		var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
+				.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN,
+						Vec3.atCenterOf(player.blockPosition()))
+				.withOptionalParameter(
+						net.minecraft.world.level.storage.loot.parameters.LootContextParams.THIS_ENTITY,
+						player)
+				.withLuck(player.getLuck())
+				.create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
+		var context = new net.minecraft.world.level.storage.loot.LootContext.Builder(params)
+				.withQueriedLootTableId(table)
+				.create(table);
+		MinecraftForge.EVENT_BUS.post(new com.summy.reliquary.loot.HumbleingBundleBonusChestEvent(
+				player, level, context));
+
+		int ownedAfter = ApocryphaAcquisition.ownedMaskForTest(player, true);
+		int pityAfter = ApocryphaAcquisition.pityForTest(player, true);
+		check("慈善捆绑包 BONUS 推进 SRA 一次",
+				(ownedAfter & 1) != 0 && Integer.bitCount(ownedAfter) == 2 && pityAfter == 0,
+				"owned=" + ownedAfter + ", pity=" + pityAfter);
+		ApocryphaAcquisition.clearAcquisitionForTest(player);
+		clearInventory(player);
 	}
 
 	/** 点击半边没有 LootTable、连接半边有时，仍必须按一次真实开箱结算。 */
