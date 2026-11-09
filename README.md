@@ -2,7 +2,8 @@
 
 > Summy Reliquary 的扩展包 · Minecraft 1.20.1 Forge
 
-**前置：** [Summy Reliquary](https://github.com/zhizi10086/summy-reliquary) `2.0.0-forge+`（必需）｜ Curios 5.14.1+1.20.1（必需）｜
+**前置：** [Summy Reliquary](https://github.com/zhizi10086/summy-reliquary) `2.0.0-forge+`（必需）｜
+Curios 运行时下限 5.4.0，测试与推荐基线 5.14.1+1.20.1｜
 Forge 1.20.1（推荐 47.4.10+）｜ JEI 15.59.0.211（可选，仅提供获取信息页）
 
 > **创作来源澄清**：SRA 是 Summy Reliquary 的独立扩展包，与《以撒的结合》无任何关联；新约与凋亡的题材、名词和机制设计灵感参考《明日方舟》。本模组全部贴图均由本模组美术自行绘制，未使用第三方游戏贴图。
