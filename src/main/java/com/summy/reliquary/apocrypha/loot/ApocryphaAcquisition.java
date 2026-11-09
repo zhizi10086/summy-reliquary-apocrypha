@@ -81,6 +81,8 @@ public final class ApocryphaAcquisition {
 	private static final Map<UUID, Long> DEATH_SNAPSHOT_TICKS = new HashMap<>();
 	/** 玩家本 tick 实际交互过的未开箱容器；防止 `/loot` 和模组直接调用伪造开箱 */
 	private static final Map<UUID, ContainerWindow> CONTAINER_WINDOWS = new HashMap<>();
+	/** 同一物理开箱只推进一次；普通 pass 与慈善 BONUS 共用此表。 */
+	private static final Map<UUID, OpeningIdentity> SETTLED_OPENINGS = new HashMap<>();
 
 	private record ContainerWindow(ResourceKey<Level> dimension, Map<BlockPos, ResourceLocation> blockTables,
 			net.minecraft.world.phys.Vec3 origin, ResourceLocation table, long tick) {
@@ -94,6 +96,15 @@ public final class ApocryphaAcquisition {
 				return expected != null && expected.equals(actualTable);
 			}
 			return table != null && table.equals(actualTable) && origin.distanceToSqr(actualOrigin) < 0.01D;
+		}
+	}
+
+	private record OpeningIdentity(ResourceKey<Level> dimension, ResourceLocation table,
+			double x, double y, double z, long tick) {
+		private static OpeningIdentity of(ServerLevel level, ResourceLocation table,
+				net.minecraft.world.phys.Vec3 origin) {
+			return new OpeningIdentity(level.dimension(), table, origin.x, origin.y, origin.z,
+					level.getServer().getTickCount());
 		}
 	}
 
@@ -121,7 +132,7 @@ public final class ApocryphaAcquisition {
 		}
 		// 一次实际开箱最多消费一个来源窗口，后续同名战利品表不会再被当作开箱。
 		CONTAINER_WINDOWS.remove(player.getUUID());
-		settle(player, context);
+		settleOnce(player, level, table, origin, context);
 	}
 
 	/**
@@ -137,6 +148,21 @@ public final class ApocryphaAcquisition {
 		if (table == null || !table.getPath().startsWith("chests/")
 				|| !(context.getParamOrNull(LootContextParams.THIS_ENTITY) instanceof ServerPlayer player)
 				|| player.isSpectator()) {
+			return;
+		}
+		net.minecraft.world.phys.Vec3 origin = context.getParamOrNull(LootContextParams.ORIGIN);
+		if (origin == null) {
+			return;
+		}
+		ServerLevel level = context.getLevel();
+		settleOnce(player, level, table, origin, context);
+	}
+
+	/** 普通 pass 与慈善 BONUS 共用一次开箱去重，避免同一物理容器推进两次。 */
+	private static void settleOnce(ServerPlayer player, ServerLevel level, ResourceLocation table,
+			net.minecraft.world.phys.Vec3 origin, LootContext context) {
+		OpeningIdentity identity = OpeningIdentity.of(level, table, origin);
+		if (identity.equals(SETTLED_OPENINGS.put(player.getUUID(), identity))) {
 			return;
 		}
 		settle(player, context);
@@ -402,6 +428,7 @@ public final class ApocryphaAcquisition {
 	public static void onServerTick(TickEvent.ServerTickEvent event) {
 		if (event.phase == TickEvent.Phase.START) {
 			CONTAINER_WINDOWS.clear();
+			SETTLED_OPENINGS.clear();
 			return;
 		}
 		if (event.phase != TickEvent.Phase.END || PENDING_RESTORES.isEmpty()) {
@@ -421,12 +448,14 @@ public final class ApocryphaAcquisition {
 		PENDING_RESTORES.clear();
 		DEATH_SNAPSHOT_TICKS.clear();
 		CONTAINER_WINDOWS.clear();
+		SETTLED_OPENINGS.clear();
 	}
 
 	@SubscribeEvent
 	public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
 		if (event.getEntity() instanceof ServerPlayer player) {
 			CONTAINER_WINDOWS.remove(player.getUUID());
+			SETTLED_OPENINGS.remove(player.getUUID());
 			DEATH_SNAPSHOT_TICKS.remove(player.getUUID());
 		}
 	}

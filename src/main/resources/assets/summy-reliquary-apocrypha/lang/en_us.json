@@ -68,6 +68,7 @@
   "jei.summy-reliquary-apocrypha.info.later.chance": "Each eligible chest has a %s chance to grant one of the four accessories shown above that you do not yet own.",
   "jei.summy-reliquary-apocrypha.info.later.pity": "After %s failed chests, the next one is guaranteed.",
   "jei.summy-reliquary-apocrypha.info.later.no_pity": "The consecutive-failure guarantee is currently disabled.",
+  "jei.summy-reliquary-apocrypha.info.bonus": "If the Humbleing Bundle triggers a BONUS pass, it shares one physical-opening guard with the normal pass. A single chest can advance this route at most once.",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s was pierced by falling arrows",
   "death.attack.summy-reliquary-apocrypha.holy_arrow": "%1$s was pierced by a holy arrow",

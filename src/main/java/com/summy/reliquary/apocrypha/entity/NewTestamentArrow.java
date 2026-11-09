@@ -156,11 +156,9 @@ public class NewTestamentArrow extends AbstractArrow {
 		float healthBefore = target.getHealth();
 		// 无视无敌帧：先清零，保证这一箭不会被目标身上残留的无敌帧吞掉
 		// （伤害减免交给伤害类型的 bypasses_* 标签）
-		target.invulnerableTime = 0;
 		float damage = pinnedDamage > 0.0F
 				? pinnedDamage : (float) ApocryphaConfig.arrowDamage();
-		boolean landedHit = TrueDamageLimits.hurt(
-				target, damageSource(serverLevel, shooter), damage);
+		boolean landedHit = resolveImpact(serverLevel, shooter, target, damage);
 		// 真伤不留帧：命中后再清一次，避免把无敌帧留给同批的其它落箭与随后落下的近战/箭矢。
 		// 只在真的打中时清 —— 被免疫/没落地时不该剥掉目标自己的保护帧。
 		if (landedHit) {
@@ -175,6 +173,22 @@ public class NewTestamentArrow extends AbstractArrow {
 					target.getDeltaMovement());
 		}
 		discard();
+	}
+
+	/**
+	 * 命中结算的唯一内部路径：正式命中与开发自检共用这里的清帧和固定真伤入口。
+	 */
+	private boolean resolveImpact(ServerLevel level, ServerPlayer shooter, LivingEntity target, float damage) {
+		target.invulnerableTime = 0;
+		return TrueDamageLimits.hurt(target, damageSource(level, shooter), damage);
+	}
+
+	/**
+	 * 自检用：走正式落箭的固定真伤入口，验证第三方限伤与保护帧不会吞掉基础金额。
+	 */
+	public boolean resolveImpactForTest(ServerLevel level, ServerPlayer shooter, LivingEntity target, float damage) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck")
+				&& resolveImpact(level, shooter, target, damage);
 	}
 
 	@Override

@@ -329,6 +329,16 @@ public final class NewTestamentEffect {
 		}
 	}
 
+	/**
+	 * 自检用：走逆羽正式瞬时结算路径，验证每支落箭都能在目标存活时逐笔补到固定值。
+	 */
+	public static void settleInstantlyForTest(ServerLevel level, ServerPlayer shooter, LivingEntity target,
+			int count, float pinnedDamage) {
+		if (Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			settleInstantly(level, shooter, target, count, 1.0D, pinnedDamage);
+		}
+	}
+
 	// 本次触发的落箭支数
 	private static int rollArrowCount(ServerLevel level) {
 		int min = Math.min(ApocryphaConfig.scatterArrowMin(), ApocryphaConfig.scatterArrowMax());

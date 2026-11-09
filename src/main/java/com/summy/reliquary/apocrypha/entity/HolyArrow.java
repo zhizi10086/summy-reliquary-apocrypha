@@ -135,9 +135,7 @@ public class HolyArrow extends AbstractArrow {
 		Vec3 velocityBefore = target.getDeltaMovement();
 		float healthBefore = target.getHealth();
 		// 无视无敌帧：先清零，保证这一箭不会被目标身上残留的无敌帧吞掉
-		target.invulnerableTime = 0;
-		boolean landedHit = TrueDamageLimits.hurt(
-				target, damageSource(serverLevel, shooter), damage);
+		boolean landedHit = resolveImpact(serverLevel, shooter, target, damage);
 		if (landedHit) {
 			// 先取一次「原版施加击退后」的速度作对照（日志里它与命中前速度的差就是被抵消掉的击退量）
 			Vec3 velocityKnocked = target.getDeltaMovement();
@@ -149,6 +147,22 @@ public class HolyArrow extends AbstractArrow {
 					target.getDeltaMovement());
 		}
 		// 无限穿透：不 discard，继续飞
+	}
+
+	/**
+	 * 圣光矢命中的唯一内部路径：正式命中与开发自检共用固定真伤入口。
+	 */
+	private boolean resolveImpact(ServerLevel level, ServerPlayer shooter, LivingEntity target, float damage) {
+		target.invulnerableTime = 0;
+		return TrueDamageLimits.hurt(target, damageSource(level, shooter), damage);
+	}
+
+	/**
+	 * 自检用：走正式圣光矢的固定真伤入口，验证补差金额与免增伤口径。
+	 */
+	public boolean resolveImpactForTest(ServerLevel level, ServerPlayer shooter, LivingEntity target, float damage) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck")
+				&& resolveImpact(level, shooter, target, damage);
 	}
 
 	/** 同一个生物只吃一次：已命中的目标不再参与碰撞检测 */

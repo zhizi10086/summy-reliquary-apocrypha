@@ -55,7 +55,7 @@ public final class ApocryphaJeiPlugin implements IModPlugin {
 
 	private static void registerBase(IRecipeRegistration registration, Supplier<? extends Item> item,
 			Component condition, Component guarantee) {
-		registration.addItemStackInfo(new ItemStack(item.get()), condition, guarantee);
+		registration.addItemStackInfo(new ItemStack(item.get()), condition, guarantee, text("bonus"));
 	}
 
 	private static void registerLater(IRecipeRegistration registration, List<Supplier<? extends Item>> items,
@@ -68,11 +68,13 @@ public final class ApocryphaJeiPlugin implements IModPlugin {
 		if (pityChests > 0) {
 			registration.addItemStackInfo(stacks, condition,
 					text("later.chance", chancePercent + "%"),
-					text("later.pity", pityChests));
+					text("later.pity", pityChests),
+					text("bonus"));
 		} else {
 			registration.addItemStackInfo(stacks, condition,
 					text("later.chance", chancePercent + "%"),
-					text("later.no_pity"));
+					text("later.no_pity"),
+					text("bonus"));
 		}
 	}
 

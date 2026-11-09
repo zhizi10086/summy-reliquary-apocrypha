@@ -11,6 +11,8 @@ import com.summy.reliquary.apocrypha.effect.HoverFlight;
 import com.summy.reliquary.apocrypha.effect.NewTestamentEffect;
 import com.summy.reliquary.apocrypha.effect.PairedWings;
 import com.summy.reliquary.apocrypha.effect.WitheredBrush;
+import com.summy.reliquary.apocrypha.entity.HolyArrow;
+import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
 import com.summy.reliquary.apocrypha.loot.ApocryphaAcquisition;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import com.summy.reliquary.apocrypha.text.ApocryphaText;
@@ -141,6 +143,7 @@ public final class ApocryphaDevCheck {
 				case 320 -> checkLootCommand(player);
 				case 340 -> checkRealChest(player);
 				case 350 -> checkHumbleingBundleBonus(player);
+				case 355 -> checkChestAndBonusSingleAdvance(player);
 				case 360 -> checkItemProtection(player);
 				case 400 -> setupApoptosisBar(player);
 				case 420 -> checkApoptosisBar();
@@ -151,6 +154,7 @@ public final class ApocryphaDevCheck {
 				case 520 -> checkBilingualTooltipTemplates();
 				case 540 -> checkDependencyRules(player);
 				case 560 -> checkFixedDamageBlacklist(player);
+				case 570 -> checkFixedDamageEntrypoints(player);
 				case 600 -> prepareDeathScenario(player, false);
 				case 620 -> killTestPlayer(player);
 				case 660 -> respawnTestPlayer(player);
@@ -478,6 +482,58 @@ public final class ApocryphaDevCheck {
 	}
 
 	/** 点击半边没有 LootTable、连接半边有时，仍必须按一次真实开箱结算。 */
+	/** 同一物理箱子的普通 pass 与慈善 BONUS 合计只能推进一次。 */
+	private static void checkChestAndBonusSingleAdvance(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		clearInventory(player);
+		PlayerFlags.setDemon(player, false);
+		PlayerFlags.setAngel(player, true);
+		forceSlots(player, true);
+		ApocryphaAcquisition.clearAcquisitionForTest(player);
+		ApocryphaAcquisition.setStateForTest(player, true, 1,
+				ApocryphaConfig.acquisitionPityChests());
+		equip(player, ApocryphaSlots.NEW_TESTAMENT_HALO, Apocrypha.NEW_TESTAMENT.get());
+
+		BlockPos pos = player.blockPosition().offset(8, 0, 0);
+		level.setBlockAndUpdate(pos, Blocks.CHEST.defaultBlockState());
+		ResourceLocation table = ResourceLocation.fromNamespaceAndPath(
+				"minecraft", "chests/simple_dungeon");
+		if (!(level.getBlockEntity(pos) instanceof ChestBlockEntity chest)) {
+			check("同一物理开箱只推进一次", false, "未找到 ChestBlockEntity");
+			return;
+		}
+		chest.setLootTable(table, 0L);
+		postBlockInteraction(player, pos);
+		chest.unpackLootTable(player);
+
+		var context = chestContext(player, table, Vec3.atCenterOf(pos));
+		MinecraftForge.EVENT_BUS.post(new com.summy.reliquary.loot.HumbleingBundleBonusChestEvent(
+				player, level, context));
+		int owned = ApocryphaAcquisition.ownedMaskForTest(player, true);
+		int pity = ApocryphaAcquisition.pityForTest(player, true);
+		int count = countManagedItems(player);
+		check("同一物理开箱只推进一次",
+				Integer.bitCount(owned) == 2 && pity == 0 && count == 2,
+				"owned=" + owned + ", pity=" + pity + ", count=" + count);
+		level.removeBlock(pos, false);
+		ApocryphaAcquisition.clearAcquisitionForTest(player);
+		clearInventory(player);
+	}
+
+	private static net.minecraft.world.level.storage.loot.LootContext chestContext(ServerPlayer player,
+			ResourceLocation table, Vec3 origin) {
+		var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(player.serverLevel())
+				.withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, origin)
+				.withOptionalParameter(
+						net.minecraft.world.level.storage.loot.parameters.LootContextParams.THIS_ENTITY,
+						player)
+				.withLuck(player.getLuck())
+				.create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
+		return new net.minecraft.world.level.storage.loot.LootContext.Builder(params)
+				.withQueriedLootTableId(table)
+				.create(table);
+	}
+
 	private static void checkDoubleChestConnectedHalf(ServerPlayer player) {
 		ServerLevel level = player.serverLevel();
 		clearInventory(player);
@@ -1046,6 +1102,73 @@ public final class ApocryphaDevCheck {
 		}
 	}
 
+	/** 逐一走四个真实产伤入口，避免只验证静态标签而未验证实际调用点。 */
+	private static void checkFixedDamageEntrypoints(ServerPlayer player) {
+		ServerLevel level = player.serverLevel();
+		boolean originalEnabled = com.summy.reliquary.config.ReliquaryConfig
+				.trueDamageIgnoresDamageLimits();
+		NewTestamentArrow arrow = new NewTestamentArrow(level, player);
+		HolyArrow holyArrow = new HolyArrow(level, player);
+		try {
+			com.summy.reliquary.config.ReliquaryConfig
+					.setTrueDamageIgnoresDamageLimitsForDevCheck(true);
+
+			FixedCapZombie arrowTarget = fixedCapTarget(level, player, 12.0D);
+			float arrowBefore = arrowTarget.getHealth();
+			boolean arrowLanded = arrow.resolveImpactForTest(level, player, arrowTarget, 20.0F);
+			float arrowLost = arrowBefore - arrowTarget.getHealth();
+			check("普通落箭真实入口固定补差",
+					arrowLanded && Math.abs(arrowLost - 20.0F) < 1.0E-4F,
+					"lost=" + arrowLost);
+			arrowTarget.discard();
+
+			FixedCapZombie holyTarget = fixedCapTarget(level, player, 14.0D);
+			float holyBefore = holyTarget.getHealth();
+			boolean holyLanded = holyArrow.resolveImpactForTest(level, player, holyTarget, 20.0F);
+			float holyLost = holyBefore - holyTarget.getHealth();
+			check("圣光矢真实入口固定补差",
+					holyLanded && Math.abs(holyLost - 20.0F) < 1.0E-4F,
+					"lost=" + holyLost);
+			holyTarget.discard();
+
+			FixedCapZombie instantTarget = fixedCapTarget(level, player, 16.0D);
+			float instantBefore = instantTarget.getHealth();
+			NewTestamentEffect.settleInstantlyForTest(level, player, instantTarget, 3, 20.0F);
+			float instantLost = instantBefore - instantTarget.getHealth();
+			check("逆羽瞬时落箭逐笔固定补差",
+					Math.abs(instantLost - 60.0F) < 1.0E-4F,
+					"lost=" + instantLost);
+			com.summy.reliquary.apocrypha.effect.ScatterVolley.clearShooter(player.getUUID());
+			instantTarget.discard();
+
+			FixedCapZombie elementTarget = fixedCapTarget(level, player, 18.0D);
+			float elementBefore = elementTarget.getHealth();
+			boolean elementLanded = Apoptosis.dealElementDamageForTest(player, elementTarget, 20.0F);
+			float elementLost = elementBefore - elementTarget.getHealth();
+			check("凋亡元素伤害真实入口固定补差",
+					elementLanded && Math.abs(elementLost - 20.0F) < 1.0E-4F,
+					"lost=" + elementLost);
+			elementTarget.discard();
+		} finally {
+			com.summy.reliquary.config.ReliquaryConfig
+					.setTrueDamageIgnoresDamageLimitsForDevCheck(originalEnabled);
+			com.summy.reliquary.apocrypha.effect.ScatterVolley.clearShooter(player.getUUID());
+		}
+	}
+
+	private static FixedCapZombie fixedCapTarget(ServerLevel level, ServerPlayer player, double xOffset) {
+		FixedCapZombie target = new FixedCapZombie(level, 5.0F, 30.0F);
+		target.moveTo(player.position().add(xOffset, 0.0D, 0.0D));
+		target.setNoAi(true);
+		var maxHealth = target.getAttribute(Attributes.MAX_HEALTH);
+		if (maxHealth != null) {
+			maxHealth.setBaseValue(100.0D);
+		}
+		target.setHealth(100.0F);
+		level.addFreshEntity(target);
+		return target;
+	}
+
 	private static DamageSource sraDamageSource(ServerLevel level, ServerPlayer attacker, String path) {
 		ResourceKey<DamageType> key = ResourceKey.create(Registries.DAMAGE_TYPE, Apocrypha.id(path));
 		return level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
@@ -1210,6 +1333,19 @@ public final class ApocryphaDevCheck {
 			count++;
 		}
 		return count;
+	}
+
+	private static int countManagedItems(ServerPlayer player) {
+		return countItem(player, Apocrypha.NEW_TESTAMENT.get())
+				+ countItem(player, Apocrypha.SWIFT_FEATHER_COVENANT.get())
+				+ countItem(player, Apocrypha.WING_FEATHER_SACRAMENT.get())
+				+ countItem(player, Apocrypha.INVERSE_FEATHER_HOVER.get())
+				+ countItem(player, Apocrypha.PAIRED_WINGS.get())
+				+ countItem(player, Apocrypha.FALLEN_HEAVEN.get())
+				+ countItem(player, Apocrypha.FALLEN_PLUME.get())
+				+ countItem(player, Apocrypha.SCOURGED_HEART.get())
+				+ countItem(player, Apocrypha.WITHERED_BRUSH.get())
+				+ countItem(player, Apocrypha.FINAL_SONG.get());
 	}
 
 	private static void forceSlots(ServerPlayer player, boolean angel) {

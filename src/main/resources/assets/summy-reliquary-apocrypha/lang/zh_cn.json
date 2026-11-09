@@ -68,6 +68,7 @@
   "jei.summy-reliquary-apocrypha.info.later.chance": "每个合格宝箱有%s概率获得上方四件中尚未拥有的一件。",
   "jei.summy-reliquary-apocrypha.info.later.pity": "连续%s箱未获得后，下一箱必得。",
   "jei.summy-reliquary-apocrypha.info.later.no_pity": "当前未启用连续失败保底。",
+  "jei.summy-reliquary-apocrypha.info.bonus": "若慈善捆绑包触发 BONUS，它会与普通 pass 共用同一物理开箱去重；同一个宝箱最多推进一次。",
 
   "death.attack.summy-reliquary-apocrypha.new_testament_arrow": "%1$s 被落下的箭矢贯穿",
   "death.attack.summy-reliquary-apocrypha.holy_arrow": "%1$s 被圣光矢贯穿",
