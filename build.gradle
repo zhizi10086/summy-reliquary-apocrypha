@@ -158,10 +158,22 @@ tasks.named('sourcesJar') {
     }
 }
 
-// 构建结束后把 reobf 后的 jar 复制到固定的发布目录（项目外的 ../JAR/summy-reliquary-apocrypha）
+// 从主协调树或版本 worktree 向上查找工作区 JAR 根，再按 Minecraft 版本归档。
+def resolveJarArchive = { String moduleDirectory ->
+    File cursor = projectDir
+    while (cursor != null && !new File(cursor, 'JAR').isDirectory()) {
+        cursor = cursor.parentFile
+    }
+    if (cursor == null) {
+        throw new GradleException('找不到工作区 JAR 归档目录')
+    }
+    return new File(cursor, "JAR/${project.minecraft_version}/${moduleDirectory}")
+}
+
+// 构建结束后把 reobf 后的 jar 复制到 JAR/<Minecraft版本>/summy-reliquary-apocrypha
 tasks.named('build') {
     doLast {
-        def releaseDir = file('../JAR/summy-reliquary-apocrypha')
+        def releaseDir = resolveJarArchive('summy-reliquary-apocrypha')
         releaseDir.mkdirs()
         // ForgeGradle 6 的 reobfJar 没有 archiveFile 属性：优先取 output，取不到就退回约定输出目录
         def reobfTask = tasks.named('reobfJar').get()

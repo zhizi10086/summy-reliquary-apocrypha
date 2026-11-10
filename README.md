@@ -341,7 +341,7 @@ Forge 1.20.1（推荐 47.4.10+）｜ JEI 15.59.0.211（可选，仅提供获取�
 
 ## 开发
 
-- 构建：`gradlew build`（需要 Java 17），产物会自动复制到 `../JAR/summy-reliquary-apocrypha/`
+- 构建：`gradlew build`（需要 Java 17），产物会自动复制到 `JAR/<Minecraft版本>/summy-reliquary-apocrypha/`
 - clone 后请先把 `gradle.properties` 里的 `org.gradle.java.home` 指向本机 JDK 17
   （仓库里那一行是注释示例，不填会用系统默认 JDK，可能不是 17 而构建失败）
 - 运行：`gradlew runClient` / `gradlew runServer`
@@ -426,7 +426,7 @@ libs/                       前置模组 Summy Reliquary 的生产 jar（**必�
 
 ## 更新前置 jar（SR 出新版本时）
 
-1. 把 SR 产物 `../JAR/summy-reliquary/summy-reliquary-<版本>.jar` 拷进本工程的 `libs/`
+1. 把 SR 产物 `JAR/<Minecraft版本>/summy-reliquary/summy-reliquary-<版本>.jar` 拷进本工程的 `libs/`
    （文件名保持 `summy-reliquary-<版本>.jar`）；
 2. 改 `gradle.properties` 的 `summy_reliquary_version=<版本>`；
 3. `gradlew build` 通过即可（`compileOnly` 与 `run/mods` 的那份都会跟着这个版本号走）。
