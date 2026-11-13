@@ -1,7 +1,7 @@
 package com.summy.reliquary.apocrypha;
 
 import com.mojang.logging.LogUtils;
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.ArrowDamageBonuses;
 import com.summy.reliquary.apocrypha.effect.Apoptosis;
@@ -28,6 +28,7 @@ import com.summy.reliquary.apocrypha.item.WitheredBrushItem;
 import com.summy.reliquary.apocrypha.item.FinalSongItem;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -36,16 +37,17 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.loot.IGlobalLootModifier;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.ModLoadingContext;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.core.component.DataComponents;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.slf4j.Logger;
 
 /**
@@ -67,16 +69,16 @@ public class Apocrypha {
 	public static final Logger LOGGER = LogUtils.getLogger();
 
 	private static final DeferredRegister<Item> ITEMS =
-			DeferredRegister.create(ForgeRegistries.ITEMS, NAMESPACE);
+			DeferredRegister.create(BuiltInRegistries.ITEM, NAMESPACE);
 	private static final DeferredRegister<CreativeModeTab> TABS =
 			DeferredRegister.create(Registries.CREATIVE_MODE_TAB, NAMESPACE);
 	private static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
-			DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, NAMESPACE);
-	private static final DeferredRegister<Codec<? extends IGlobalLootModifier>> LOOT_MODIFIER_CODECS =
-			DeferredRegister.create(ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, NAMESPACE);
+			DeferredRegister.create(Registries.ENTITY_TYPE, NAMESPACE);
+	private static final DeferredRegister<MapCodec<? extends IGlobalLootModifier>> LOOT_MODIFIER_CODECS =
+			DeferredRegister.create(NeoForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, NAMESPACE);
 
 	/** 落箭实体：与原版箭矢同档的同步范围 */
-	public static final RegistryObject<EntityType<NewTestamentArrow>> NEW_TESTAMENT_ARROW =
+	public static final DeferredHolder<EntityType<?>, EntityType<NewTestamentArrow>> NEW_TESTAMENT_ARROW =
 			ENTITY_TYPES.register("new_testament_arrow",
 					() -> EntityType.Builder
 							.<NewTestamentArrow>of(NewTestamentArrow::new, MobCategory.MISC)
@@ -90,7 +92,7 @@ public class Apocrypha {
 	 *
 	 * <p>外观是光灵箭（渲染器换贴图），飞行时无重力、无限穿透。
 	 */
-	public static final RegistryObject<EntityType<HolyArrow>> HOLY_ARROW =
+	public static final DeferredHolder<EntityType<?>, EntityType<HolyArrow>> HOLY_ARROW =
 			ENTITY_TYPES.register("holy_arrow",
 					() -> EntityType.Builder
 							.<HolyArrow>of(HolyArrow::new, MobCategory.MISC)
@@ -100,60 +102,61 @@ public class Apocrypha {
 							.build(id("holy_arrow").toString()));
 
 	/** 新约：装入「新约-光环」栏位的饰品（需要天使标记） */
-	public static final RegistryObject<Item> NEW_TESTAMENT =
+	public static final DeferredHolder<Item, Item> NEW_TESTAMENT =
 			ITEMS.register("new_testament", () -> new NewTestamentItem(new Item.Properties().stacksTo(1)));
 
 	/** 迅羽·协约：装入「新约-才能」栏位的饰品（需要天使标记；只改写「新约」的落箭参数） */
-	public static final RegistryObject<Item> SWIFT_FEATHER_COVENANT =
+	public static final DeferredHolder<Item, Item> SWIFT_FEATHER_COVENANT =
 			ITEMS.register("swift_feather_covenant",
 					() -> new SwiftFeatherCovenantItem(new Item.Properties().stacksTo(1)));
 
 	/** 翼羽·圣餐：装入「新约-恩典」栏位的饰品（需要天使标记；光羽凝聚 → 圣餐之矢） */
-	public static final RegistryObject<Item> WING_FEATHER_SACRAMENT =
+	public static final DeferredHolder<Item, Item> WING_FEATHER_SACRAMENT =
 			ITEMS.register("wing_feather_sacrament",
 					() -> new WingFeatherSacramentItem(new Item.Properties().stacksTo(1)));
 
 	/** 逆羽·滞空：装入「新约-祝福」栏位的饰品（需要天使标记；下落强化 + 缓降 + 额外跳跃） */
-	public static final RegistryObject<Item> INVERSE_FEATHER_HOVER =
+	public static final DeferredHolder<Item, Item> INVERSE_FEATHER_HOVER =
 			ITEMS.register("inverse_feather_hover",
 					() -> new InverseFeatherHoverItem(new Item.Properties().stacksTo(1)));
 
 	/** 比翼·连携：装入「新约-启示」栏位的饰品（需要天使标记；追加穿透圣光矢 + 与新约协同） */
-	public static final RegistryObject<Item> PAIRED_WINGS =
+	public static final DeferredHolder<Item, Item> PAIRED_WINGS =
 			ITEMS.register("paired_wings",
 					() -> new PairedWingsItem(new Item.Properties().stacksTo(1)));
 
 	/** 堕天：装入「殁亡之提喻」栏位的饰品（需要恶魔标记；开启凋亡套系的核心机制） */
-	public static final RegistryObject<Item> FALLEN_HEAVEN =
+	public static final DeferredHolder<Item, Item> FALLEN_HEAVEN =
 			ITEMS.register("fallen_heaven",
 					() -> new FallenHeavenItem(new Item.Properties().stacksTo(1)));
 
 	/** 坠羽：装入「殁亡之释经」栏位的饰品（需要恶魔标记；凋亡套系 #2，4 刀爆条 + 比例爆伤 + 爆条展翅） */
-	public static final RegistryObject<Item> FALLEN_PLUME =
+	public static final DeferredHolder<Item, Item> FALLEN_PLUME =
 			ITEMS.register("fallen_plume",
 					() -> new FallenPlumeItem(new Item.Properties().stacksTo(1)));
 
 	/** 笞心：装入「殁亡之弥撒」栏位的饰品（需要恶魔标记；凋亡套系 #3，爆伤与附加 ×1.5 + 斩杀） */
-	public static final RegistryObject<Item> SCOURGED_HEART =
+	public static final DeferredHolder<Item, Item> SCOURGED_HEART =
 			ITEMS.register("scourged_heart",
 					() -> new ScourgedHeartItem(new Item.Properties().stacksTo(1)));
 
 	/** 枯笔：装入「殁亡之悲悯」栏位的饰品（需要恶魔标记；凋亡套系 #4，抵抗削减 + 恐惧） */
-	public static final RegistryObject<Item> WITHERED_BRUSH =
+	public static final DeferredHolder<Item, Item> WITHERED_BRUSH =
 			ITEMS.register("withered_brush",
 					() -> new WitheredBrushItem(new Item.Properties().stacksTo(1)));
 
 	/** 终歌：装入「殁亡之终歌」栏位的饰品（需要恶魔标记；凋亡套系 #5 收官，每秒灼伤 + 减疗 95% + 受伤 +30%） */
-	public static final RegistryObject<Item> FINAL_SONG =
+	public static final DeferredHolder<Item, Item> FINAL_SONG =
 			ITEMS.register("final_song",
 					() -> new FinalSongItem(new Item.Properties().stacksTo(1)));
 
 	/** 战利品修饰器 codec：数据文件只负责把 Forge 的调用转进获取状态机 */
-	public static final RegistryObject<Codec<ApocryphaLootModifier>> ACQUISITION_LOOT_MODIFIER =
+	public static final DeferredHolder<MapCodec<? extends IGlobalLootModifier>,
+			MapCodec<ApocryphaLootModifier>> ACQUISITION_LOOT_MODIFIER =
 			LOOT_MODIFIER_CODECS.register("acquisition_reward", () -> ApocryphaLootModifier.CODEC);
 
 	/** 本模组专属创造标签页 */
-	public static final RegistryObject<CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
+	public static final DeferredHolder<CreativeModeTab, CreativeModeTab> ITEM_GROUP = TABS.register("main", () ->
 			CreativeModeTab.builder()
 					.title(Component.translatable("itemGroup." + NAMESPACE + ".main"))
 					// 创造页图标用「比翼·连携」（作者指定）
@@ -172,8 +175,7 @@ public class Apocrypha {
 					})
 					.build());
 
-	public Apocrypha() {
-		IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
+	public Apocrypha(IEventBus modBus, ModContainer modContainer) {
 		ITEMS.register(modBus);
 		TABS.register(modBus);
 		ENTITY_TYPES.register(modBus);
@@ -183,29 +185,29 @@ public class Apocrypha {
 		ApocryphaSlots.registerValidators();
 
 		// 配置：config/summy_reliquary_apocrypha-common.toml
-		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ApocryphaConfig.SPEC);
+		modContainer.registerConfig(ModConfig.Type.COMMON, ApocryphaConfig.SPEC);
 
 		// 游戏事件总线（命中判定与散射）。显式注册，不依赖注解自动注册：
 		// 与 SR 的做法一致，避免注解扫描在这个环境里的不确定性。
-		MinecraftForge.EVENT_BUS.register(NewTestamentEffect.class);
+		NeoForge.EVENT_BUS.register(NewTestamentEffect.class);
 		// 圣餐之矢：放箭登记 + 给新生成的箭打标记 + HIGHEST 放大伤害
-		MinecraftForge.EVENT_BUS.register(SacramentArrows.class);
+		NeoForge.EVENT_BUS.register(SacramentArrows.class);
 		// 箭矢伤害加成（圣餐之矢 +N% 与 逆羽·滞空 +M% 同轴相加）
-		MinecraftForge.EVENT_BUS.register(ArrowDamageBonuses.class);
+		NeoForge.EVENT_BUS.register(ArrowDamageBonuses.class);
 		// 凋亡（恶魔线）：损伤条状态机、元素伤害钉住、减疗与玩家侧 Boss 条
-		MinecraftForge.EVENT_BUS.register(Apoptosis.class);
+		NeoForge.EVENT_BUS.register(Apoptosis.class);
 		// 凋亡 #2「坠羽」：爆条时在引爆者背后展开的翅膀（标志写进饰品 NBT，客户端用 Curios 渲染层画）
-		MinecraftForge.EVENT_BUS.register(FallenPlumeWings.class);
+		NeoForge.EVENT_BUS.register(FallenPlumeWings.class);
 		// 凋亡 #4「枯笔」：恐惧（生物冻结 / 玩家定身与封禁近战·右击）
-		MinecraftForge.EVENT_BUS.register(WitheredBrush.class);
+		NeoForge.EVENT_BUS.register(WitheredBrush.class);
 		// 两套饰品的野箱获取状态机、死亡恢复与登录兼容扫描
-		MinecraftForge.EVENT_BUS.register(ApocryphaAcquisition.class);
+		NeoForge.EVENT_BUS.register(ApocryphaAcquisition.class);
 		// 10 件独占饰品的掉落物不可摧毁 / 永不消失，并从死亡掉落中剔除
-		MinecraftForge.EVENT_BUS.register(ApocryphaItemProtection.class);
+		NeoForge.EVENT_BUS.register(ApocryphaItemProtection.class);
 		// 本模组的指令（/summyapocrypha fear players <on|off>）
-		MinecraftForge.EVENT_BUS.register(ApocryphaCommand.class);
+		NeoForge.EVENT_BUS.register(ApocryphaCommand.class);
 		// 本模组自己的网络通道（协议 "2"：空中跳跃 C2S + 凋亡条 S2C）
-		ApocryphaNetworking.register();
+		modBus.addListener(ApocryphaNetworking::registerPayloadHandlers);
 
 		LOGGER.info("[Summy Reliquary: Apocrypha] 初始化完成（前置 Summy Reliquary {}、本模组协议 {}、SR 协议 {}）",
 				ReliquaryRef.version(), ApocryphaNetworking.protocolVersion(), ReliquaryRef.protocolVersion());
@@ -214,5 +216,23 @@ public class Apocrypha {
 	/** 构造本模组命名空间下的标识符 */
 	public static ResourceLocation id(String path) {
 		return ResourceLocation.fromNamespaceAndPath(NAMESPACE, path);
+	}
+
+	/** 读取物品自定义数据中的布尔标志。 */
+	public static boolean stackFlag(ItemStack stack, String key) {
+		return stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag().getBoolean(key);
+	}
+
+	/** 复制物品并更新自定义数据布尔标志。 */
+	public static ItemStack withStackFlag(ItemStack stack, String key, boolean value) {
+		ItemStack updated = stack.copy();
+		CustomData.update(DataComponents.CUSTOM_DATA, updated, tag -> {
+			if (value) {
+				tag.putBoolean(key, true);
+			} else {
+				tag.remove(key);
+			}
+		});
+		return updated;
 	}
 }

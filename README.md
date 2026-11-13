@@ -1,14 +1,14 @@
 # Summy Reliquary: Apocrypha
 
-> Summy Reliquary 的扩展包 · Minecraft 1.20.1 Forge
+> Summy Reliquary 的扩展包 · Minecraft 1.21.1 NeoForge
 
-**前置：** [Summy Reliquary](https://github.com/zhizi10086/summy-reliquary) `2.0.0-forge+`（必需）｜
-Curios 运行时下限 5.4.0，测试与推荐基线 5.14.1+1.20.1｜
-Forge 1.20.1（推荐 47.4.10+）｜ JEI 15.59.0.211（可选，仅提供获取信息页）
+**前置：** [Summy Reliquary](https://github.com/zhizi10086/summy-reliquary) `2.0.0-neoforge+`（必需）｜
+Curios 9.5.1+1.21.1（必需）｜
+NeoForge 21.1.265+｜ JEI 19.70.0.469（可选，仅提供获取信息页）
 
 > **创作来源澄清**：SRA 是 Summy Reliquary 的独立扩展包，与《以撒的结合》无任何关联；新约与凋亡的题材、名词和机制设计灵感参考《明日方舟》。本模组全部贴图均由本模组美术自行绘制，未使用第三方游戏贴图。
 
-> **当前版本**：`0.1.3`。要求 SR `2.0.0-forge+`；三类固定真伤接入 SR 破限伤黑名单，可突破第三方单笔上限与金额折算，
+> **当前版本**：`0.1.3+1.21.1-dev`。要求 SR `2.0.0-neoforge+`；三类固定真伤接入 SR 破限伤黑名单，可突破第三方单笔上限与金额折算，
 > 但不会获得 SR 七罪 / 七德 / 最终倍率或 SE 死神祝福。配置仍为 48 项，协议仍为 `"2"`；
 > SRA 自有 10 个 Curio 栏位不变，SR 2.0 下服务端总加载数为 28。
 
@@ -229,17 +229,17 @@ Forge 1.20.1（推荐 47.4.10+）｜ JEI 15.59.0.211（可选，仅提供获取�
 ## 清帧补强
 
 - **落箭本体**：命中前清一次（保证这一箭不被吞），`hurt()` 真的落地后再清一次（不把无敌帧留给同批其它落箭与随后落下的近战/箭矢）。只在真正打中时清。
-- **SR 的真伤**（启示之光 / 圣光 / 圣光爆发 / 神性光环 / 亚巴顿光环 / 恶魔之焰 / 狱火 / 契约献祭 / 献祭自伤）：**自 SR 1.8.6 起由 SR 本体负责清帧**（`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`）；本模组从 `0.1.3` 起要求 SR **`2.0.0-forge+`**，并用其 `TrueDamageLimits` 统一补齐第三方限伤削掉的差额。
+- **SR 的真伤**（启示之光 / 圣光 / 圣光爆发 / 神性光环 / 亚巴顿光环 / 恶魔之焰 / 狱火 / 契约献祭 / 献祭自伤）：**自 SR 1.8.6 起由 SR 本体负责清帧**（`ReliquaryEvents.onLivingHurtClearTrueDamageIframes`）；本模组从 `0.1.3` 起要求 SR **`2.0.0-neoforge+`**，并用其 `TrueDamageLimits` 统一补齐第三方限伤削掉的差额。
 - **本模组自身四种伤害仍由自己清帧**：落箭、圣光矢、元素伤害（爆条 / 附加 / 斩杀 / 终歌灼伤）、逆羽的瞬时结算 —— SR 不会代劳别家的伤害类型。
 - **代价**：真伤不再给受害者留 5 tick 保护帧（含玩家被真伤命中时），同 tick 内随后落下的普通伤害也会照常结算。
 - **普通攻击不受影响**：近战、原版箭矢、金刀片等仍按原版无敌帧语义处理。
 - **转正已完成**：SR 1.8.6 起由 SR 本体负责清帧，本模组的旁路与 `clear_sr_iframes_after_hit` 开关已删除。
-  **迁移提醒**：旧配置里残留的 `[general] clear_sr_iframes_after_hit` 会被 Forge 自动清掉（启动日志里会有一条
+  **迁移提醒**：旧配置里残留的 `[general] clear_sr_iframes_after_hit` 会被 NeoForge 配置系统处理（启动日志里会有一条
   `Incorrect key general.clear_sr_iframes_after_hit was corrected ... to its default, null`），不需要手动处理。
 
 ## 配置
 
-文件：`config/summy_reliquary_apocrypha-common.toml`（改完 Forge 会热加载，无需重启）。
+文件：`config/summy_reliquary_apocrypha-common.toml`（改完 NeoForge 会热加载，无需重启）。
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
@@ -341,9 +341,9 @@ Forge 1.20.1（推荐 47.4.10+）｜ JEI 15.59.0.211（可选，仅提供获取�
 
 ## 开发
 
-- 构建：`gradlew build`（需要 Java 17），产物会自动复制到 `JAR/<Minecraft版本>/summy-reliquary-apocrypha/`
-- clone 后请先把 `gradle.properties` 里的 `org.gradle.java.home` 指向本机 JDK 17
-  （仓库里那一行是注释示例，不填会用系统默认 JDK，可能不是 17 而构建失败）
+- 构建：`gradlew build`（需要 Java 21），产物会自动复制到 `JAR/<Minecraft版本>/summy-reliquary-apocrypha/`
+- clone 后请先把 `gradle.properties` 里的 `org.gradle.java.home` 指向本机 JDK 21
+  （仓库里那一行是注释示例，不填会用系统默认 JDK，可能不是 21 而构建失败）
 - 运行：`gradlew runClient` / `gradlew runServer`
 - 本地测试用指令（都来自 SR）：`/summyreliquary angel grant`（天使标记，佩戴「新约」系列所需）、
   `/summyreliquary demon grant`（恶魔标记，佩戴恶魔线「堕天」所需；该子命令需要 OP 权限）
@@ -368,7 +368,7 @@ src/main/java/com/summy/reliquary/apocrypha/   本模组源码（包名挂在 SR
   config/                   配置（config/summy_reliquary_apocrypha-common.toml）
   item/ApocryphaKeptCurioItem 10 件饰品共用的 Curios 死亡保留规则
   loot/ApocryphaAcquisition 两套野箱获取状态机：标记、基础件、15% 概率、十箱保底、获取位与死亡恢复
-  loot/ApocryphaLootModifier  Forge Global Loot Modifier 入口
+  loot/ApocryphaLootModifier  NeoForge Global Loot Modifier 入口
   loot/ApocryphaItemProtection 10 件饰品的死亡掉落剔除、不可摧毁与无限寿命
   integration/ApocryphaJeiPlugin JEI 原生“信息”分类：2 个基础件页 + 2 个后续共用页（可选客户端）
   effect/Apoptosis          凋亡核心：推条 / 爆条 / 损伤状态 / 损伤抵抗 / 元素伤害 / 玩家侧 Boss 条
@@ -391,7 +391,7 @@ src/main/java/com/summy/reliquary/apocrypha/   本模组源码（包名挂在 SR
   net/                      网络通道（协议 "2"：二段跳的空中跳跃 C2S 包 + 凋亡损伤条 S2C 包）
   slot/                     栏位校验谓词（含恶魔线「殁亡之」系列的栏位常量与列表）
 src/main/resources/
-  META-INF/mods.toml        模组元数据与前置声明
+  META-INF/neoforge.mods.toml  模组元数据与前置声明
   assets/summy-reliquary-apocrypha/   图标、语言文件、物品模型、栏位贴图
   data/summy-reliquary-apocrypha/     栏位定义、玩家栏位表、伤害类型（含凋亡元素伤害）
   data/minecraft/tags/damage_type/    把本模组的真实伤害类型加进原版减免标签
@@ -435,14 +435,14 @@ libs/                       前置模组 Summy Reliquary 的生产 jar（**必�
 
 - **启动就报缺少前置**：`run/mods` 里没有 SR（`gradlew runClient` 会自动投放；直接用 IDE 启动时要手动放）。
 - **装上饰品却查不到功能描述**：没有天使标记（`/summyreliquary angel grant`）。
-- **更新到本轮后落箭还是老样子（落点依旧集中）**：Forge 会**保留已存在**的配置值，旧配置文件里的
+- **更新到本轮后落箭还是老样子（落点依旧集中）**：NeoForge 会**保留已存在**的配置值，旧配置文件里的
   `scatter_spawn_height`（3.0）与 `scatter_initial_speed`（0.3）不会自动变成新默认值。
   删掉 `config\summy_reliquary_apocrypha-common.toml` 让它重新生成，或手动把这两个值改成 8.0 / 1.2。
 - **落箭没伤害**：确认 `data/summy-reliquary-apocrypha/damage_type/new_testament_arrow.json` 与四个
   `data/minecraft/tags/damage_type/bypasses_*.json` 都在 jar 里（被打包时丢文件会退回原版魔法伤害源）。
 - **落箭看着还是集中**：确认 `scatter_spawn_height` / `scatter_initial_speed` 没被改回小值；洞穴里会被
   天花板压回（看调试日志的「落箭起点」行）；戴圣心时会被追踪收拢（预期）。
-- **真伤还是被无敌帧吞**：确认 SR 版本 ≥ 2.0.0-forge（本模组已把前置下限提到该版本），并确认 SR 的
+- **真伤还是被无敌帧吞**：确认 SR 版本 ≥ 2.0.0-neoforge（本模组已把前置下限提到该版本），并确认 SR 的
   `[combat] clear_iframes_after_true_damage=true`；本模组自 1.8.6 起不再做这条旁路。
 - **二段跳没反应 / 只能跳一次**：确认 `[inverse_feather_hover] air_jumps` > 0 且饰品已佩戴；
   二段跳要求**离地之后松开过跳跃键**（一直按住不松不会触发，这是为了不把地面起跳那一次按键算进来）、

@@ -55,14 +55,17 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.common.damagesource.DamageContainer;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
 import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.ArrayList;
@@ -78,7 +81,7 @@ import java.io.InputStreamReader;
  * <p>只在 {@code gradlew runClient -Pdevcheck} 时启用。脚本使用当前世界/玩家，
  * 会清理玩家物品并修改栏位状态，因此必须只在专用测试世界中运行。
  */
-@Mod.EventBusSubscriber(modid = Apocrypha.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+@EventBusSubscriber(modid = Apocrypha.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public final class ApocryphaDevCheck {
 	private static final boolean ENABLED = Boolean.getBoolean("summy_apocrypha.devcheck");
 	private static final int CLIENT_IDLE_STOP_TICKS = 1200;
@@ -107,8 +110,8 @@ public final class ApocryphaDevCheck {
 	}
 
 	@SubscribeEvent
-	public static void onServerTick(TickEvent.ServerTickEvent event) {
-		if (!ENABLED || event.phase != TickEvent.Phase.END) {
+	public static void onServerTick(ServerTickEvent.Post event) {
+		if (!ENABLED) {
 			return;
 		}
 		List<ServerPlayer> players = event.getServer().getPlayerList().getPlayers();
@@ -148,6 +151,7 @@ public final class ApocryphaDevCheck {
 				case 400 -> setupApoptosisBar(player);
 				case 420 -> checkApoptosisBar();
 				case 440 -> checkProjectileRulesAndAirJumps(player);
+				case 450 -> prepareDemonCombatSlots(player);
 				case 460 -> checkFear(player);
 				case 480 -> checkElementAndExecute(player);
 				case 500 -> checkStrictSwitch(player);
@@ -180,8 +184,8 @@ public final class ApocryphaDevCheck {
 	}
 
 	@SubscribeEvent
-	public static void onClientTick(TickEvent.ClientTickEvent event) {
-		if (!ENABLED || event.phase != TickEvent.Phase.END) {
+	public static void onClientTick(ClientTickEvent.Post event) {
+		if (!ENABLED) {
 			return;
 		}
 		Minecraft client = Minecraft.getInstance();
@@ -218,7 +222,7 @@ public final class ApocryphaDevCheck {
 
 	/** 自检用：模拟其它模组在 NORMAL 阶段削减元素伤害，验证 LOWEST 仍钉回固定值。 */
 	@SubscribeEvent
-	public static void onTestElementReduction(LivingHurtEvent event) {
+	public static void onTestElementReduction(LivingIncomingDamageEvent event) {
 		if (ENABLED && reduceTestElement
 				&& "summy-reliquary-apocrypha.apoptosis_element".equals(event.getSource().getMsgId())) {
 			event.setAmount(event.getAmount() * 0.5F);
@@ -430,9 +434,10 @@ public final class ApocryphaDevCheck {
 			check("真实箱子测试", false, "未找到 ChestBlockEntity");
 			return;
 		}
-		chest.setLootTable(ResourceLocation.fromNamespaceAndPath("minecraft", "chests/simple_dungeon"), 0L);
+		chest.setLootTable(lootTableKey(
+				ResourceLocation.fromNamespaceAndPath("minecraft", "chests/simple_dungeon")), 0L);
 		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
-		MinecraftForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(
+		NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(
 				player, InteractionHand.MAIN_HAND, pos, hit));
 		chest.unpackLootTable(player);
 		int owned = ApocryphaAcquisition.ownedMaskForTest(player, true);
@@ -468,8 +473,8 @@ public final class ApocryphaDevCheck {
 				.create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
 		var context = new net.minecraft.world.level.storage.loot.LootContext.Builder(params)
 				.withQueriedLootTableId(table)
-				.create(table);
-		MinecraftForge.EVENT_BUS.post(new com.summy.reliquary.loot.HumbleingBundleBonusChestEvent(
+				.create(java.util.Optional.empty());
+		NeoForge.EVENT_BUS.post(new com.summy.reliquary.loot.HumbleingBundleBonusChestEvent(
 				player, level, context));
 
 		int ownedAfter = ApocryphaAcquisition.ownedMaskForTest(player, true);
@@ -502,12 +507,12 @@ public final class ApocryphaDevCheck {
 			check("同一物理开箱只推进一次", false, "未找到 ChestBlockEntity");
 			return;
 		}
-		chest.setLootTable(table, 0L);
+		chest.setLootTable(lootTableKey(table), 0L);
 		postBlockInteraction(player, pos);
 		chest.unpackLootTable(player);
 
 		var context = chestContext(player, table, Vec3.atCenterOf(pos));
-		MinecraftForge.EVENT_BUS.post(new com.summy.reliquary.loot.HumbleingBundleBonusChestEvent(
+		NeoForge.EVENT_BUS.post(new com.summy.reliquary.loot.HumbleingBundleBonusChestEvent(
 				player, level, context));
 		int owned = ApocryphaAcquisition.ownedMaskForTest(player, true);
 		int pity = ApocryphaAcquisition.pityForTest(player, true);
@@ -531,7 +536,7 @@ public final class ApocryphaDevCheck {
 				.create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
 		return new net.minecraft.world.level.storage.loot.LootContext.Builder(params)
 				.withQueriedLootTableId(table)
-				.create(table);
+				.create(java.util.Optional.empty());
 	}
 
 	private static void checkDoubleChestConnectedHalf(ServerPlayer player) {
@@ -555,7 +560,8 @@ public final class ApocryphaDevCheck {
 			level.removeBlock(other, false);
 			return;
 		}
-		otherChest.setLootTable(ResourceLocation.fromNamespaceAndPath("minecraft", "chests/simple_dungeon"), 0L);
+		otherChest.setLootTable(lootTableKey(
+				ResourceLocation.fromNamespaceAndPath("minecraft", "chests/simple_dungeon")), 0L);
 		postBlockInteraction(player, clicked);
 		otherChest.unpackLootTable(player);
 		int owned = ApocryphaAcquisition.ownedMaskForTest(player, true);
@@ -589,8 +595,8 @@ public final class ApocryphaDevCheck {
 			return;
 		}
 		ResourceLocation table = ResourceLocation.fromNamespaceAndPath("minecraft", "chests/simple_dungeon");
-		firstChest.setLootTable(table, 0L);
-		secondChest.setLootTable(table, 1L);
+		firstChest.setLootTable(lootTableKey(table), 0L);
+		secondChest.setLootTable(lootTableKey(table), 1L);
 		postBlockInteraction(player, first);
 		firstChest.unpackLootTable(player);
 		secondChest.unpackLootTable(player);
@@ -603,8 +609,13 @@ public final class ApocryphaDevCheck {
 
 	private static void postBlockInteraction(ServerPlayer player, BlockPos pos) {
 		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false);
-		MinecraftForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(
+		NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(
 				player, InteractionHand.MAIN_HAND, pos, hit));
+	}
+
+	private static ResourceKey<net.minecraft.world.level.storage.loot.LootTable> lootTableKey(
+			ResourceLocation table) {
+		return ResourceKey.create(Registries.LOOT_TABLE, table);
 	}
 
 	private static void checkItemProtection(ServerPlayer player) {
@@ -661,8 +672,8 @@ public final class ApocryphaDevCheck {
 
 	private static void checkProjectileRulesAndAirJumps(ServerPlayer player) {
 		ServerLevel level = player.serverLevel();
-		Arrow arrow = new Arrow(level, player);
-		SpectralArrow spectral = new SpectralArrow(level, player);
+		Arrow arrow = new Arrow(level, player, new ItemStack(Items.ARROW), null);
+		SpectralArrow spectral = new SpectralArrow(level, player, new ItemStack(Items.SPECTRAL_ARROW), null);
 		ThrownTrident trident = new ThrownTrident(level, player, new ItemStack(Items.TRIDENT));
 		check("普通箭被识别为弓箭", NewTestamentEffect.isPlayerBowArrowForTest(arrow), arrow.getType().toString());
 		check("光灵箭被识别为弓箭", NewTestamentEffect.isPlayerBowArrowForTest(spectral),
@@ -724,6 +735,14 @@ public final class ApocryphaDevCheck {
 		ApocryphaConfig.setFearAffectsPlayersForTest(false);
 	}
 
+	/** 先切换栏位并等待客户端同步，下一阶段再穿戴，避免旧栏位中的物品栈写入已缩为零格的新栏位。 */
+	private static void prepareDemonCombatSlots(ServerPlayer player) {
+		clearCurios(player);
+		PlayerFlags.setAngel(player, false);
+		PlayerFlags.setDemon(player, true);
+		forceSlots(player, false);
+	}
+
 	private static void checkElementAndExecute(ServerPlayer player) {
 		ServerLevel level = player.serverLevel();
 		Zombie fixedTarget = EntityType.ZOMBIE.create(level);
@@ -744,9 +763,6 @@ public final class ApocryphaDevCheck {
 		Apoptosis.clearForTest(fixedTarget);
 		fixedTarget.discard();
 
-		PlayerFlags.setAngel(player, false);
-		PlayerFlags.setDemon(player, true);
-		forceSlots(player, false);
 		equip(player, ApocryphaSlots.PERDITION_SYNECDOCHE, Apocrypha.FALLEN_HEAVEN.get());
 		equip(player, ApocryphaSlots.PERDITION_MASS, Apocrypha.SCOURGED_HEART.get());
 		boolean wearsHeart = CurioHelper.wears(player, Apocrypha.SCOURGED_HEART.get());
@@ -1190,7 +1206,8 @@ public final class ApocryphaDevCheck {
 
 		@Override
 		public boolean hurt(DamageSource source, float amount) {
-			TrueDamageLimits.capture(new LivingHurtEvent(this, source, observedAmount));
+			TrueDamageLimits.capture(new LivingIncomingDamageEvent(
+					this, new DamageContainer(source, observedAmount)));
 			float accepted = Math.min(Math.max(0.0F, amount), cap);
 			setHealth(Math.max(0.0F, getHealth() - accepted));
 			return true;

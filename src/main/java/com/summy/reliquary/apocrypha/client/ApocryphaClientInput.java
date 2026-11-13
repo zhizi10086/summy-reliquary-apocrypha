@@ -3,15 +3,15 @@ package com.summy.reliquary.apocrypha.client;
 import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.HoverFlight;
-import com.summy.reliquary.apocrypha.net.AirJumpMessage;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
 
 /**
  * 客户端输入：「逆羽·滞空」的额外跳跃（输入状态机参考 Artifacts 的「云朵瓶」）。
@@ -31,7 +31,7 @@ import net.minecraftforge.fml.common.Mod;
  *
  * <p>用 FORGE 总线订阅（客户端 tick 属于游戏事件总线），value = Dist.CLIENT 保证专用服务端不加载本类。
  */
-@Mod.EventBusSubscriber(modid = Apocrypha.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+@EventBusSubscriber(modid = Apocrypha.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public final class ApocryphaClientInput {
 	/** 本段离地已经用掉多少次额外跳跃 */
 	private static int airJumpsUsed;
@@ -42,10 +42,7 @@ public final class ApocryphaClientInput {
 	}
 
 	@SubscribeEvent
-	public static void onClientTick(TickEvent.ClientTickEvent event) {
-		if (event.phase != TickEvent.Phase.END) {
-			return;
-		}
+	public static void onClientTick(ClientTickEvent.Post event) {
 		Minecraft minecraft = Minecraft.getInstance();
 		LocalPlayer player = minecraft.player;
 		if (player == null || minecraft.level == null) {
@@ -82,7 +79,7 @@ public final class ApocryphaClientInput {
 		}
 		// 每一次额外跳跃都必须重新松开再按下，长按不能连续消耗多次预算。
 		hasReleasedJumpKey = false;
-		ApocryphaNetworking.CHANNEL.sendToServer(new AirJumpMessage());
+		ApocryphaNetworking.sendAirJump();
 		// 本地预测：立刻起效，不用等服务端回包
 		HoverFlight.jump(player);
 	}

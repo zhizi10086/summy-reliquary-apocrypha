@@ -5,9 +5,9 @@ import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
 
 /**
  * 箭矢命中的伤害加成（**同一个 HIGHEST 处理器**，排在 SR 的增伤乘区 NORMAL 之前）。
@@ -23,7 +23,7 @@ public final class ArrowDamageBonuses {
 	}
 
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
-	public static void onLivingHurt(LivingHurtEvent event) {
+	public static void onLivingHurt(LivingIncomingDamageEvent event) {
 		if (event.getEntity().level().isClientSide() || event.isCanceled() || !ApocryphaConfig.enable()) {
 			return;
 		}

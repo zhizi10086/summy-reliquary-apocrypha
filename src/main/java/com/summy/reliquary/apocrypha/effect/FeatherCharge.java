@@ -159,16 +159,11 @@ public final class FeatherCharge {
 						if (!stack.is(Apocrypha.WING_FEATHER_SACRAMENT.get())) {
 							continue;
 						}
-						boolean current = stack.hasTag() && stack.getTag().getBoolean(WING_FLAG);
+						boolean current = Apocrypha.stackFlag(stack, WING_FLAG);
 						if (current == want) {
 							continue;
 						}
-						ItemStack updated = stack.copy();
-						if (want) {
-							updated.getOrCreateTag().putBoolean(WING_FLAG, true);
-						} else if (updated.hasTag()) {
-							updated.getTag().remove(WING_FLAG);
-						}
+						ItemStack updated = Apocrypha.withStackFlag(stack, WING_FLAG, want);
 						stacks.setStackInSlot(index, updated);
 					}
 				}));

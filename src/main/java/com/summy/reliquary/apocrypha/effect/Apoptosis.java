@@ -26,18 +26,16 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.LivingHealEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.player.AttackEntityEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,7 +62,7 @@ import java.util.UUID;
  * 累积阶段若连续 {@code idle_clear_seconds}（默认 30）秒没被推过条，进度与累计伤害一起清零。
  *
  * <p>**元素伤害**：独立伤害类型，自带四个 {@code bypasses_*} 标签（无视护甲 / 保护附魔 / 抗性 / 效果），
- * 并且金额**钉住** —— 在 {@link LivingHurtEvent}（LOWEST）把金额改回我们发出的固定值，并登记在
+ * 并且金额**钉住** —— 在 {@link LivingIncomingDamageEvent}（LOWEST）把金额改回我们发出的固定值，并登记在
  * SR 固定真伤黑名单与 SE 死神祝福排除标签中；固定值绝对优先，事件链上的其它增伤与减伤也会被还原。
  * 与 SE 的配合：该类型挂在
  * {@code #summy_enchantment:no_dodge} 标签里，因此不会被「灵动步伐」闪避。
@@ -119,7 +117,7 @@ public final class Apoptosis {
 	/** 同步节流：客户端会本地衰减，所以每 N tick 补发一次即可 */
 	private static final int SYNC_INTERVAL_TICKS = 5;
 
-	/** 元素伤害的钉住值：发伤前写入，LivingHurtEvent（LOWEST）里改回去 */
+	/** 元素伤害的钉住值：发伤前写入，LivingIncomingDamageEvent（LOWEST）里改回去 */
 	private static float pendingElementDamage;
 	/** 最近一次元素伤害实际落地金额（只服务调试日志） */
 	private static float lastElementAmount;
@@ -334,8 +332,8 @@ public final class Apoptosis {
 		}
 		long tick = level.getServer().getTickCount();
 		ItemStack weapon = attacker.getMainHandItem();
-		int surpriseLevel = seEnchantmentLevel(weapon, SE_SURPRISE);
-		int electricLevel = seEnchantmentLevel(weapon, SE_ELECTRIC_BLADE);
+		int surpriseLevel = seEnchantmentLevel(level, weapon, SE_SURPRISE);
+		int electricLevel = seEnchantmentLevel(level, weapon, SE_ELECTRIC_BLADE);
 		MELEE_ATTACK_TICKS.put(attacker.getUUID(), tick);
 		MELEE_MAIN_TARGETS.put(attacker.getUUID(), event.getTarget().getId());
 		MELEE_CONTEXTS.put(attacker.getUUID(), new MeleeContext(tick,
@@ -344,7 +342,7 @@ public final class Apoptosis {
 	}
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
-	public static void onLivingHurt(LivingHurtEvent event) {
+	public static void onLivingHurt(LivingIncomingDamageEvent event) {
 		if (!(event.getEntity().level() instanceof ServerLevel level)) {
 			return;
 		}
@@ -457,11 +455,13 @@ public final class Apoptosis {
 	}
 
 	/** 通过注册表 id 读取可选 SE 附魔等级；未安装 SE 或无该附魔时返回 0。 */
-	private static int seEnchantmentLevel(ItemStack stack, ResourceLocation id) {
-		var enchantment = ForgeRegistries.ENCHANTMENTS.getValue(id);
-		return enchantment == null || stack.isEmpty()
-				? 0
-				: EnchantmentHelper.getItemEnchantmentLevel(enchantment, stack);
+	private static int seEnchantmentLevel(ServerLevel level, ItemStack stack, ResourceLocation id) {
+		return level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT)
+				.get(ResourceKey.create(Registries.ENCHANTMENT, id))
+				.map(enchantment -> stack.isEmpty()
+						? 0
+						: EnchantmentHelper.getItemEnchantmentLevel(enchantment, stack))
+				.orElse(0);
 	}
 
 	/** 自检用：清掉同 tick 的近战窗口，避免测试攻击污染后续伤害用例。 */
@@ -531,7 +531,7 @@ public final class Apoptosis {
 	 * 继续同时佩戴两件。没有这个归属就完全不判断。每段损伤状态只落地一次；这一刀本身就打死目标时不补
 	 * （避免抢走原本的死亡信息）。
 	 */
-	private static void tryExecute(ServerLevel level, LivingEntity target, LivingHurtEvent event) {
+	private static void tryExecute(ServerLevel level, LivingEntity target, LivingIncomingDamageEvent event) {
 		CompoundTag data = data(target);
 		Entity causing = event.getSource().getEntity();
 		if (!(causing instanceof ServerPlayer player)
@@ -622,26 +622,22 @@ public final class Apoptosis {
 	 * 遁入暗影走独立状态，不依赖这里的窗口。
 	 */
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
-	public static void onMeleeWindowTick(TickEvent.ServerTickEvent event) {
-		if (event.phase == TickEvent.Phase.START) {
-			// 普通近战窗口只在当前 tick 有效，避免跨 tick 吞掉投掷或后续技能伤害。
-			MELEE_ATTACK_TICKS.clear();
-			MELEE_HITS.clear();
-			return;
-		}
-		if (event.phase == TickEvent.Phase.END) {
-			MELEE_ATTACK_TICKS.clear();
-			MELEE_MAIN_TARGETS.clear();
-			MELEE_CONTEXTS.entrySet().removeIf(entry ->
-					event.getServer().getTickCount() > entry.getValue().electricExpiresTick);
-		}
+	public static void onMeleeWindowPre(ServerTickEvent.Pre event) {
+		// 普通近战窗口只在当前 tick 有效，避免跨 tick 吞掉投掷或后续技能伤害。
+		MELEE_ATTACK_TICKS.clear();
+		MELEE_HITS.clear();
+	}
+
+	@SubscribeEvent(priority = EventPriority.HIGHEST)
+	public static void onMeleeWindowPost(ServerTickEvent.Post event) {
+		MELEE_ATTACK_TICKS.clear();
+		MELEE_MAIN_TARGETS.clear();
+		MELEE_CONTEXTS.entrySet().removeIf(entry ->
+				event.getServer().getTickCount() > entry.getValue().electricExpiresTick);
 	}
 
 	@SubscribeEvent
-	public static void onServerTick(TickEvent.ServerTickEvent event) {
-		if (event.phase != TickEvent.Phase.END) {
-			return;
-		}
+	public static void onServerTick(ServerTickEvent.Post event) {
 		tickServer(event.getServer());
 	}
 
@@ -677,7 +673,7 @@ public final class Apoptosis {
 	@SubscribeEvent
 	public static void onStopTracking(PlayerEvent.StopTracking event) {
 		if (event.getEntity() instanceof ServerPlayer viewer && event.getTarget() instanceof LivingEntity target) {
-			ApocryphaNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer),
+			ApocryphaNetworking.sendToPlayer(viewer,
 					new ApoptosisBarMessage(target.getId(), 0.0F, 0, 0));
 		}
 	}
@@ -1048,14 +1044,14 @@ public final class Apoptosis {
 
 	private static void sync(LivingEntity target) {
 		boolean enabled = ApocryphaConfig.enable();
-		ApocryphaNetworking.CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> target),
+		ApocryphaNetworking.sendToTracking(target,
 				new ApoptosisBarMessage(target.getId(), enabled ? (float) value(target) : 0.0F,
 						enabled ? injuredTicks(target) : 0, enabled ? resistTicks(target) : 0));
 	}
 
 	private static void sendSnapshot(ServerPlayer viewer, LivingEntity target) {
 		boolean enabled = ApocryphaConfig.enable();
-		ApocryphaNetworking.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer),
+		ApocryphaNetworking.sendToPlayer(viewer,
 				new ApoptosisBarMessage(target.getId(), enabled ? (float) value(target) : 0.0F,
 						enabled ? injuredTicks(target) : 0, enabled ? resistTicks(target) : 0));
 	}

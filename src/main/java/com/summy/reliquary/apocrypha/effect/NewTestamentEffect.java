@@ -14,12 +14,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
 
 // 「新约」（落箭）与「比翼·连携」（穿透圣光矢）的命中判定、掷点、音效与调度，
 // 外加给 SR 真伤补的「命中后清帧」。
@@ -30,7 +30,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 //
 // 用 LOWEST 优先级：此时其它模组（含 SR）的取消与数值改写都已完成，我们只读事实、不回写伤害。
 public final class NewTestamentEffect {
-	// 调试日志用：最近一次「本模组落箭」命中在 LivingHurtEvent（LOWEST）里看到的金额（= 各类倍率结算后）。
+	// 调试日志用：最近一次「本模组落箭」命中在 LivingIncomingDamageEvent（LOWEST）里看到的金额（= 各类倍率结算后）。
 	// 事件是在 NewTestamentArrow.onHitEntity → hurt() 内部同步触发的，所以同一击内读它一定是本次的值；
 	// 只在服务端主线程读写，且只服务调试日志，不参与任何玩法判定。
 	private static float lastArrowHitAmount;
@@ -43,8 +43,8 @@ public final class NewTestamentEffect {
 	}
 
 	@SubscribeEvent(priority = EventPriority.LOWEST)
-	public static void onLivingHurt(LivingHurtEvent event) {
-		// 只在服务端处理（LivingHurtEvent 双端都会触发）
+	public static void onLivingHurt(LivingIncomingDamageEvent event) {
+		// 只在服务端处理（LivingIncomingDamageEvent 双端都会触发）
 		if (!(event.getEntity().level() instanceof ServerLevel level)) {
 			return;
 		}
@@ -180,10 +180,7 @@ public final class NewTestamentEffect {
 
 	// 服务端 tick 末尾：放出待落的箭 + 处理推迟到此刻的清帧（Kilt 侧）
 	@SubscribeEvent
-	public static void onServerTick(TickEvent.ServerTickEvent event) {
-		if (event.phase != TickEvent.Phase.END) {
-			return;
-		}
+	public static void onServerTick(ServerTickEvent.Post event) {
 		boolean enabled = ApocryphaConfig.enable();
 		if (enabled) {
 			ScatterVolley.tick(event.getServer());
@@ -218,7 +215,7 @@ public final class NewTestamentEffect {
 	 * 这里（LOWEST，且排在同优先级的 SR 处理器之前）改回钉住值 —— 于是最终落地金额
 	 * 正好是触发那一刻算出来的数（迅羽档 = 触发箭金额的 N%；圣光矢 = 触发箭金额 + 配置加成）。
 	 */
-	private static void recordOurArrowHit(LivingHurtEvent event, float pinned, boolean holy) {
+	private static void recordOurArrowHit(LivingIncomingDamageEvent event, float pinned, boolean holy) {
 		if (pinned > 0.0F && !event.isCanceled()) {
 			event.setAmount(pinned);
 		}
@@ -260,7 +257,7 @@ public final class NewTestamentEffect {
 
 	/** 退服：清掉该玩家的空中跳计数（只存内存，不写存档） */
 	@SubscribeEvent
-	public static void onPlayerLoggedOut(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
+	public static void onPlayerLoggedOut(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
 		if (event.getEntity() instanceof ServerPlayer player) {
 			clearPlayerEffects(player);
 		}

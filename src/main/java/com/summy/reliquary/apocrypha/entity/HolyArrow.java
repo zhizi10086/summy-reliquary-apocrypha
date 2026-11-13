@@ -69,7 +69,8 @@ public class HolyArrow extends AbstractArrow {
 
 	/** 由「比翼·连携」发射：owner = 射手玩家（出伤归属 + 远程口径） */
 	public HolyArrow(Level level, LivingEntity shooter) {
-		super(Apocrypha.HOLY_ARROW.get(), shooter, level);
+		// 1.21 服务端如果传入空武器栈会直接判定为非法发射器；本箭矢的伤害由命中回调自行结算。
+		super(Apocrypha.HOLY_ARROW.get(), shooter, level, ItemStack.EMPTY, null);
 		this.pickup = Pickup.DISALLOWED;
 		// 伤害完全由 onHitEntity 自己结算，不走原版箭矢的 baseDamage
 		this.setBaseDamage(0.0D);
@@ -77,6 +78,11 @@ public class HolyArrow extends AbstractArrow {
 
 	@Override
 	protected ItemStack getPickupItem() {
+		return ItemStack.EMPTY;
+	}
+
+	@Override
+	protected ItemStack getDefaultPickupItem() {
 		return ItemStack.EMPTY;
 	}
 

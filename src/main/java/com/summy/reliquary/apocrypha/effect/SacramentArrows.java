@@ -6,9 +6,9 @@ import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.player.ArrowLooseEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.player.ArrowLooseEvent;
+import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,7 +19,7 @@ import java.util.UUID;
 // 三步：
 //   ① ArrowLooseEvent（弓与弩都会触发）→ 检查门槛、消耗 1 对、登记"本玩家刚放箭"；
 //   ② EntityJoinLevelEvent → 同一时间窗内该玩家新生成的箭打上标记（Forge 持久数据，服务端）；
-//   ③ HIGHEST 的 LivingHurtEvent → 把该箭的伤害放大 30%（排在 SR 的 NORMAL 乘区之前，
+//   ③ HIGHEST 的 LivingIncomingDamageEvent → 把该箭的伤害放大 30%（排在 SR 的 NORMAL 乘区之前，
 //      所以后续增伤基于放大后的值，即"箭矢伤害本身 +30%"）。
 public final class SacramentArrows {
 	/** 箭上的标记键（Forge 持久数据，只在服务端读写） */

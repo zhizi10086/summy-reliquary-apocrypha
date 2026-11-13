@@ -27,7 +27,7 @@ import java.util.List;
  * <p>本身不提供任何属性，只在**与「新约」同戴**时改写后者落箭的三项参数：
  * 触发概率 → {@code [swift_feather_covenant] chance_percent}；
  * 落箭初速 ×(1 + {@code speed_bonus_percent}%)；
- * 落箭伤害 = 触发之箭（在 LivingHurtEvent 里）金额的 {@code damage_ratio_percent}%，
+ * 落箭伤害 = 触发之箭（在 LivingIncomingDamageEvent 里）金额的 {@code damage_ratio_percent}%，
  * 且该值**钉住**、不叠加 SR / SE 正面增伤。改写逻辑在 {@code effect/NewTestamentEffect} 的命中分支里。
  */
 public class SwiftFeatherCovenantItem extends Item implements ApocryphaKeptCurioItem {
@@ -55,7 +55,7 @@ public class SwiftFeatherCovenantItem extends Item implements ApocryphaKeptCurio
 	}
 
 	@Override
-	public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+	public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
 		ReliquaryTooltips.add(tooltip,
 				Component.translatable("item.summy-reliquary-apocrypha.swift_feather_covenant.desc.1")
 						.withStyle(Style.EMPTY.withColor(TextColor.fromRgb(PALE_GOLD)).withItalic(true)));

@@ -24,12 +24,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -222,7 +222,7 @@ public final class ApocryphaAcquisition {
 		state.putInt(pityKey, 0);
 	}
 
-	@SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+	@SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
 	public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
 		if (event.isCanceled() || !(event.getEntity() instanceof ServerPlayer player)
 				|| !(event.getLevel() instanceof ServerLevel level) || player.isSpectator()) {
@@ -234,14 +234,14 @@ public final class ApocryphaAcquisition {
 		}
 	}
 
-	@SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+	@SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
 	public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
 		if (event.isCanceled() || !(event.getEntity() instanceof ServerPlayer player)
 				|| !(event.getLevel() instanceof ServerLevel level) || player.isSpectator()
 				|| !(event.getTarget() instanceof AbstractMinecartContainer cart) || cart.getLootTable() == null) {
 			return;
 		}
-		rememberVehicleContainer(player, level, cart.position(), cart.getLootTable());
+		rememberVehicleContainer(player, level, cart.position(), cart.getLootTable().location());
 	}
 
 	/** 读取方块容器尚未生成的 LootTable；双箱同时登记两半的位置与各自的战利品表。 */
@@ -267,7 +267,7 @@ public final class ApocryphaAcquisition {
 		if (!(blockEntity instanceof RandomizableContainerBlockEntity container)) {
 			return null;
 		}
-		CompoundTag saved = container.saveWithoutMetadata();
+		CompoundTag saved = container.saveWithoutMetadata(container.getLevel().registryAccess());
 		if (!saved.contains(RandomizableContainerBlockEntity.LOOT_TABLE_TAG, CompoundTag.TAG_STRING)) {
 			return null;
 		}
@@ -370,7 +370,7 @@ public final class ApocryphaAcquisition {
 	/**
 	 * 死亡前采样：原版会在 LivingDropsEvent 前清空背包，因此数量必须在死亡事件刚成立时保存。
 	 */
-	@SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+	@SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
 	public static void onLivingDeath(LivingDeathEvent event) {
 		if (event.isCanceled() || !(event.getEntity() instanceof ServerPlayer player)) {
 			return;
@@ -425,13 +425,14 @@ public final class ApocryphaAcquisition {
 	}
 
 	@SubscribeEvent
-	public static void onServerTick(TickEvent.ServerTickEvent event) {
-		if (event.phase == TickEvent.Phase.START) {
-			CONTAINER_WINDOWS.clear();
-			SETTLED_OPENINGS.clear();
-			return;
-		}
-		if (event.phase != TickEvent.Phase.END || PENDING_RESTORES.isEmpty()) {
+	public static void onServerTickPre(ServerTickEvent.Pre event) {
+		CONTAINER_WINDOWS.clear();
+		SETTLED_OPENINGS.clear();
+	}
+
+	@SubscribeEvent
+	public static void onServerTickPost(ServerTickEvent.Post event) {
+		if (PENDING_RESTORES.isEmpty()) {
 			return;
 		}
 		MinecraftServer server = event.getServer();

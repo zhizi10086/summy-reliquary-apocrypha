@@ -1,21 +1,21 @@
 package com.summy.reliquary.apocrypha.net;
 
+import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.client.ApoptosisBarState;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-
-import java.util.function.Supplier;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 /**
- * S2C：把某个目标的「凋亡损伤条」状态发给能看到它的玩家（协议 {@code "2"} 新增）。
- *
- * <p>为什么需要它：条要画在目标头顶，而"当前损伤值 / 损伤状态剩余 / 抵抗剩余"只存在服务端，
- * 客户端必须知道才能渲染；原版没有可复用的同步通道，所以自己发一条。
- *
- * <p>客户端收到后写进 {@link ApoptosisBarState}（纯数据缓存），之后本地逐 tick 衰减，
- * 服务端只在阶段切换与节流间隔上补发，因此包量很小。
+ * S2C：同步某个目标的凋亡损伤条状态。
  */
-public final class ApoptosisBarMessage {
+public final class ApoptosisBarMessage implements CustomPacketPayload {
+	public static final Type<ApoptosisBarMessage> TYPE =
+			new Type<>(Apocrypha.id("apoptosis_bar"));
+	public static final StreamCodec<RegistryFriendlyByteBuf, ApoptosisBarMessage> CODEC =
+			StreamCodec.of((buffer, message) -> message.encode(buffer), ApoptosisBarMessage::new);
+
 	private final int entityId;
 	private final float value;
 	private final int injuredTicks;
@@ -28,22 +28,26 @@ public final class ApoptosisBarMessage {
 		this.resistTicks = resistTicks;
 	}
 
-	public static void encode(ApoptosisBarMessage message, FriendlyByteBuf buffer) {
-		buffer.writeVarInt(message.entityId);
-		buffer.writeFloat(message.value);
-		buffer.writeVarInt(message.injuredTicks);
-		buffer.writeVarInt(message.resistTicks);
+	private ApoptosisBarMessage(RegistryFriendlyByteBuf buffer) {
+		this.entityId = buffer.readVarInt();
+		this.value = buffer.readFloat();
+		this.injuredTicks = buffer.readVarInt();
+		this.resistTicks = buffer.readVarInt();
 	}
 
-	public static ApoptosisBarMessage decode(FriendlyByteBuf buffer) {
-		return new ApoptosisBarMessage(buffer.readVarInt(), buffer.readFloat(), buffer.readVarInt(),
-				buffer.readVarInt());
+	private void encode(RegistryFriendlyByteBuf buffer) {
+		buffer.writeVarInt(entityId);
+		buffer.writeFloat(value);
+		buffer.writeVarInt(injuredTicks);
+		buffer.writeVarInt(resistTicks);
 	}
 
-	public static void handle(ApoptosisBarMessage message, Supplier<NetworkEvent.Context> contextSupplier) {
-		NetworkEvent.Context context = contextSupplier.get();
-		context.enqueueWork(() -> ApoptosisBarState.accept(message.entityId, message.value, message.injuredTicks,
-				message.resistTicks));
-		context.setPacketHandled(true);
+	public void handle(IPayloadContext context) {
+		context.enqueueWork(() -> ApoptosisBarState.accept(entityId, value, injuredTicks, resistTicks));
+	}
+
+	@Override
+	public Type<? extends CustomPacketPayload> type() {
+		return TYPE;
 	}
 }

@@ -7,10 +7,10 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.bus.api.SubscribeEvent;
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.type.inventory.IDynamicStackHandler;
 
@@ -58,10 +58,7 @@ public final class FallenPlumeWings {
 	}
 
 	@SubscribeEvent
-	public static void onServerTick(TickEvent.ServerTickEvent event) {
-		if (event.phase != TickEvent.Phase.END) {
-			return;
-		}
+	public static void onServerTick(ServerTickEvent.Post event) {
 		if (!ApocryphaConfig.enable()) {
 			clearAll(event.getServer());
 			return;
@@ -132,16 +129,11 @@ public final class FallenPlumeWings {
 						if (!stack.is(Apocrypha.FALLEN_PLUME.get())) {
 							continue;
 						}
-						boolean current = stack.hasTag() && stack.getTag().getBoolean(FLAG);
+						boolean current = Apocrypha.stackFlag(stack, FLAG);
 						if (current == on) {
 							continue;
 						}
-						ItemStack updated = stack.copy();
-						if (on) {
-							updated.getOrCreateTag().putBoolean(FLAG, true);
-						} else if (updated.hasTag()) {
-							updated.getTag().remove(FLAG);
-						}
+						ItemStack updated = Apocrypha.withStackFlag(stack, FLAG, on);
 						stacks.setStackInSlot(index, updated);
 					}
 				}));

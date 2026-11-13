@@ -1,6 +1,6 @@
 package com.summy.reliquary.apocrypha.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
 /**
  * 配置：config/summy_reliquary_apocrypha-common.toml（文件名由 Forge 的 modId 决定）。
@@ -8,71 +8,71 @@ import net.minecraftforge.common.ForgeConfigSpec;
  * <p>按 SR 的习惯只提供配置文件、不做图形界面；改完文件后 Forge 会热加载，效果立即生效。
  */
 public final class ApocryphaConfig {
-	public static final ForgeConfigSpec SPEC;
+	public static final ModConfigSpec SPEC;
 
-	private static final ForgeConfigSpec.BooleanValue ENABLE;
-	private static final ForgeConfigSpec.IntValue ACQUISITION_CHANCE_PERCENT;
-	private static final ForgeConfigSpec.IntValue ACQUISITION_PITY_CHESTS;
+	private static final ModConfigSpec.BooleanValue ENABLE;
+	private static final ModConfigSpec.IntValue ACQUISITION_CHANCE_PERCENT;
+	private static final ModConfigSpec.IntValue ACQUISITION_PITY_CHESTS;
 
 	// ===== 新约 =====
-	private static final ForgeConfigSpec.DoubleValue HEAL_AMOUNT;
-	private static final ForgeConfigSpec.IntValue SCATTER_CHANCE_PERCENT;
-	private static final ForgeConfigSpec.IntValue SCATTER_ARROW_MIN;
-	private static final ForgeConfigSpec.IntValue SCATTER_ARROW_MAX;
-	private static final ForgeConfigSpec.DoubleValue SCATTER_SPAWN_HEIGHT;
-	private static final ForgeConfigSpec.DoubleValue SCATTER_ANGLE_MAX_DEGREES;
-	private static final ForgeConfigSpec.DoubleValue SCATTER_INITIAL_SPEED;
-	private static final ForgeConfigSpec.DoubleValue ARROW_DAMAGE;
-	private static final ForgeConfigSpec.BooleanValue LOG_TRIGGER;
+	private static final ModConfigSpec.DoubleValue HEAL_AMOUNT;
+	private static final ModConfigSpec.IntValue SCATTER_CHANCE_PERCENT;
+	private static final ModConfigSpec.IntValue SCATTER_ARROW_MIN;
+	private static final ModConfigSpec.IntValue SCATTER_ARROW_MAX;
+	private static final ModConfigSpec.DoubleValue SCATTER_SPAWN_HEIGHT;
+	private static final ModConfigSpec.DoubleValue SCATTER_ANGLE_MAX_DEGREES;
+	private static final ModConfigSpec.DoubleValue SCATTER_INITIAL_SPEED;
+	private static final ModConfigSpec.DoubleValue ARROW_DAMAGE;
+	private static final ModConfigSpec.BooleanValue LOG_TRIGGER;
 
 	// ===== 迅羽·协约（新约系列 #2；只改写「新约」的落箭参数）=====
-	private static final ForgeConfigSpec.IntValue SWIFT_CHANCE_PERCENT;
-	private static final ForgeConfigSpec.IntValue SWIFT_SPEED_BONUS_PERCENT;
-	private static final ForgeConfigSpec.IntValue SWIFT_DAMAGE_RATIO_PERCENT;
+	private static final ModConfigSpec.IntValue SWIFT_CHANCE_PERCENT;
+	private static final ModConfigSpec.IntValue SWIFT_SPEED_BONUS_PERCENT;
+	private static final ModConfigSpec.IntValue SWIFT_DAMAGE_RATIO_PERCENT;
 
 	// ===== 翼羽·圣餐（新约系列 #3）=====
-	private static final ForgeConfigSpec.IntValue SACRAMENT_DECAY_DELAY_SECONDS;
-	private static final ForgeConfigSpec.IntValue SACRAMENT_DECAY_INTERVAL_SECONDS;
-	private static final ForgeConfigSpec.IntValue SACRAMENT_DAMAGE_BONUS_PERCENT;
-	private static final ForgeConfigSpec.IntValue SACRAMENT_ARROW_COUNT;
+	private static final ModConfigSpec.IntValue SACRAMENT_DECAY_DELAY_SECONDS;
+	private static final ModConfigSpec.IntValue SACRAMENT_DECAY_INTERVAL_SECONDS;
+	private static final ModConfigSpec.IntValue SACRAMENT_DAMAGE_BONUS_PERCENT;
+	private static final ModConfigSpec.IntValue SACRAMENT_ARROW_COUNT;
 
 	// ===== 逆羽·滞空（新约系列 #4）=====
-	private static final ForgeConfigSpec.IntValue HOVER_FALLING_DAMAGE_PERCENT;
-	private static final ForgeConfigSpec.IntValue HOVER_FALLING_CHANCE_PERCENT;
-	private static final ForgeConfigSpec.IntValue HOVER_GLIDE_REDUCTION_PERCENT;
-	private static final ForgeConfigSpec.IntValue HOVER_AIR_JUMPS;
-	private static final ForgeConfigSpec.DoubleValue HOVER_AIR_JUMP_VELOCITY;
+	private static final ModConfigSpec.IntValue HOVER_FALLING_DAMAGE_PERCENT;
+	private static final ModConfigSpec.IntValue HOVER_FALLING_CHANCE_PERCENT;
+	private static final ModConfigSpec.IntValue HOVER_GLIDE_REDUCTION_PERCENT;
+	private static final ModConfigSpec.IntValue HOVER_AIR_JUMPS;
+	private static final ModConfigSpec.DoubleValue HOVER_AIR_JUMP_VELOCITY;
 
 	// ===== 比翼·连携（新约系列 #5）=====
-	private static final ForgeConfigSpec.IntValue PAIRED_HOLY_CHANCE_PERCENT;
-	private static final ForgeConfigSpec.IntValue PAIRED_HOLY_DAMAGE_RATIO_PERCENT;
+	private static final ModConfigSpec.IntValue PAIRED_HOLY_CHANCE_PERCENT;
+	private static final ModConfigSpec.IntValue PAIRED_HOLY_DAMAGE_RATIO_PERCENT;
 
 	// ===== 凋亡（恶魔线 #1：核心机制 + 堕天）=====
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BAR_MAX;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_PUSH_PER_HIT_BASE;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_DAMAGE;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_DAMAGE_PERCENT;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_HEAL_REDUCTION_PERCENT;
-	private static final ForgeConfigSpec.IntValue APOPTOSIS_INJURED_SECONDS;
-	private static final ForgeConfigSpec.IntValue APOPTOSIS_RESISTANCE_SECONDS;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_PUSH_PER_HIT_WITH_SECOND;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_RATIO_WITH_SECOND_PERCENT;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_DAMAGE_PERCENT_WITH_SECOND;
-	private static final ForgeConfigSpec.IntValue APOPTOSIS_WING_SECONDS;
-	private static final ForgeConfigSpec.IntValue APOPTOSIS_IDLE_CLEAR_SECONDS;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXECUTE_THRESHOLD_PERCENT;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXECUTE_DAMAGE_PERCENT_OF_MAX;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_MULTIPLIER_WITH_THIRD;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_EXTRA_MULTIPLIER_WITH_THIRD;
-	private static final ForgeConfigSpec.IntValue APOPTOSIS_RESISTANCE_CUT_SECONDS_WITH_FOURTH;
-	private static final ForgeConfigSpec.IntValue APOPTOSIS_FEAR_SECONDS_WITH_FOURTH;
-	private static final ForgeConfigSpec.BooleanValue APOPTOSIS_FEAR_AFFECTS_PLAYERS;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_BURST_PERCENT_PER_SECOND_WITH_FIFTH;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_HEAL_REDUCTION_PERCENT_WITH_FIFTH;
-	private static final ForgeConfigSpec.DoubleValue APOPTOSIS_DAMAGE_TAKEN_BONUS_PERCENT_WITH_FIFTH;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_BAR_MAX;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_PUSH_PER_HIT_BASE;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_BURST_DAMAGE;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_EXTRA_DAMAGE_PERCENT;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_HEAL_REDUCTION_PERCENT;
+	private static final ModConfigSpec.IntValue APOPTOSIS_INJURED_SECONDS;
+	private static final ModConfigSpec.IntValue APOPTOSIS_RESISTANCE_SECONDS;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_PUSH_PER_HIT_WITH_SECOND;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_BURST_RATIO_WITH_SECOND_PERCENT;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_EXTRA_DAMAGE_PERCENT_WITH_SECOND;
+	private static final ModConfigSpec.IntValue APOPTOSIS_WING_SECONDS;
+	private static final ModConfigSpec.IntValue APOPTOSIS_IDLE_CLEAR_SECONDS;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_EXECUTE_THRESHOLD_PERCENT;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_EXECUTE_DAMAGE_PERCENT_OF_MAX;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_BURST_MULTIPLIER_WITH_THIRD;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_EXTRA_MULTIPLIER_WITH_THIRD;
+	private static final ModConfigSpec.IntValue APOPTOSIS_RESISTANCE_CUT_SECONDS_WITH_FOURTH;
+	private static final ModConfigSpec.IntValue APOPTOSIS_FEAR_SECONDS_WITH_FOURTH;
+	private static final ModConfigSpec.BooleanValue APOPTOSIS_FEAR_AFFECTS_PLAYERS;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_BURST_PERCENT_PER_SECOND_WITH_FIFTH;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_HEAL_REDUCTION_PERCENT_WITH_FIFTH;
+	private static final ModConfigSpec.DoubleValue APOPTOSIS_DAMAGE_TAKEN_BONUS_PERCENT_WITH_FIFTH;
 
 	static {
-		ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+		ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
 		builder.comment("Summy Reliquary: Apocrypha 总开关").push("general");
 		ENABLE = builder.comment("是否启用本模组的玩法效果（关掉后饰品仍可佩戴，但不再触发效果）")

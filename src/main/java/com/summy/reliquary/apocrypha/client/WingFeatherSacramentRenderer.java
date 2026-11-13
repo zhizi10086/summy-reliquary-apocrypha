@@ -11,12 +11,10 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import top.theillusivec4.curios.api.SlotContext;
 import top.theillusivec4.curios.api.client.ICurioRenderer;
@@ -102,8 +100,7 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 		// 两件饰品共用这一套渲染：光翼看「攒满 3 对」的标志，恶魔翅膀（坠羽）看爆条时写的标志
 		boolean demon = stack.is(Apocrypha.FALLEN_PLUME.get());
 		String flag = demon ? FallenPlumeWings.FLAG : FeatherCharge.WING_FLAG;
-		CompoundTag tag = stack.getTag();
-		if (tag == null || !tag.getBoolean(flag)) {
+		if (!Apocrypha.stackFlag(stack, flag)) {
 			return;
 		}
 		// 只有人形模型（玩家、僵尸这类）才有躯干骨骼
@@ -141,13 +138,13 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
   private static void drawPair(PoseStack poseStack, MultiBufferSource buffer, int light,
       ResourceLocation texture) {
     float halfWidth = DEMON_PAIR_WIDTH / 2.0F;
-    Matrix4f matrix = poseStack.last().pose();
-    Matrix3f normal = poseStack.last().normal();
+    PoseStack.Pose pose = poseStack.last();
+    Matrix4f matrix = pose.pose();
     VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
-    vertex(consumer, matrix, normal, -halfWidth, 0.0F, light, 0.0F, 1.0F);
-    vertex(consumer, matrix, normal, -halfWidth, -DEMON_PAIR_HEIGHT, light, 0.0F, 0.0F);
-    vertex(consumer, matrix, normal, halfWidth, -DEMON_PAIR_HEIGHT, light, 1.0F, 0.0F);
-    vertex(consumer, matrix, normal, halfWidth, 0.0F, light, 1.0F, 1.0F);
+    vertex(consumer, matrix, pose, -halfWidth, 0.0F, light, 0.0F, 1.0F);
+    vertex(consumer, matrix, pose, -halfWidth, -DEMON_PAIR_HEIGHT, light, 0.0F, 0.0F);
+    vertex(consumer, matrix, pose, halfWidth, -DEMON_PAIR_HEIGHT, light, 1.0F, 0.0F);
+    vertex(consumer, matrix, pose, halfWidth, 0.0F, light, 1.0F, 1.0F);
   }
 
 	/**
@@ -164,25 +161,24 @@ public class WingFeatherSacramentRenderer implements ICurioRenderer {
 		}
 		// 镜像之后施加同一个内移，两片会自动对称地朝脊柱收拢
 		poseStack.translate(-shift, 0.0D, 0.0D);
-		Matrix4f matrix = poseStack.last().pose();
-		Matrix3f normal = poseStack.last().normal();
+		PoseStack.Pose pose = poseStack.last();
+		Matrix4f matrix = pose.pose();
 		VertexConsumer consumer = buffer.getBuffer(RenderType.entityCutoutNoCull(texture));
-		vertex(consumer, matrix, normal, 0.0F, 0.0F, light, 0.0F, 1.0F);
-		vertex(consumer, matrix, normal, 0.0F, -size, light, 0.0F, 0.0F);
-		vertex(consumer, matrix, normal, size, -size, light, 1.0F, 0.0F);
-		vertex(consumer, matrix, normal, size, 0.0F, light, 1.0F, 1.0F);
+		vertex(consumer, matrix, pose, 0.0F, 0.0F, light, 0.0F, 1.0F);
+		vertex(consumer, matrix, pose, 0.0F, -size, light, 0.0F, 0.0F);
+		vertex(consumer, matrix, pose, size, -size, light, 1.0F, 0.0F);
+		vertex(consumer, matrix, pose, size, 0.0F, light, 1.0F, 1.0F);
 		poseStack.popPose();
 	}
 
-	private static void vertex(VertexConsumer consumer, Matrix4f matrix, Matrix3f normal, float x, float y,
+	private static void vertex(VertexConsumer consumer, Matrix4f matrix, PoseStack.Pose pose, float x, float y,
 			int light, float u, float v) {
-		consumer.vertex(matrix, x, y, 0.0F)
-				.color(255, 255, 255, 255)
-				.uv(u, v)
-				.overlayCoords(OverlayTexture.NO_OVERLAY)
-				.uv2(light)
+		consumer.addVertex(matrix, x, y, 0.0F)
+				.setColor(255, 255, 255, 255)
+				.setUv(u, v)
+				.setOverlay(OverlayTexture.NO_OVERLAY)
+				.setLight(light)
 				// 本地 +Z 指向玩家身后，法线朝后朝向观察者
-				.normal(normal, 0.0F, 0.0F, 1.0F)
-				.endVertex();
+				.setNormal(pose, 0.0F, 0.0F, 1.0F);
 	}
 }

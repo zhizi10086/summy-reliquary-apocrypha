@@ -1,6 +1,6 @@
 # 素材来源与鸣谢
 
-> 本模组是 **Summy Reliquary（SR）的扩展包**，Minecraft 1.20.1 / Forge 47.4.10，**必须以 SR 为前置**。
+> 本模组是 **Summy Reliquary（SR）的扩展包**，Minecraft 1.21.1 / NeoForge 21.1.265，**必须以 SR 为前置**。
 > 许可见仓库根目录的 `LICENSE`（自定义许可：允许整合包收录、转载与个人修改，**必须保留声明并署名**，
 > **禁止任何商业用途**）。
 
@@ -10,7 +10,7 @@
   与「全伤害增幅」乘区、天使标记门槛、圣心箭矢追踪等机制都直接复用它的公开 API。
   本模组**不包含** SR 的任何代码或素材副本（`libs/` 里的 SR jar 仅作为编译期与开发运行期的前置）。
 - [Curios](https://modrinth.com/mod/curios)：饰品槽位系统（**必需前置**，转由 SR 一并要求）。
-- [Forge](https://files.minecraftforge.net/) `47.4.10`（Minecraft 1.20.1）：模组加载器（**必需**）。
+- [NeoForge](https://neoforged.net/) `21.1.265`（Minecraft 1.21.1）：模组加载器（**必需**）。
 
 ## 创作来源与素材声明
 

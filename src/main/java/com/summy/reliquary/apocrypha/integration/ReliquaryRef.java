@@ -1,6 +1,6 @@
 package com.summy.reliquary.apocrypha.integration;
 
-import net.minecraftforge.fml.ModList;
+import net.neoforged.fml.ModList;
 
 /**
  * 对前置模组 Summy Reliquary（SR）的唯一访问出口。

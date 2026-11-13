@@ -53,7 +53,7 @@ public class InverseFeatherHoverItem extends Item implements ApocryphaKeptCurioI
 	}
 
 	@Override
-	public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+	public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
 		ReliquaryTooltips.add(tooltip,
 				Component.translatable("item.summy-reliquary-apocrypha.inverse_feather_hover.desc.1")
 						.withStyle(Style.EMPTY.withColor(TextColor.fromRgb(PALE_GOLD)).withItalic(true)));

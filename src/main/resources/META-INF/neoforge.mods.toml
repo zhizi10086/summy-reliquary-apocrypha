@@ -1,0 +1,47 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "Custom (non-commercial; see LICENSE)"
+issueTrackerURL = "https://github.com/zhizi10086/summy-reliquary-apocrypha/issues"
+
+[[mods]]
+modId = "summy_reliquary_apocrypha"
+version = "${version}"
+displayName = "Summy Reliquary: Apocrypha"
+authors = "Summy"
+logoFile = "assets/summy-reliquary-apocrypha/icon.png"
+description = '''
+Summy Reliquary 的 NeoForge 1.21.1 扩展包，提供「新约」与「凋亡」两套十件 Curios 饰品。
+· 前置：Summy Reliquary 2.0.0-neoforge（必需）+ Curios 9.5.1+1.21.1（必需）
+· 获取：真实野箱首开保底基础件，随后按概率与十箱保底补齐四件
+· 玩法：天使线弓箭/落箭/光羽/二段跳，以及恶魔线凋亡损伤/爆条/斩杀/恐惧/终歌
+· 结算：三类固定真伤可突破第三方常规限伤，但不吃 SR / SE 正面增伤
+· 创作来源：新约/凋亡设计灵感参考《明日方舟》，全部贴图由本模组美术自行绘制
+'''
+
+[[dependencies.summy_reliquary_apocrypha]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1.265,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.summy_reliquary_apocrypha]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1]"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.summy_reliquary_apocrypha]]
+modId = "curios"
+type = "required"
+versionRange = "[9.0,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.summy_reliquary_apocrypha]]
+modId = "summy_reliquary"
+type = "required"
+versionRange = "[2.0.0-neoforge,)"
+ordering = "AFTER"
+side = "BOTH"

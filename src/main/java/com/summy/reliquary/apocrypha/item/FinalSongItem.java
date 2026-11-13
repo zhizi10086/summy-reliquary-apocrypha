@@ -54,7 +54,7 @@ public class FinalSongItem extends Item implements ApocryphaKeptCurioItem {
 	}
 
 	@Override
-	public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+	public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
 		ReliquaryTooltips.add(tooltip,
 				Component.translatable("item.summy-reliquary-apocrypha.final_song.desc.1")
 						.withStyle(Style.EMPTY.withColor(TextColor.fromRgb(DARK_RED)).withItalic(true)));

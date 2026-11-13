@@ -3,11 +3,12 @@ package com.summy.reliquary.apocrypha;
 import com.summy.reliquary.apocrypha.client.NewTestamentArrowRenderer;
 import com.summy.reliquary.apocrypha.client.HolyArrowRenderer;
 import com.summy.reliquary.apocrypha.client.WingFeatherSacramentRenderer;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import top.theillusivec4.curios.api.client.CuriosRendererRegistry;
 
 /**
@@ -16,7 +17,7 @@ import top.theillusivec4.curios.api.client.CuriosRendererRegistry;
  * <p>用 value = Dist.CLIENT 的注解订阅，FML 在专用服务端不会加载这个类
  * （与 SR 的 ReliquaryAttributes 同一套写法）。
  */
-@Mod.EventBusSubscriber(modid = Apocrypha.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+@EventBusSubscriber(modid = Apocrypha.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ApocryphaClient {
 	private ApocryphaClient() {
 	}

@@ -1,5 +1,15 @@
 # 更新日志
 
+## 1.21.1 迁移候选（2026-11-13，`0.1.3+1.21.1-dev`）
+
+- 工程迁移至 Java 21、Gradle 9.2.1、ModDevGradle 2.0.148、NeoForge 21.1.265 与 Curios 9.5.1+1.21.1。
+- 生产源码、强类型网络 payload、Curios 栏位、HUD、渲染、数据组件、伤害事件与 JEI 编译接口完成 1.21.1 迁移。
+- NeoForge 全局战利品修正器清单迁移至 `data/neoforge/loot_modifiers/global_loot_modifiers.json`。
+- 修复 1.21 箭矢必须使用有效发射武器栈或 `null` 的构造约束。
+- 真实客户端自检 **77 项、0 失败**；专用服务端加载 **28** 个 Curio 栏位、**48** 项配置，无 ERROR / Exception。
+- 真实箱子、双箱、慈善 BONUS、固定真伤、元素伤害、凋亡循环与死亡恢复通过；移除 SR 时由必需依赖检查拒绝加载。
+- 本地候选 JAR SHA-256：`CA87F905B312AEC87DB19ACDB0026E2E567AE25D3457CB2388336E84557AE644`。
+
 ## 0.1.3（2026-11-09）
 
 ### SR 2.0.0 固定真伤破限闭环

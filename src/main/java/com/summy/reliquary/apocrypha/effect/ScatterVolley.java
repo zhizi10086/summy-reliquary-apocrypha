@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -201,7 +202,7 @@ public final class ScatterVolley {
 		Vec3 from = new Vec3(center.x, center.y, center.z);
 		Vec3 to = new Vec3(center.x, center.y + configured, center.z);
 		BlockHitResult hit = level.clip(new ClipContext(from, to,
-				ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, null));
+				ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, CollisionContext.empty()));
 		double height = configured;
 		if (hit.getType() == HitResult.Type.BLOCK) {
 			height = Math.max(minHeight, hit.getLocation().y - center.y - CEILING_MARGIN);

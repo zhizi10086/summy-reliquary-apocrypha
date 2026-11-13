@@ -10,12 +10,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.event.RenderLivingEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.RenderLivingEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
 import org.joml.Matrix4f;
 
 /**
@@ -34,7 +35,7 @@ import org.joml.Matrix4f;
  *
  * <p>数据来自 {@link ApoptosisBarState}（由服务端的凋亡同步包写入），客户端每 tick 本地衰减。
  */
-@Mod.EventBusSubscriber(modid = Apocrypha.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
+@EventBusSubscriber(modid = Apocrypha.MOD_ID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public final class ApoptosisBarRenderer {
 	/** 条宽 / 条高（格） */
 	private static final float BAR_WIDTH = 0.9F;
@@ -63,10 +64,7 @@ public final class ApoptosisBarRenderer {
 	}
 
 	@SubscribeEvent
-	public static void onClientTick(TickEvent.ClientTickEvent event) {
-		if (event.phase != TickEvent.Phase.END) {
-			return;
-		}
+	public static void onClientTick(ClientTickEvent.Post event) {
 		if (!ApocryphaConfig.enable()) {
 			ApoptosisBarState.clear();
 			return;
@@ -162,9 +160,9 @@ public final class ApoptosisBarRenderer {
 		int red = (rgb >> 16) & 0xFF;
 		int green = (rgb >> 8) & 0xFF;
 		int blue = rgb & 0xFF;
-		consumer.vertex(matrix, x0, y0, z).color(red, green, blue, alpha).endVertex();
-		consumer.vertex(matrix, x0, y1, z).color(red, green, blue, alpha).endVertex();
-		consumer.vertex(matrix, x1, y1, z).color(red, green, blue, alpha).endVertex();
-		consumer.vertex(matrix, x1, y0, z).color(red, green, blue, alpha).endVertex();
+		consumer.addVertex(matrix, x0, y0, z).setColor(red, green, blue, alpha);
+		consumer.addVertex(matrix, x0, y1, z).setColor(red, green, blue, alpha);
+		consumer.addVertex(matrix, x1, y1, z).setColor(red, green, blue, alpha);
+		consumer.addVertex(matrix, x1, y0, z).setColor(red, green, blue, alpha);
 	}
 }

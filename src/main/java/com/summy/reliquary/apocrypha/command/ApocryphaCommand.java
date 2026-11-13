@@ -6,8 +6,8 @@ import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.bus.api.SubscribeEvent;
 
 /**
  * 本模组的指令（目前只有一条）：{@code /summyapocrypha fear players <on|off>}。

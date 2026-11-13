@@ -2,6 +2,7 @@ package com.summy.reliquary.apocrypha.effect;
 
 import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
+import net.minecraft.core.Holder;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -14,16 +15,17 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.player.AttackEntityEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -50,9 +52,7 @@ import java.util.ArrayList;
  */
 public final class WitheredBrush {
 	/** 移动速度归零的修饰符 UUID（固定，便于幂等增删） */
-	private static final UUID SPEED_MODIFIER = UUID.fromString("6f1c1a10-9f21-4c2f-9a7e-2b0f1d5c7a01");
 	/** 攻速归零的修饰符 UUID */
-	private static final UUID ATTACK_SPEED_MODIFIER = UUID.fromString("6f1c1a10-9f21-4c2f-9a7e-2b0f1d5c7a02");
 	/** 临时 noAI 的恢复值；区块卸载或停服后靠实体重新载入时恢复。 */
 	private static final String NO_AI_RESTORE = "ApocryphaFearRestoreNoAi";
 
@@ -113,10 +113,7 @@ public final class WitheredBrush {
 	}
 
 	@SubscribeEvent
-	public static void onServerTick(TickEvent.ServerTickEvent event) {
-		if (event.phase != TickEvent.Phase.END) {
-			return;
-		}
+	public static void onServerTick(ServerTickEvent.Post event) {
 		if (!ApocryphaConfig.enable()) {
 			if (!FEARED.isEmpty()) {
 				clearAll(event.getServer());
@@ -178,8 +175,8 @@ public final class WitheredBrush {
 	}
 
 	/** 某些模组攻击不经过 AttackEntityEvent，统一在最终攻击事件再拦一道。 */
-	@SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.HIGHEST)
-	public static void onLivingAttack(LivingAttackEvent event) {
+	@SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.HIGHEST)
+	public static void onLivingAttack(LivingIncomingDamageEvent event) {
 		if (event.getEntity().level().isClientSide()) {
 			return;
 		}
@@ -298,25 +295,26 @@ public final class WitheredBrush {
 
 	/** 玩家档：把移动速度与攻速一起归零 / 复原 */
 	private static void setPlayerFrozen(ServerPlayer player, boolean frozen) {
-		applyZeroModifier(player, Attributes.MOVEMENT_SPEED, SPEED_MODIFIER, "apocrypha_fear_speed", frozen);
-		applyZeroModifier(player, Attributes.ATTACK_SPEED, ATTACK_SPEED_MODIFIER, "apocrypha_fear_attack_speed",
+		applyZeroModifier(player, Attributes.MOVEMENT_SPEED, "apocrypha_fear_speed", frozen);
+		applyZeroModifier(player, Attributes.ATTACK_SPEED, "apocrypha_fear_attack_speed",
 				frozen);
 	}
 
 	/** 挂 / 摘一条固定 UUID 的「归零」修饰符（写法照 SR 的 AttributeManager：先删后加，幂等） */
-	private static void applyZeroModifier(ServerPlayer player, Attribute attribute, UUID uuid, String name,
+	private static void applyZeroModifier(ServerPlayer player, Holder<Attribute> attribute, String name,
 			boolean frozen) {
 		AttributeInstance instance = player.getAttribute(attribute);
 		if (instance == null) {
 			return;
 		}
-		if (instance.getModifier(uuid) != null) {
-			instance.removeModifier(uuid);
+		ResourceLocation modifierId = Apocrypha.id(name);
+		if (instance.getModifier(modifierId) != null) {
+			instance.removeModifier(modifierId);
 		}
 		if (frozen) {
-			// 1.20.1 的 MULTIPLY_TOTAL：最终值 ×(1 + amount)，取 −1 即把结果钳到 0（与基础值无关）
-			instance.addTransientModifier(new AttributeModifier(uuid, name, -1.0D,
-					AttributeModifier.Operation.MULTIPLY_TOTAL));
+			// 最终值 ×(1 + amount)，取 −1 即把结果钳到 0（与基础值无关）。
+			instance.addTransientModifier(new AttributeModifier(modifierId, -1.0D,
+					AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 		}
 	}
 }
