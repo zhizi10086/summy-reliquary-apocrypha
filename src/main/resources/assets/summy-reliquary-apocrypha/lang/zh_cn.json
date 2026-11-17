@@ -24,7 +24,7 @@
   "item.summy-reliquary-apocrypha.swift_feather_covenant.desc.2": "与新约同戴时，箭落如翼。",
   "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.1": "{arrow|落箭}触发几率提升至 {value|%s%}",
   "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.2": "{arrow|落箭}初速度提升 {value|%s%}",
-  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.3": "{arrow|落箭}伤害修改为触发之箭的 {value|%s%}",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.3": "{arrow|落箭}伤害修改为触发之箭的 {value|%s%}（不计 SE 死亡之眼）",
 
   "item.summy-reliquary-apocrypha.wing_feather_sacrament": "翼羽·圣餐",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.desc.1": "「你的箭要如羽翼，带下天上的粮。」",
@@ -53,7 +53,7 @@
   "item.summy-reliquary-apocrypha.paired_wings.desc.1": "「二人若不同心，岂能同行呢？」",
   "item.summy-reliquary-apocrypha.paired_wings.desc.2": "两翼相携，方能同赴一线。",
   "item.summy-reliquary-apocrypha.paired_wings.shift.1": "箭矢命中有 {value|%s%} 几率额外召唤{holy|圣光矢}",
-  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "{holy|圣光矢}可造成触发之箭 {value|%s%} 真实伤害",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "{holy|圣光矢}可造成触发之箭 {value|%s%} 的真实伤害（不计 SE 死亡之眼）",
   "item.summy-reliquary-apocrypha.paired_wings.shift.3": "{holy|圣光矢}速度同满蓄力弓箭，无视重力，无限实体穿透，不可穿透方块",
   "item.summy-reliquary-apocrypha.paired_wings.shift.4": "与新约共同佩戴时：",
   "item.summy-reliquary-apocrypha.paired_wings.shift.5": "任一触发都会在 0.1 秒后使另一方触发",

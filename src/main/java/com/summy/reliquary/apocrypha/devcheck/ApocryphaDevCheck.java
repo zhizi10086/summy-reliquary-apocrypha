@@ -13,6 +13,7 @@ import com.summy.reliquary.apocrypha.effect.PairedWings;
 import com.summy.reliquary.apocrypha.effect.WitheredBrush;
 import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
+import com.summy.reliquary.apocrypha.integration.SummyEnchantmentRef;
 import com.summy.reliquary.apocrypha.loot.ApocryphaAcquisition;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import com.summy.reliquary.apocrypha.text.ApocryphaText;
@@ -157,6 +158,7 @@ public final class ApocryphaDevCheck {
 				case 500 -> checkStrictSwitch(player);
 				case 520 -> checkBilingualTooltipTemplates();
 				case 540 -> checkDependencyRules(player);
+				case 550 -> checkNewTestamentSeScaling(player);
 				case 560 -> checkFixedDamageBlacklist(player);
 				case 570 -> checkFixedDamageEntrypoints(player);
 				case 600 -> prepareDeathScenario(player, false);
@@ -1061,6 +1063,38 @@ public final class ApocryphaDevCheck {
 
 		clearCurios(player);
 		FallenPlumeWings.clear(player);
+	}
+
+	private static void checkNewTestamentSeScaling(ServerPlayer player) {
+		Arrow untrackedArrow = new Arrow(player.serverLevel(), player, new ItemStack(Items.ARROW), null);
+		float bridgedMultiplier = SummyEnchantmentRef.deathEyeMultiplier(untrackedArrow);
+		check("死亡之眼 1 倍不改变新约触发基准",
+				Math.abs(NewTestamentEffect.normalizeTriggerAmountForTest(100.0F, bridgedMultiplier)
+						- 100.0F) < 0.001F,
+				"raw=100, bridged multiplier=" + bridgedMultiplier);
+		check("死亡之眼 3 倍从新约触发基准剥离",
+				Math.abs(NewTestamentEffect.normalizeTriggerAmountForTest(574.68F, 3.0F)
+						- 191.56F) < 0.01F,
+				"raw=574.68, multiplier=3");
+		check("非法死亡之眼倍率回退原值",
+				Math.abs(NewTestamentEffect.normalizeTriggerAmountForTest(100.0F, 0.0F)
+						- 100.0F) < 0.001F,
+				"raw=100, multiplier=0");
+
+		NewTestamentEffect.clearShotClaimsForTest();
+		UUID playerId = player.getUUID();
+		int targetA = Integer.MAX_VALUE - 100;
+		int targetB = Integer.MAX_VALUE - 101;
+		long tick = player.serverLevel().getGameTime();
+		check("同 tick 同目标首个箭允许判定",
+				NewTestamentEffect.claimShotForTest(playerId, targetA, tick), "first");
+		check("同 tick 同目标后续箭被合并",
+				!NewTestamentEffect.claimShotForTest(playerId, targetA, tick), "duplicate");
+		check("同 tick 不同目标仍各自判定",
+				NewTestamentEffect.claimShotForTest(playerId, targetB, tick), "other target");
+		check("同一目标下一 tick 重新允许判定",
+				NewTestamentEffect.claimShotForTest(playerId, targetA, tick + 1), "next tick");
+		NewTestamentEffect.clearShotClaimsForTest();
 	}
 
 	/** SR 2.0.0：三类 SRA 真伤同时免 SR 正面增伤与 SE 死神祝福，但仍按固定基础值破限伤。 */

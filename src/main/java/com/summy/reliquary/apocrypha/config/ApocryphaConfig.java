@@ -11,6 +11,7 @@ public final class ApocryphaConfig {
 	public static final ModConfigSpec SPEC;
 
 	private static final ModConfigSpec.BooleanValue ENABLE;
+	private static final ModConfigSpec.BooleanValue LOG_TRIGGER;
 	private static final ModConfigSpec.IntValue ACQUISITION_CHANCE_PERCENT;
 	private static final ModConfigSpec.IntValue ACQUISITION_PITY_CHESTS;
 
@@ -23,7 +24,6 @@ public final class ApocryphaConfig {
 	private static final ModConfigSpec.DoubleValue SCATTER_ANGLE_MAX_DEGREES;
 	private static final ModConfigSpec.DoubleValue SCATTER_INITIAL_SPEED;
 	private static final ModConfigSpec.DoubleValue ARROW_DAMAGE;
-	private static final ModConfigSpec.BooleanValue LOG_TRIGGER;
 
 	// ===== 迅羽·协约（新约系列 #2；只改写「新约」的落箭参数）=====
 	private static final ModConfigSpec.IntValue SWIFT_CHANCE_PERCENT;
@@ -77,6 +77,9 @@ public final class ApocryphaConfig {
 		builder.comment("Summy Reliquary: Apocrypha 总开关").push("general");
 		ENABLE = builder.comment("是否启用本模组的玩法效果（关掉后饰品仍可佩戴，但不再触发效果）")
 				.define("enable", true);
+		LOG_TRIGGER = builder
+				.comment("全局调试日志：开启后输出新约、凋亡等机制判定与结算 INFO；默认关闭")
+				.define("log_trigger", false);
 		builder.pop();
 
 		builder.comment("两套饰品的野箱获取规则").push("acquisition");
@@ -109,9 +112,6 @@ public final class ApocryphaConfig {
 		ARROW_DAMAGE = builder
 				.comment("落箭的固定伤害（真实伤害：无视护甲 / 保护附魔 / 抗性 / 无敌帧）")
 				.defineInRange("arrow_damage", 5.0D, 0.0D, 1000.0D);
-		LOG_TRIGGER = builder
-				.comment("调试日志：开启后每次命中掷点、每批起点、每支落箭命中与每次清帧各记一行 INFO")
-				.define("log_trigger", false);
 		builder.pop();
 
 		builder.comment("迅羽·协约（装入「新约-才能」栏位；仅在与「新约」同戴时改写其落箭参数）")

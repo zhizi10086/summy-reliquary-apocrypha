@@ -24,7 +24,7 @@
   "item.summy-reliquary-apocrypha.swift_feather_covenant.desc.2": "With the New Testament, the arrows fall on swift wings.",
   "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.1": "{arrow|Falling arrow} chance rises to {value|%s%}",
   "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.2": "{arrow|Falling arrow} initial speed +{value|%s%}",
-  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.3": "{arrow|Falling arrow} damage becomes {value|%s%} of the triggering arrow",
+  "item.summy-reliquary-apocrypha.swift_feather_covenant.shift.3": "{arrow|Falling arrow} damage becomes {value|%s%} of the triggering arrow, excluding SE Death Eye",
 
   "item.summy-reliquary-apocrypha.wing_feather_sacrament": "Wingfeather Sacrament",
   "item.summy-reliquary-apocrypha.wing_feather_sacrament.desc.1": "\"Your arrows shall be as wings, bringing down bread from heaven.\"",
@@ -53,7 +53,7 @@
   "item.summy-reliquary-apocrypha.paired_wings.desc.1": "\"Can two walk together, except they be agreed?\"",
   "item.summy-reliquary-apocrypha.paired_wings.desc.2": "Wings that beat as one reach the same mark.",
   "item.summy-reliquary-apocrypha.paired_wings.shift.1": "Arrow hits have a {value|%s%} chance to summon an extra {holy|holy arrow}",
-  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "{holy|Holy arrows} deal {value|%s%} of the triggering arrow as true damage",
+  "item.summy-reliquary-apocrypha.paired_wings.shift.2": "{holy|Holy arrows} deal {value|%s%} of the triggering arrow as true damage, excluding SE Death Eye",
   "item.summy-reliquary-apocrypha.paired_wings.shift.3": "{holy|Holy arrows} fly at full-charge arrow speed, ignore gravity, pierce entities without limit and are stopped by blocks",
   "item.summy-reliquary-apocrypha.paired_wings.shift.4": "While worn together with the New Testament:",
   "item.summy-reliquary-apocrypha.paired_wings.shift.5": "Either trigger pulls in the other after 0.1 s",
