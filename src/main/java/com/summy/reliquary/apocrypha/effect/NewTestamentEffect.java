@@ -4,6 +4,7 @@ import com.summy.reliquary.apocrypha.Apocrypha;
 import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
+import com.summy.reliquary.apocrypha.integration.SummyEnchantmentRef;
 import com.summy.reliquary.effect.TrueDamageLimits;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.server.level.ServerLevel;
@@ -20,6 +21,10 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 // 「新约」（落箭）与「比翼·连携」（穿透圣光矢）的命中判定、掷点、音效与调度，
 // 外加给 SR 真伤补的「命中后清帧」。
@@ -38,6 +43,11 @@ public final class NewTestamentEffect {
 	private static boolean lastArrowHitHoly;
 	// 同上：这一击箭上携带的钉住值（只为日志措辞用，不参与任何玩法判定）
 	private static float lastArrowHitPinnedValue;
+	/** 同一次物理射击可能由多重射击/幻影箭产生多支箭；同一目标每个 tick 只允许消费一次。 */
+	private static final Set<ShotKey> PROCESSED_SHOTS = new HashSet<>();
+
+	private record ShotKey(UUID playerId, int targetId, long tick) {
+	}
 
 	private NewTestamentEffect() {
 	}
@@ -87,9 +97,19 @@ public final class NewTestamentEffect {
 		if (!newTestament && !pairedWings) {
 			return;
 		}
+		if (!claimShot(shooter.getUUID(), target.getId(), level.getGameTime())) {
+			return;
+		}
 
-		// 触发之箭在「各类倍率结算后」的金额：新约落箭的钉住基准与圣光矢的伤害基准都用它
-		float hitAmount = event.getAmount();
+		// 触发之箭的金额已经过 SE 死亡之眼放大；只从新约派生基准中剥离，原始箭伤保持不变。
+		float rawHitAmount = event.getAmount();
+		float deathEyeMultiplier = SummyEnchantmentRef.deathEyeMultiplier(arrow);
+		float hitAmount = normalizeTriggerAmount(rawHitAmount, deathEyeMultiplier);
+		if (ApocryphaConfig.logTrigger()) {
+			Apocrypha.LOGGER.info(String.format(
+					"[新约] 触发基准：原始 %.2f，SE死亡之眼 ×%.2f，剥离后 %.2f",
+					rawHitAmount, deathEyeMultiplier, hitAmount));
+		}
 
 		// 比翼·连携：圣光矢的独立掷点（各自佩戴各自掷、各自消耗一次随机数）
 		float holyDamage = (float) (hitAmount * ApocryphaConfig.holyArrowDamageRatioPercent() / 100.0D);
@@ -109,7 +129,7 @@ public final class NewTestamentEffect {
 			boolean upgraded = CurioHelper.wears(shooter, Apocrypha.SWIFT_FEATHER_COVENANT.get());
 			speedMultiplier = upgraded ? 1.0D + ApocryphaConfig.swiftSpeedBonusPercent() / 100.0D : 1.0D;
 			// 落箭的单支伤害**一律钉住**（不吃 SR / SE 正面增伤）：
-			// 同戴迅羽 → 触发之箭金额 × 比例；未同戴 → 固定用 arrow_damage。
+			// 同戴迅羽 → 触发之箭金额（已剔除 SE 死亡之眼）× 比例；未同戴 → 固定用 arrow_damage。
 			// 钉住值 <= 0 时才退化回"不钉住"（例如把 arrow_damage 配成 0）。
 			pinnedDamage = upgraded
 					? (float) (hitAmount * ApocryphaConfig.swiftDamageRatioPercent() / 100.0D)
@@ -209,6 +229,41 @@ public final class NewTestamentEffect {
 		SacramentArrows.clear();
 		HoverFlight.clear();
 		PairedWings.clear();
+		PROCESSED_SHOTS.clear();
+	}
+
+	private static boolean claimShot(UUID playerId, int targetId, long tick) {
+		// 在新 tick 的首个判定到来时淘汰旧窗口，避免依赖 ServerTickEvent 监听器顺序。
+		PROCESSED_SHOTS.removeIf(key -> key.tick() != tick);
+		return PROCESSED_SHOTS.add(new ShotKey(playerId, targetId, tick));
+	}
+
+	private static float normalizeTriggerAmount(float amount, float deathEyeMultiplier) {
+		if (!Float.isFinite(amount) || amount <= 0.0F) {
+			return amount;
+		}
+		if (!Float.isFinite(deathEyeMultiplier) || deathEyeMultiplier <= 1.0F) {
+			return amount;
+		}
+		return amount / deathEyeMultiplier;
+	}
+
+	/** 自检用：走正式死亡之眼剥离公式。 */
+	public static float normalizeTriggerAmountForTest(float amount, float deathEyeMultiplier) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck")
+				? normalizeTriggerAmount(amount, deathEyeMultiplier) : amount;
+	}
+
+	/** 自检用：走正式同 tick 射击去重键。 */
+	public static boolean claimShotForTest(UUID playerId, int targetId, long tick) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck")
+				&& claimShot(playerId, targetId, tick);
+	}
+
+	public static void clearShotClaimsForTest() {
+		if (Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			PROCESSED_SHOTS.clear();
+		}
 	}
 
 	/**
@@ -250,7 +305,8 @@ public final class NewTestamentEffect {
 	 */
 	private static String hitBasis(boolean holy, float pinned) {
 		if (holy) {
-			return String.format("钉住：触发箭伤害的 %d%%", ApocryphaConfig.holyArrowDamageRatioPercent());
+			return String.format("钉住：触发箭伤害（剔除 SE 死亡之眼）的 %d%%",
+					ApocryphaConfig.holyArrowDamageRatioPercent());
 		}
 		if (pinned > 0.0F) {
 			return String.format("钉住：%.1f 点（不吃 SR/SE 正面增伤）", pinned);
@@ -281,6 +337,7 @@ public final class NewTestamentEffect {
 		PairedWings.clearShooter(player.getUUID());
 		SacramentArrows.forget(player.getUUID());
 		FallenPlumeWings.clear(player);
+		PROCESSED_SHOTS.removeIf(key -> key.playerId().equals(player.getUUID()));
 	}
 
 	/** 自检用：确认弓 / 弩投射物分类不会把三叉戟等 AbstractArrow 混入。 */
