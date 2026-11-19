@@ -115,6 +115,7 @@ tasks.register('copySummyReliquaryDevJar', Copy) {
 
 // 把 gradle.properties 里的版本号写进 mods.toml
 processResources {
+    filteringCharset = 'UTF-8'
     inputs.property 'version', project.mod_version
 
     filesMatching('META-INF/mods.toml') {
@@ -170,30 +171,42 @@ def resolveJarArchive = { String moduleDirectory ->
     return new File(cursor, "JAR/${project.minecraft_version}/${moduleDirectory}")
 }
 
-// 构建结束后把 reobf 后的 jar 复制到 JAR/<Minecraft版本>/summy-reliquary-apocrypha
-tasks.named('build') {
+// 普通构建只写入 build；明确调用本任务才进入正式归档。
+tasks.register('archiveRelease') {
+    group = 'build'
+    description = '归档当前版本的正式 JAR'
+    dependsOn 'build', 'reobfJar'
     doLast {
-        def releaseDir = resolveJarArchive('summy-reliquary-apocrypha')
-        releaseDir.mkdirs()
-        // ForgeGradle 6 的 reobfJar 没有 archiveFile 属性：优先取 output，取不到就退回约定输出目录
-        def reobfTask = tasks.named('reobfJar').get()
-        def jarFile = null
-        if (reobfTask.hasProperty('output')) {
-            def output = reobfTask.property('output')
-            if (output instanceof File) {
-                jarFile = output
+        if (project.hasProperty('devcheck')) {
+            throw new GradleException('DevCheck 构建不得进入正式归档')
+        }
+        def jarFile = layout.buildDirectory.file('reobfJar/output.jar').get().asFile
+        if (!jarFile.isFile()) {
+            throw new GradleException("找不到正式 JAR：${jarFile}")
+        }
+        new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+            if (zip.entries().any { it.name.startsWith('com/summy/reliquary/apocrypha/devcheck/') }) {
+                throw new GradleException('正式归档拒绝包含 DevCheck 的 JAR')
             }
         }
-        if (jarFile == null) {
-            jarFile = file('build/reobfJar').listFiles()?.find { it.name.endsWith('.jar') }
+
+        def releaseDir = resolveJarArchive('summy-reliquary-apocrypha').toPath()
+        java.nio.file.Files.createDirectories(releaseDir)
+        def destination = releaseDir.resolve("${project.archives_base_name}-${project.mod_version}.jar")
+        // 先将完整 JAR 放到同目录，再用不覆盖的移动提交。即使重试也保护既有归档。
+        def staged = java.nio.file.Files.createTempFile(releaseDir, '.sra-', '.tmp')
+        try {
+            java.nio.file.Files.copy(jarFile.toPath(), staged, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            try {
+                java.nio.file.Files.move(staged, destination)
+            } catch (java.nio.file.FileAlreadyExistsException ignored) {
+                if (java.nio.file.Files.mismatch(staged, destination) != -1L) {
+                    throw new GradleException("同名 JAR 内容不同，请先按规范归档旧件：${destination}")
+                }
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(staged)
         }
-        if (jarFile == null || !jarFile.exists()) {
-            throw new GradleException('找不到 reobfJar 的输出 jar')
-        }
-        copy {
-            from jarFile
-            rename { "${project.archives_base_name}-${project.mod_version}.jar" }
-            into releaseDir
-        }
+        logger.lifecycle("正式 JAR 已确认：${destination}")
     }
 }
