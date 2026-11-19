@@ -1,12 +1,13 @@
 package com.summy.reliquary.apocrypha.client;
 
 import com.summy.reliquary.apocrypha.Apocrypha;
-import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.apocrypha.effect.HoverFlight;
+import com.summy.reliquary.apocrypha.net.AirJumpSettingsMessage;
 import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -37,6 +38,7 @@ public final class ApocryphaClientInput {
 	private static int airJumpsUsed;
 	/** 离开地面之后是否松开过跳跃键（用来排除地面起跳的那次按键） */
 	private static boolean hasReleasedJumpKey;
+	private static AirJumpSettingsMessage settings;
 
 	private ApocryphaClientInput() {
 	}
@@ -50,7 +52,7 @@ public final class ApocryphaClientInput {
 			hasReleasedJumpKey = false;
 			return;
 		}
-		if (!ApocryphaConfig.enable()) {
+		if (settings == null || !settings.enabled()) {
 			airJumpsUsed = 0;
 			hasReleasedJumpKey = false;
 			return;
@@ -73,19 +75,29 @@ public final class ApocryphaClientInput {
 		if (!CurioHelper.wears(player, Apocrypha.INVERSE_FEATHER_HOVER.get())) {
 			return;
 		}
-		int max = ApocryphaConfig.hoverAirJumps();
-		if (!consumeAirJump(max)) {
+		if (!consumeAirJump(settings)) {
 			return;
 		}
 		// 每一次额外跳跃都必须重新松开再按下，长按不能连续消耗多次预算。
 		hasReleasedJumpKey = false;
 		ApocryphaNetworking.sendAirJump();
 		// 本地预测：立刻起效，不用等服务端回包
-		HoverFlight.jump(player);
+		HoverFlight.jump(player, settings.velocity());
 	}
 
-	private static boolean consumeAirJump(int max) {
-		if (airJumpsUsed >= max) {
+	public static void acceptSettings(AirJumpSettingsMessage serverSettings) {
+		settings = serverSettings;
+	}
+
+	@SubscribeEvent
+	public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+		settings = null;
+		airJumpsUsed = 0;
+		hasReleasedJumpKey = false;
+	}
+
+	private static boolean consumeAirJump(AirJumpSettingsMessage serverSettings) {
+		if (serverSettings == null || !serverSettings.enabled() || airJumpsUsed >= serverSettings.jumps()) {
 			return false;
 		}
 		airJumpsUsed++;
@@ -101,7 +113,12 @@ public final class ApocryphaClientInput {
 	}
 
 	/** 自检用：模拟一次空中按键消费。 */
-	public static boolean consumeAirJumpForTest(int max) {
-		return Boolean.getBoolean("summy_apocrypha.devcheck") && ApocryphaConfig.enable() && consumeAirJump(max);
+	public static boolean consumeAirJumpForTest(AirJumpSettingsMessage serverSettings) {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") && consumeAirJump(serverSettings);
+	}
+
+	/** 自检用：核验客户端实际收到了服务端登录快照。 */
+	public static AirJumpSettingsMessage receivedSettingsForTest() {
+		return Boolean.getBoolean("summy_apocrypha.devcheck") ? settings : null;
 	}
 }

@@ -26,7 +26,7 @@ import java.util.UUID;
  *
  * <p>额外跳跃：手感与输入状态机参考 Artifacts（MIT）的「云朵瓶」实现 ——
  * <ul>
- *     <li>{@link #jump(Player)} 是**双端共用**的：客户端调用它是本地预测（立刻起效、无延迟），
+ *     <li>{@link #jump(Player, double)} 是**双端共用**的：客户端调用它是本地预测（立刻起效、无延迟），
  *     服务端调用它是权威结算；速度赋值幂等，重复执行没有副作用；</li>
  *     <li>音效只在客户端本地播一次、服务端广播给**其他人**（排除本人），因此本人只会听到一次；
  *     粒子与食物消耗、跳跃统计只在服务端做，避免双份。</li>
@@ -67,12 +67,9 @@ public final class HoverFlight {
 	 * （{@code hurtMarked} 是「受伤击退」的语义，不适用于这里）。
 	 * 同时清空 {@code fallDistance} —— 云朵瓶口径：跳完不再吃跳之前那段坠落伤害。
 	 */
-	public static void jump(Player player) {
-		if (!ApocryphaConfig.enable()) {
-			return;
-		}
+	public static void jump(Player player, double verticalVelocity) {
 		Vec3 velocity = player.getDeltaMovement();
-		player.setDeltaMovement(velocity.x, ApocryphaConfig.hoverAirJumpVelocity(), velocity.z);
+		player.setDeltaMovement(velocity.x, verticalVelocity, velocity.z);
 		player.hasImpulse = true;
 		player.fallDistance = 0.0F;
 
@@ -121,7 +118,7 @@ public final class HoverFlight {
 			return;
 		}
 		state.jumpsUsed++;
-		jump(player);
+		jump(player, ApocryphaConfig.hoverAirJumpVelocity());
 		if (ApocryphaConfig.logTrigger()) {
 			Apocrypha.LOGGER.info("[新约] 逆羽·滞空：{} 空中跳跃 {}/{}", player.getName().getString(),
 					state.jumpsUsed, max);

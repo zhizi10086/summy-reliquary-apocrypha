@@ -208,6 +208,8 @@ public class Apocrypha {
 		NeoForge.EVENT_BUS.register(ApocryphaCommand.class);
 		// 本模组自己的网络通道（协议 "2"：空中跳跃 C2S + 凋亡条 S2C）
 		modBus.addListener(ApocryphaNetworking::registerPayloadHandlers);
+		NeoForge.EVENT_BUS.register(ApocryphaNetworking.class);
+		modBus.addListener(ApocryphaNetworking::onConfigReload);
 
 		LOGGER.info("[Summy Reliquary: Apocrypha] 初始化完成（前置 Summy Reliquary {}、本模组协议 {}、SR 协议 {}）",
 				ReliquaryRef.version(), ApocryphaNetworking.protocolVersion(), ReliquaryRef.protocolVersion());

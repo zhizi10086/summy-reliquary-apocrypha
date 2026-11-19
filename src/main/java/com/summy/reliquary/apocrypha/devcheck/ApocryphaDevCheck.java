@@ -15,6 +15,8 @@ import com.summy.reliquary.apocrypha.entity.HolyArrow;
 import com.summy.reliquary.apocrypha.entity.NewTestamentArrow;
 import com.summy.reliquary.apocrypha.integration.SummyEnchantmentRef;
 import com.summy.reliquary.apocrypha.loot.ApocryphaAcquisition;
+import com.summy.reliquary.apocrypha.net.AirJumpSettingsMessage;
+import com.summy.reliquary.apocrypha.net.ApocryphaNetworking;
 import com.summy.reliquary.apocrypha.slot.ApocryphaSlots;
 import com.summy.reliquary.apocrypha.text.ApocryphaText;
 import com.summy.reliquary.effect.HolyLightEffect;
@@ -30,13 +32,17 @@ import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Zombie;
@@ -60,6 +66,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.damagesource.DamageContainer;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
@@ -106,6 +113,9 @@ public final class ApocryphaDevCheck {
 	private static volatile boolean inventoryVisualReady;
 	private static volatile boolean barVisualReady;
 	private static Zombie barTarget;
+	private static Zombie finalSongWitness;
+	private static boolean finalSongDeath;
+	private static final List<String> RECOVERY_TEST_NAMES = List.of("SRA DevCheck A", "SRA DevCheck B");
 
 	private ApocryphaDevCheck() {
 	}
@@ -162,11 +172,11 @@ public final class ApocryphaDevCheck {
 				case 560 -> checkFixedDamageBlacklist(player);
 				case 570 -> checkFixedDamageEntrypoints(player);
 				case 600 -> prepareDeathScenario(player, false);
-				case 620 -> killTestPlayer(player);
+				case 620 -> startFinalSongDeath(player, false);
 				case 660 -> respawnTestPlayer(player);
 				case 700 -> checkDeathRestore(player, false);
 				case 760 -> prepareDeathScenario(player, true);
-				case 780 -> killTestPlayer(player);
+				case 780 -> startFinalSongDeath(player, true);
 				case 820 -> respawnTestPlayer(player);
 				case 860 -> {
 					checkDeathRestore(player, true);
@@ -212,6 +222,9 @@ public final class ApocryphaDevCheck {
 			client.player.respawn();
 		}
 		if (!clientCacheChecked) {
+			var settings = ApocryphaClientInput.receivedSettingsForTest();
+			check("客户端收到协议 3 的空跳配置", settings != null && "3".equals(ApocryphaNetworking.protocolVersion()),
+					"settings=" + settings);
 			ApoptosisBarState.accept(Integer.MAX_VALUE - 7, 50.0F, 0, 0);
 			ApoptosisBarState.tick(client.level, ApocryphaConfig.apoptosisBarMax(),
 					ApocryphaConfig.apoptosisInjuredSeconds() * 20);
@@ -291,23 +304,39 @@ public final class ApocryphaDevCheck {
 		PlayerFlags.setDemon(player, true);
 		forceSlots(player, false);
 		equip(player, ApocryphaSlots.PERDITION_SYNECDOCHE, Apocrypha.FALLEN_HEAVEN.get());
-		player.getInventory().add(new ItemStack(Apocrypha.NEW_TESTAMENT.get()));
+		for (String name : RECOVERY_TEST_NAMES) {
+			ItemStack stack = new ItemStack(Apocrypha.NEW_TESTAMENT.get());
+			stack.set(DataComponents.CUSTOM_NAME, Component.literal(name));
+			player.getInventory().add(stack);
+		}
 		run(player, "gamerule keepInventory " + keepInventory);
 		player.setInvulnerable(false);
 		player.setHealth(player.getMaxHealth());
 		Apoptosis.setStateForTest(player, 100, 0);
 		int bag = countItem(player, Apocrypha.NEW_TESTAMENT.get());
 		int worn = countItem(player, Apocrypha.FALLEN_HEAVEN.get());
-		check("死亡测试已准备（keepInventory=" + keepInventory + "）", bag == 1 && worn == 1,
+		check("死亡测试已准备（keepInventory=" + keepInventory + "）", bag == 2 && worn == 1,
 				"new_testament=" + bag + ", fallen_heaven=" + worn);
 	}
 
-	private static void killTestPlayer(ServerPlayer player) {
-		player.hurt(player.serverLevel().damageSources().genericKill(), Float.MAX_VALUE);
-		requestClientRespawn = true;
-		check("测试玩家进入死亡状态", player.isDeadOrDying(),
-				"health=" + player.getHealth()
-						+ ", pending=" + ApocryphaAcquisition.pendingRestoreForTest(player));
+	private static void startFinalSongDeath(ServerPlayer player, boolean lastPulse) {
+		finalSongDeath = false;
+		player.setHealth(1.0F);
+		if (!lastPulse) {
+			finalSongWitness = spawnCheckZombie(player, 100.0D);
+			if (finalSongWitness != null) {
+				Apoptosis.armFinalSongForTest(finalSongWitness, false, 4.0D);
+			}
+		}
+		Apoptosis.armFinalSongForTest(player, lastPulse, 100.0D);
+	}
+
+	@SubscribeEvent
+	public static void onFinalSongTestDeath(LivingDeathEvent event) {
+		if (ENABLED && event.getEntity() instanceof ServerPlayer
+				&& "summy-reliquary-apocrypha.apoptosis_element".equals(event.getSource().getMsgId())) {
+			finalSongDeath = true;
+		}
 	}
 
 	private static void respawnTestPlayer(ServerPlayer player) {
@@ -319,9 +348,28 @@ public final class ApocryphaDevCheck {
 		int bag = countItem(player, Apocrypha.NEW_TESTAMENT.get());
 		int worn = countItem(player, Apocrypha.FALLEN_HEAVEN.get());
 		boolean apoptosisCleared = !Apoptosis.isInjured(player) && Apoptosis.resistTicks(player) == 0;
-		check("死亡恢复无丢失/复制且凋亡清空（keepInventory=" + keepInventory + "）",
-				bag == 1 && worn == 1 && apoptosisCleared,
-				"new_testament=" + bag + ", fallen_heaven=" + worn + ", apoptosisCleared=" + apoptosisCleared);
+		List<String> names = new ArrayList<>();
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			ItemStack stack = player.getInventory().getItem(slot);
+			if (stack.is(Apocrypha.NEW_TESTAMENT.get())) {
+				names.add(stack.getHoverName().getString());
+			}
+		}
+		check("死亡恢复保留两件不同数据的饰品（keepInventory=" + keepInventory + "）",
+				bag == 2 && worn == 1 && names.containsAll(RECOVERY_TEST_NAMES) && apoptosisCleared,
+				"names=" + names + ", fallen_heaven=" + worn + ", apoptosisCleared=" + apoptosisCleared);
+		check(keepInventory ? "终歌末笔致死后可正常重生" : "终歌中途致死后可正常重生",
+				finalSongDeath && player.isAlive() && apoptosisCleared, "finalSongDeath=" + finalSongDeath);
+		if (!keepInventory) {
+			check("终歌杀死玩家后仍继续结算另一目标", finalSongWitness != null && finalSongWitness.isAlive()
+					&& finalSongWitness.getHealth() < finalSongWitness.getMaxHealth(),
+					"health=" + (finalSongWitness == null ? "missing" : finalSongWitness.getHealth()));
+			if (finalSongWitness != null) {
+				Apoptosis.clearForTest(finalSongWitness);
+				finalSongWitness.discard();
+				finalSongWitness = null;
+			}
+		}
 	}
 
 	private static void setAngel(ServerPlayer player) {
@@ -684,15 +732,18 @@ public final class ApocryphaDevCheck {
 				trident.getType().toString());
 
 		ApocryphaClientInput.resetAirJumpForTest();
-		check("air_jumps=0 时无空中跳跃", !ApocryphaClientInput.consumeAirJumpForTest(0), "max=0");
+		var zeroJumps = new AirJumpSettingsMessage(true, 0, 0.5D);
+		var oneJump = new AirJumpSettingsMessage(true, 1, 0.5D);
+		var twoJumps = new AirJumpSettingsMessage(true, 2, 0.5D);
+		check("air_jumps=0 时无空中跳跃", !ApocryphaClientInput.consumeAirJumpForTest(zeroJumps), "max=0");
 		ApocryphaClientInput.resetAirJumpForTest();
-		boolean firstOne = ApocryphaClientInput.consumeAirJumpForTest(1);
-		boolean secondOne = ApocryphaClientInput.consumeAirJumpForTest(1);
+		boolean firstOne = ApocryphaClientInput.consumeAirJumpForTest(oneJump);
+		boolean secondOne = ApocryphaClientInput.consumeAirJumpForTest(oneJump);
 		check("air_jumps=1 时只允许一次", firstOne && !secondOne, "first=" + firstOne + ", second=" + secondOne);
 		ApocryphaClientInput.resetAirJumpForTest();
-		boolean firstTwo = ApocryphaClientInput.consumeAirJumpForTest(2);
-		boolean secondTwo = ApocryphaClientInput.consumeAirJumpForTest(2);
-		boolean thirdTwo = ApocryphaClientInput.consumeAirJumpForTest(2);
+		boolean firstTwo = ApocryphaClientInput.consumeAirJumpForTest(twoJumps);
+		boolean secondTwo = ApocryphaClientInput.consumeAirJumpForTest(twoJumps);
+		boolean thirdTwo = ApocryphaClientInput.consumeAirJumpForTest(twoJumps);
 		check("air_jumps=2 时允许两次", firstTwo && secondTwo && !thirdTwo,
 				"results=" + firstTwo + "/" + secondTwo + "/" + thirdTwo);
 	}
@@ -796,6 +847,29 @@ public final class ApocryphaDevCheck {
 		}
 		Apoptosis.clearForTest(executeTarget);
 		executeTarget.discard();
+		checkMitigatedExecute(player);
+	}
+
+	private static void checkMitigatedExecute(ServerPlayer player) {
+		Zombie victim = spawnCheckZombie(player, 20.0D, 4.5F);
+		if (victim == null) {
+			check("斩杀按实际扣血判断", false, "Zombie 创建失败");
+			return;
+		}
+		Apoptosis.setStateForTest(victim, 100, 0, player.getUUID());
+		victim.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 200, 3));
+		victim.hurt(player.damageSources().playerAttack(player), 2.0F);
+		check("有抗性时笞心不会按减伤前金额提前斩杀", victim.isAlive() && victim.getHealth() > 3.0F
+				&& !Apoptosis.executeUsedForTest(victim), "health=" + victim.getHealth());
+
+		victim.removeEffect(MobEffects.DAMAGE_RESISTANCE);
+		victim.setHealth(3.2F);
+		victim.invulnerableTime = 0;
+		victim.hurt(player.damageSources().playerAttack(player), 0.5F);
+		check("第二击实际压入阈值时笞心仍可斩杀", !victim.isAlive()
+				&& Apoptosis.executeUsedForTest(victim), "health=" + victim.getHealth());
+		Apoptosis.clearForTest(victim);
+		victim.discard();
 	}
 
 	private static void checkDependencyRules(ServerPlayer player) {
@@ -1267,7 +1341,8 @@ public final class ApocryphaDevCheck {
 			mob.discard();
 		}
 		ApocryphaClientInput.resetAirJumpForTest();
-		check("总开关关闭时客户端不消费二段跳", !ApocryphaClientInput.consumeAirJumpForTest(1),
+		check("总开关关闭时客户端不消费二段跳",
+				!ApocryphaClientInput.consumeAirJumpForTest(new AirJumpSettingsMessage(false, 1, 0.5D)),
 				"max=1");
 		ApocryphaConfig.setEnableForTest(true);
 		check("总开关已恢复", ApocryphaConfig.enable(), "enable=" + ApocryphaConfig.enable());

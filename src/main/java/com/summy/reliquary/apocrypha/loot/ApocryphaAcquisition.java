@@ -5,12 +5,14 @@ import com.summy.reliquary.apocrypha.config.ApocryphaConfig;
 import com.summy.reliquary.effect.PlayerFlags;
 import com.summy.reliquary.util.CurioHelper;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.vehicle.AbstractMinecartContainer;
@@ -30,6 +32,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.bus.api.SubscribeEvent;
+
+import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,6 +59,7 @@ public final class ApocryphaAcquisition {
 	private static final String ANGEL_PITY = "angel_pity";
 	private static final String DEMON_PITY = "demon_pity";
 	private static final String PENDING_RESTORE = "pending_restore";
+	private static final String SAVED_STACKS = "stacks";
 
 	private static final List<Entry> ANGEL_ITEMS = List.of(
 			new Entry("new_testament", Apocrypha.NEW_TESTAMENT),
@@ -368,7 +373,7 @@ public final class ApocryphaAcquisition {
 	}
 
 	/**
-	 * 死亡前采样：原版会在 LivingDropsEvent 前清空背包，因此数量必须在死亡事件刚成立时保存。
+	 * 死亡前保存完整堆栈。原版会在 LivingDropsEvent 前清空背包。
 	 */
 	@SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOWEST)
 	public static void onLivingDeath(LivingDeathEvent event) {
@@ -380,19 +385,14 @@ public final class ApocryphaAcquisition {
 		CompoundTag state = state(player);
 		boolean sameTick = DEATH_SNAPSHOT_TICKS.getOrDefault(player.getUUID(), Long.MIN_VALUE) == tick
 				&& state.contains(PENDING_RESTORE, CompoundTag.TAG_COMPOUND);
-		CompoundTag savedCounts = new CompoundTag();
-		for (Entry entry : ALL_ITEMS) {
-			int count = countEverywhere(player, entry.item().get());
-			if (sameTick && state.contains(PENDING_RESTORE, CompoundTag.TAG_COMPOUND)) {
-				count = Math.max(count, state.getCompound(PENDING_RESTORE).getInt(entry.key()));
-			}
-			if (count > 0) {
-				savedCounts.putInt(entry.key(), count);
-			}
+		List<ItemStack> snapshot = managedStacks(player);
+		if (sameTick) {
+			List<ItemStack> previous = readPending(player, state.getCompound(PENDING_RESTORE), snapshot);
+			snapshot.addAll(missingStacks(previous, snapshot));
 		}
 		state.remove(PENDING_RESTORE);
-		if (!savedCounts.isEmpty()) {
-			state.put(PENDING_RESTORE, savedCounts);
+		if (!snapshot.isEmpty()) {
+			writePending(player, state, snapshot);
 			DEATH_SNAPSHOT_TICKS.put(player.getUUID(), tick);
 			PENDING_RESTORES.add(player.getUUID());
 		} else {
@@ -467,24 +467,118 @@ public final class ApocryphaAcquisition {
 			PENDING_RESTORES.remove(player.getUUID());
 			return;
 		}
-		CompoundTag savedCounts = state.getCompound(PENDING_RESTORE);
-		for (Entry entry : ALL_ITEMS) {
-			int expected = savedCounts.getInt(entry.key());
-			if (expected <= 0) {
+		List<ItemStack> current = managedStacks(player);
+		List<ItemStack> expected = readPending(player, state.getCompound(PENDING_RESTORE), current);
+		boolean complete = true;
+		for (ItemStack missing : missingStacks(expected, current)) {
+			player.getInventory().add(missing);
+			if (missing.isEmpty()) {
 				continue;
 			}
-			int current = countEverywhere(player, entry.item().get());
-			if (Boolean.getBoolean("summy_apocrypha.devcheck") && expected > 0) {
-				Apocrypha.LOGGER.info("[DEVCHECK] 恢复核对：{} current={} expected={}",
-						entry.key(), current, expected);
+			ItemEntity drop = player.drop(missing.copy(), false);
+			if (drop == null || player.serverLevel().getEntity(drop.getUUID()) != drop) {
+				// 其它模组可能取消掉落；保留尚未归还的堆栈，下次从现有物品重新核对。
+				complete = false;
+				continue;
 			}
-			for (int index = current; index < expected; index++) {
-				grant(player, entry.item().get());
-			}
+			ApocryphaItemProtection.protect(drop);
+			// 已在世界里的副本不在背包中，立即从待恢复快照扣掉，后续重试不会重复掉落。
+			expected = missingStacks(expected, List.of(missing));
+			writePending(player, state, expected);
+		}
+		if (!complete) {
+			return;
 		}
 		state.remove(PENDING_RESTORE);
 		DEATH_SNAPSHOT_TICKS.remove(player.getUUID());
 		PENDING_RESTORES.remove(player.getUUID());
+	}
+
+	private static List<ItemStack> managedStacks(ServerPlayer player) {
+		List<ItemStack> result = new ArrayList<>();
+		Inventory inventory = player.getInventory();
+		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+			ItemStack stack = inventory.getItem(slot);
+			if (isManaged(stack)) {
+				result.add(stack.copy());
+			}
+		}
+		CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
+			for (var group : handler.getCurios().values()) {
+				var stacks = group.getStacks();
+				for (int slot = 0; slot < stacks.getSlots(); slot++) {
+					ItemStack stack = stacks.getStackInSlot(slot);
+					if (isManaged(stack)) {
+						result.add(stack.copy());
+					}
+				}
+			}
+		});
+		return result;
+	}
+
+	/** 按物品及其数据逐件抵扣，保留同种饰品间的差异。 */
+	private static List<ItemStack> missingStacks(List<ItemStack> expected, List<ItemStack> present) {
+		List<ItemStack> available = present.stream().map(ItemStack::copy).toList();
+		List<ItemStack> missing = new ArrayList<>();
+		for (ItemStack stack : expected) {
+			int count = stack.getCount();
+			for (ItemStack owned : available) {
+				if (!owned.isEmpty() && ItemStack.isSameItemSameComponents(stack, owned)) {
+					int matched = Math.min(count, owned.getCount());
+					owned.shrink(matched);
+					count -= matched;
+					if (count == 0) {
+						break;
+					}
+				}
+			}
+			if (count > 0) {
+				missing.add(stack.copyWithCount(count));
+			}
+		}
+		return missing;
+	}
+
+	private static List<ItemStack> readPending(ServerPlayer player, CompoundTag pending, List<ItemStack> current) {
+		List<ItemStack> expected = new ArrayList<>();
+		if (pending.contains(SAVED_STACKS, CompoundTag.TAG_LIST)) {
+			ListTag saved = pending.getList(SAVED_STACKS, CompoundTag.TAG_COMPOUND);
+			for (int index = 0; index < saved.size(); index++) {
+				ItemStack stack = ItemStack.parseOptional(player.registryAccess(), saved.getCompound(index));
+				if (isManaged(stack)) {
+					expected.add(stack);
+				}
+			}
+			return expected;
+		}
+
+		// 0.1.4 及更早的待恢复记录只有数量：优先认可已经保留的原件，缺件沿用旧版默认补发。
+		for (Entry entry : ALL_ITEMS) {
+			Item item = entry.item().get();
+			int count = pending.getInt(entry.key());
+			for (ItemStack stack : current) {
+				if (count > 0 && stack.is(item)) {
+					int kept = Math.min(count, stack.getCount());
+					expected.add(stack.copyWithCount(kept));
+					count -= kept;
+				}
+			}
+			for (int index = 0; index < count; index++) {
+				expected.add(new ItemStack(item));
+			}
+		}
+		return expected;
+	}
+
+	private static void writePending(ServerPlayer player, CompoundTag state, List<ItemStack> expected) {
+		ListTag stacks = new ListTag();
+		for (ItemStack stack : expected) {
+			stacks.add(stack.save(player.registryAccess()));
+		}
+		CompoundTag pending = new CompoundTag();
+		pending.put(SAVED_STACKS, stacks);
+		state.put(PENDING_RESTORE, pending);
 	}
 
 	private static void reconcileOwned(ServerPlayer player, CompoundTag state, List<Entry> route, String key) {

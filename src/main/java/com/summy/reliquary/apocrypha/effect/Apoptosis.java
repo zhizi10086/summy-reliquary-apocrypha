@@ -28,6 +28,7 @@ import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
@@ -39,7 +40,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -126,6 +127,11 @@ public final class Apoptosis {
 	private static final Map<UUID, ServerLevel> ACTIVE = new HashMap<>();
 	/** 玩家受害者 → 屏幕顶部的 Boss 条 */
 	private static final Map<UUID, ServerBossEvent> BOSS_BARS = new HashMap<>();
+	/** 本次原始命中进入时目标已受损伤，留待最终扣血阶段判定。 */
+	private static final Set<ExecuteHit> EXECUTE_HITS = new HashSet<>();
+
+	private record ExecuteHit(LivingEntity target, DamageSource source) {
+	}
 	/** 玩家 → 本 tick 发生过普通左键攻击的标记；横扫沿用同一 tick 窗口 */
 	private static final Map<UUID, Long> MELEE_ATTACK_TICKS = new HashMap<>();
 	/** 普通攻击主目标，仅用于日志区分左键与横扫。 */
@@ -250,6 +256,19 @@ public final class Apoptosis {
 		markActive(level, target);
 	}
 
+	/** 自检用：安排首笔或末笔终歌，仍交给正常的服务端 tick 结算。 */
+	public static void armFinalSongForTest(LivingEntity target, boolean lastPulse, double burstDamage) {
+		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
+			return;
+		}
+		int total = injuredTotalTicks();
+		setStateForTest(target, lastPulse ? 1 : Math.max(1, total - 20), 0);
+		CompoundTag tag = data(target);
+		tag.putBoolean(SONG_ENABLED, true);
+		tag.putDouble(BURST_DAMAGE, burstDamage);
+		tag.putInt(SONG_TICKS_PAID, lastPulse ? total / 20 - 1 : 0);
+	}
+
 	/** 自检用：清掉某个目标的凋亡状态与活跃登记 */
 	public static void clearForTest(LivingEntity target) {
 		if (!Boolean.getBoolean("summy_apocrypha.devcheck")) {
@@ -361,6 +380,8 @@ public final class Apoptosis {
 		if (event.isCanceled() || !ApocryphaConfig.enable()) {
 			return;
 		}
+		ExecuteHit executeHit = new ExecuteHit(target, source);
+		EXECUTE_HITS.remove(executeHit);
 		// 取「触发那一刻」的损伤状态快照：这一刀若正好推满触发爆条，它本身不该再吃附加伤害
 		// （损伤状态是爆条之后才开始的，口径与天使线「在下落状态的那一刻判定」一致）
 		boolean wasInjured = isInjured(target);
@@ -390,9 +411,24 @@ public final class Apoptosis {
 			float extra = event.getAmount() * (float) (extraPercent(target) / 100.0D);
 			Entity causing = source.getEntity();
 			dealElementDamage(level, causing instanceof ServerPlayer player ? player : null, target, extra, "附加");
-			// ④ 斩杀：本次伤害结算完附加伤害之后再判 —— 只有「佩戴笞心的伤害造成者」才会激活这个判断
-			tryExecute(level, target, event);
+			if (causing instanceof ServerPlayer player && target.isAlive()
+					&& CurioHelper.wears(player, Apocrypha.SCOURGED_HEART.get())) {
+				EXECUTE_HITS.add(executeHit);
+			}
 		}
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public static void onFinalDamage(LivingDamageEvent.Post event) {
+		LivingEntity target = event.getEntity();
+		DamageSource source = event.getSource();
+		if (!(target.level() instanceof ServerLevel level)
+				|| !EXECUTE_HITS.remove(new ExecuteHit(target, source)) || !target.isAlive()
+				|| !ApocryphaConfig.enable() || !isInjured(target) || !(event.getNewDamage() > 0.0F)) {
+			return;
+		}
+		// NeoForge 此时已经扣除实际生命值。
+		tryExecute(level, target, source, target.getHealth());
 	}
 
 	/**
@@ -531,9 +567,9 @@ public final class Apoptosis {
 	 * 继续同时佩戴两件。没有这个归属就完全不判断。每段损伤状态只落地一次；这一刀本身就打死目标时不补
 	 * （避免抢走原本的死亡信息）。
 	 */
-	private static void tryExecute(ServerLevel level, LivingEntity target, LivingIncomingDamageEvent event) {
+	private static void tryExecute(ServerLevel level, LivingEntity target, DamageSource source, float remaining) {
 		CompoundTag data = data(target);
-		Entity causing = event.getSource().getEntity();
+		Entity causing = source.getEntity();
 		if (!(causing instanceof ServerPlayer player)
 				|| !CurioHelper.wears(player, Apocrypha.SCOURGED_HEART.get())) {
 			return; // 没有被佩戴笞心的人激活 —— 连判断都不做（也不记日志）
@@ -543,8 +579,6 @@ public final class Apoptosis {
 				: owner == null ? "本段未登记斩杀"
 				: !player.getUUID().equals(owner) ? "非本段引爆者" : "";
 		float maxHealth = target.getMaxHealth();
-		// 「受伤后」的血量：我们的附加伤害是嵌套即时落地的，所以读数已含那一笔；这里再扣掉本次尚未落地的金额
-		float remaining = target.getHealth() - event.getAmount();
 		double threshold = maxHealth * (ApocryphaConfig.apoptosisExecuteThresholdPercent() / 100.0D);
 		boolean used = data.getBoolean(EXECUTE_USED);
 		String reason = !gateReason.isEmpty() ? gateReason
@@ -553,7 +587,7 @@ public final class Apoptosis {
 				: remaining > threshold ? "血量未达阈值" : "";
 		if (ApocryphaConfig.logTrigger()) {
 			Apocrypha.LOGGER.info(String.format(
-					"[凋亡] 斩杀判定：%s ← %s 预计血量 %.1f/%.1f（阈值 %.0f%%，本段已斩=%s）→ %s",
+					"[凋亡] 斩杀判定：%s ← %s 本击结算血量 %.1f/%.1f（阈值 %.0f%%，本段已斩=%s）→ %s",
 					target.getName().getString(), player.getName().getString(), Math.max(0.0F, remaining), maxHealth,
 					ApocryphaConfig.apoptosisExecuteThresholdPercent(), used ? "是" : "否",
 					reason.isEmpty() ? "触发" : "未触发（" + reason + "）"));
@@ -638,6 +672,7 @@ public final class Apoptosis {
 
 	@SubscribeEvent
 	public static void onServerTick(ServerTickEvent.Post event) {
+		EXECUTE_HITS.clear();
 		tickServer(event.getServer());
 	}
 
@@ -904,13 +939,16 @@ public final class Apoptosis {
 		}
 		boolean enabled = ApocryphaConfig.enable();
 		long serverTick = server.getTickCount();
-		Iterator<Map.Entry<UUID, ServerLevel>> iterator = ACTIVE.entrySet().iterator();
-		while (iterator.hasNext()) {
-			Map.Entry<UUID, ServerLevel> active = iterator.next();
-			Entity entity = active.getValue().getEntity(active.getKey());
+		// 灼伤同步触发死亡等事件，回调可能增删活跃目标；本轮只遍历起始时已有的键。
+		for (UUID id : List.copyOf(ACTIVE.keySet())) {
+			ServerLevel level = ACTIVE.get(id);
+			if (level == null) {
+				continue;
+			}
+			Entity entity = level.getEntity(id);
 			if (!(entity instanceof LivingEntity target) || !target.isAlive()) {
-				iterator.remove();
-				removeBar(active.getKey());
+				ACTIVE.remove(id, level);
+				removeBar(id);
 				continue;
 			}
 			CompoundTag data = data(target);
@@ -921,7 +959,7 @@ public final class Apoptosis {
 			if (injuredUntil > now) {
 				// 5 号件「终歌」：损伤状态期间每秒一笔「本次爆伤 × 比例」
 				if (enabled) {
-					payFinalSong(active.getValue(), target, data, injuredUntil, now);
+					payFinalSong(level, target, data, injuredUntil, now);
 				} else {
 					advanceFinalSongClock(data, injuredUntil, now);
 				}
@@ -929,8 +967,17 @@ public final class Apoptosis {
 				// 损伤状态刚好结束的这一刻：补上最后一笔
 				//（传 injuredUntil = now 使「已过时长」等于总时长，从而把第 `injured_seconds` 笔补齐）
 				if (enabled) {
-					payFinalSong(active.getValue(), target, data, now, now);
+					payFinalSong(level, target, data, now, now);
 				}
+			}
+			if (ACTIVE.get(id) != level) {
+				continue;
+			}
+			if (!target.isAlive()) {
+				ACTIVE.remove(id, level);
+				removeBar(id);
+				sync(target);
+				continue;
 			}
 			if (injuredUntil <= now && resistUntil <= now) {
 				// 两种状态都不在了：把过期的状态收尾（损伤状态刚结束 → 进入损伤抵抗）
@@ -968,15 +1015,15 @@ public final class Apoptosis {
 			if (data.getLong(INJURED_UNTIL) <= now && data.getLong(RESIST_UNTIL) <= now
 					&& data.getDouble(VALUE) <= 0.0D) {
 				// 彻底结束：移出登记表并让客户端把条清掉
-				iterator.remove();
-				removeBar(active.getKey());
+				ACTIVE.remove(id, level);
+				removeBar(id);
 				sync(target);
 				continue;
 			}
 			if (enabled) {
 				updateBossBar(target);
 			} else {
-				removeBar(active.getKey());
+				removeBar(id);
 			}
 			if (phaseChanged || serverTick % SYNC_INTERVAL_TICKS == 0) {
 				sync(target);
@@ -1010,7 +1057,7 @@ public final class Apoptosis {
 			return;
 		}
 		data.putInt(SONG_TICKS_PAID, due);
-		for (int index = paid; index < due; index++) {
+		for (int index = paid; index < due && target.isAlive(); index++) {
 			dealElementDamage(level, null, target, (float) perSecond, "终歌灼伤");
 		}
 	}
@@ -1114,6 +1161,7 @@ public final class Apoptosis {
 	/** 服务器停止：清空登记与所有 Boss 条 */
 	public static void clear() {
 		ACTIVE.clear();
+		EXECUTE_HITS.clear();
 		MELEE_ATTACK_TICKS.clear();
 		MELEE_MAIN_TARGETS.clear();
 		MELEE_HITS.clear();

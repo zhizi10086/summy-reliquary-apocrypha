@@ -198,19 +198,43 @@ def resolveJarArchive = { String moduleDirectory ->
     return new File(cursor, "JAR/${project.minecraft_version}/${moduleDirectory}")
 }
 
-tasks.named('build') {
+// 普通构建只写入 build；明确调用本任务才进入正式归档。
+tasks.register('archiveRelease') {
+    group = 'build'
+    description = '归档当前版本的正式 JAR'
+    dependsOn 'build'
     doLast {
-        def releaseDir = resolveJarArchive('summy-reliquary-apocrypha')
-        releaseDir.mkdirs()
+        if (project.hasProperty('devcheck')) {
+            throw new GradleException('DevCheck 构建不得进入正式归档')
+        }
         def jarFile = tasks.named('jar').get().archiveFile.get().asFile
-        if (!jarFile.exists()) {
-            throw new GradleException('找不到 NeoForge JAR 输出')
+        if (!jarFile.isFile()) {
+            throw new GradleException("找不到正式 JAR：${jarFile}")
         }
-        copy {
-            from jarFile
-            rename { "${project.archives_base_name}-${project.mod_version}.jar" }
-            into releaseDir
+        new java.util.zip.ZipFile(jarFile).withCloseable { zip ->
+            if (zip.entries().any { it.name.startsWith('com/summy/reliquary/apocrypha/devcheck/') }) {
+                throw new GradleException('正式归档拒绝包含 DevCheck 的 JAR')
+            }
         }
+
+        def releaseDir = resolveJarArchive('summy-reliquary-apocrypha').toPath()
+        java.nio.file.Files.createDirectories(releaseDir)
+        def destination = releaseDir.resolve("${project.archives_base_name}-${project.mod_version}.jar")
+        // 先将完整 JAR 放到同目录，再用不覆盖的移动提交。即使重试也保护既有归档。
+        def staged = java.nio.file.Files.createTempFile(releaseDir, '.sra-', '.tmp')
+        try {
+            java.nio.file.Files.copy(jarFile.toPath(), staged, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            try {
+                java.nio.file.Files.move(staged, destination)
+            } catch (java.nio.file.FileAlreadyExistsException ignored) {
+                if (java.nio.file.Files.mismatch(staged, destination) != -1L) {
+                    throw new GradleException("同名 JAR 内容不同，请先按规范归档旧件：${destination}")
+                }
+            }
+        } finally {
+            java.nio.file.Files.deleteIfExists(staged)
+        }
+        logger.lifecycle("正式 JAR 已确认：${destination}")
     }
 }
 

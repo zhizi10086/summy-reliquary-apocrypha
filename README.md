@@ -8,8 +8,8 @@ NeoForge 21.1.265+｜ JEI 19.70.0.469（可选，仅提供获取信息页）
 
 > **创作来源澄清**：SRA 是 Summy Reliquary 的独立扩展包，与《以撒的结合》无任何关联；新约与凋亡的题材、名词和机制设计灵感参考《明日方舟》。本模组全部贴图均由本模组美术自行绘制，未使用第三方游戏贴图。
 
-> **当前版本**：`0.1.4-neoforge`。要求 SR `2.0.0-neoforge+`；三类固定真伤接入 SR 破限伤黑名单，可突破第三方单笔上限与金额折算，
-> 但不会获得 SR 七罪 / 七德 / 最终倍率或 SE 死神祝福。配置仍为 48 项，协议仍为 `"2"`；
+> **当前版本**：`0.1.5-neoforge`。要求 SR `2.0.0-neoforge+`；三类固定真伤接入 SR 破限伤黑名单，可突破第三方单笔上限与金额折算，
+> 但不会获得 SR 七罪 / 七德 / 最终倍率或 SE 死神祝福。配置共 48 项，网络协议为 `"3"`，客户端与服务端须一同升级；
 > SRA 自有 10 个 Curio 栏位不变，SR 2.0 下服务端总加载数为 28。
 > 0.1.4 起，同一玩家在同一 tick 对同一目标最多触发一次新约/比翼判定；SE 死亡之眼不会传入新约派生金额。
 
@@ -58,8 +58,8 @@ NeoForge 21.1.265+｜ JEI 19.70.0.469（可选，仅提供获取信息页）
 - 登录时会扫描背包与 Curios 栏。旧存档、`/give` 或创造模式已经持有的饰品会补记获取位，不会重复发奖。
 - SRA 是“异界力量”：SR 的创世纪不会清除 SRA 获取位、保底或饰品；它清除标记后只会让对应栏位缩回，饰品先退回背包，背包满时落地并受保护。
 
-**独占物保护**：10 件饰品佩戴在 Curios 栏时死亡不掉；死亡开始时先快照完整数量（同 tick 的重复死亡事件按逐物品最大值合并），
-背包副本不会进入掉落列表，重生后按缺口补回。兼容 `keepInventory`、Curios 自动复制和死亡界面期间停服。
+**独占物保护**：10 件饰品佩戴在 Curios 栏时死亡不掉。死亡时保存完整物品堆栈，重生时对照背包和 Curios 中已保留的副本，
+只补回缺失物品，并保留自定义名称和随物品保存的数据。兼容 `keepInventory`、Curios 自动保留和死亡界面期间停服。
 所有来源产生的饰品掉落实体都不可被火焰、岩浆、爆炸、仙人掌破坏，且永远不会自然消失。
 掉入虚空仍会永久丢失；主动丢弃后不会由获取状态自动补发。
 
@@ -116,7 +116,7 @@ NeoForge 21.1.265+｜ JEI 19.70.0.469（可选，仅提供获取信息页）
   （立刻起效、无延迟），同时发包让服务端做同样的施加；速度赋值幂等，双端重复执行没有副作用。
   音效只在客户端本地播一次、服务端广播时**排除本人**，所以本人只会听到一次；粒子、跳跃统计与食物消耗只在服务端做。
 - **为什么还需要网络包**：原版的跳跃键状态存在 `LivingEntity#jumping` 这个 protected 字段里、服务端没有公开读取方式，
-  所以这是本模组**首条网络通道**（`summy-reliquary-apocrypha:main`，协议 `"1"`）唯一的 C2S 包。
+  因此客户端通过 SRA 协议 `"3"` 上报按键。服务端在登录及配置重载时同步玩法开关、空跳次数和速度。
   客户端只在**按下沿**发一次（且要求离开地面后松开过跳跃键 —— 用它排除「地面起跳的那一次按键」，否则那一次会把
   本段离地的额外跳跃提前吃掉）；服务端收到后再校验佩戴、是否离地（用「上一 tick 末尾仍站在地面」判据消除时序竞争）、
   本段剩余跳数。创作模式飞行中不触发。
@@ -182,7 +182,7 @@ NeoForge 21.1.265+｜ JEI 19.70.0.469（可选，仅提供获取信息页）
 - **损伤状态**：期间目标每次受伤额外附加「该次伤害 × 附加比例」的元素伤害（钉住），
   治疗量 **−50%**（拦 `LivingHealEvent` 静默缩放）。附加比例在爆条那一刻定下来：只戴堕天 10%、戴坠羽 20%。
 - **斩杀（笞心）**：爆条时只有同戴**堕天 + 笞心**的引爆者取得本段斩杀归属；后续只有该玩家、且仍同戴两件时，
-  目标受伤后生命值 ≤ 最大生命 15%，才补一击最大生命 100% 的元素伤害。每段状态最多一次，他人不能接手。
+  目标扣除减伤后的生命伤害后仍存活，且生命值 ≤ 最大生命 15%，才补一击最大生命 100% 的元素伤害。每段状态最多一次，他人不能接手。
 - **抵抗削减（枯笔）**：**可信近战命中「损伤抵抗中」的目标**时，把它的抵抗剩余时间削掉 `resistance_cut_seconds_with_fourth`（默认 1）秒；
   每刀最多一次、可叠加，**减到 0 抵抗立刻结束**（下一刀就能重新推条）。判定与推条相同：普通左键、横扫、
   遁入暗影实际斩击，以及 SE「出其不意」与「电刀」的追加命中均算；弓箭、其它投掷物和法术追加不算。
@@ -341,17 +341,18 @@ NeoForge 21.1.265+｜ JEI 19.70.0.469（可选，仅提供获取信息页）
   `ReliquaryTooltips` 的提示格式、`CurioHelper` 的佩戴判定、`ReliquaryRef` 的版本与协议读取、
   `HolyLightEffect` / `ShadowDash` 状态判断、`SlotSizing` 栏位同步、真实伤害与增伤乘区）。
 - **Curios**：栏位与栏位面板（SR 本身也硬依赖它）。
-- 开发运行期：`gradlew runClient` 会自动把 `libs/` 里的 SR jar 反转成 dev 映射并投放到 `run/mods`。
+- 开发运行期：`gradlew runClient` 会自动把 `libs/` 里的 NeoForge SR JAR 直接复制到 `run/mods`。
 
 ## 开发
 
-- 构建：`gradlew build`（需要 Java 21），产物会自动复制到 `JAR/<Minecraft版本>/summy-reliquary-apocrypha/`
+- 构建：`gradlew build`（需要 Java 21），产物保存在 `build`。
+- 正式归档：运行 `gradlew archiveRelease`，按 Minecraft 版本复制到 `JAR/<Minecraft版本>/summy-reliquary-apocrypha/`。同名异内容或包含 DevCheck 的包会被拒绝。
 - clone 后请先把 `gradle.properties` 里的 `org.gradle.java.home` 指向本机 JDK 21
   （仓库里那一行是注释示例，不填会用系统默认 JDK，可能不是 21 而构建失败）
 - 运行：`gradlew runClient` / `gradlew runServer`
 - 本地测试用指令（都来自 SR）：`/summyreliquary angel grant`（天使标记，佩戴「新约」系列所需）、
   `/summyreliquary demon grant`（恶魔标记，佩戴恶魔线「堕天」所需；该子命令需要 OP 权限）
-- **真实客户端自检**：在专用测试世界运行 `gradlew runClient -Pdevcheck`。当前自检共 77 项，覆盖 10 件物品与栏位、
+- **真实客户端自检**：在专用测试世界运行 `gradlew runClient -Pdevcheck`。当前基线为 88 项，覆盖 10 件物品与栏位、
   `/loot` 与双箱两半边来源、慈善捆绑包 BONUS、同一物理开箱去重、掉落实体保护、两轮实际死亡/重生、三叉戟排除、
   固定元素伤害与斩杀、三类固定真伤黑名单，以及落箭 / 圣光矢 / 逆羽瞬时结算 / 凋亡元素伤害四个真实产伤入口、
   圣餐不回羽、光羽冻结、定值 6/4 刀、笞心归属、恐惧与终歌门禁、二段跳 0/1/2、严格总开关、
@@ -390,9 +391,9 @@ src/main/java/com/summy/reliquary/apocrypha/   本模组源码（包名挂在 SR
   effect/PairedWings        比翼·连携：圣光矢发射、与落箭的协同补发队列
   client/WingFeatherSacramentRenderer  光翼渲染层（Curios，挂在玩家模型躯干骨骼上）
   entity/                   落箭实体、穿透圣光矢
-  integration/ReliquaryRef  **对 SR 的唯一访问出口**（版本与网络协议读取）
+  integration/ReliquaryRef  读取 SR 版本与网络协议
   item/                     各件饰品（新约 / 迅羽·协约 / 翼羽·圣餐 / 逆羽·滞空 / 比翼·连携 / 堕天）
-  net/                      网络通道（协议 "2"：二段跳的空中跳跃 C2S 包 + 凋亡损伤条 S2C 包）
+  net/                      网络通道（协议 "3"：空跳输入、空跳配置与凋亡条同步）
   slot/                     栏位校验谓词（含恶魔线「殁亡之」系列的栏位常量与列表）
 src/main/resources/
   META-INF/neoforge.mods.toml  模组元数据与前置声明
@@ -424,16 +425,15 @@ libs/                       前置模组 Summy Reliquary 的生产 jar（**必�
    反之若不想被追踪，得在 SR 侧加排除（本工程的原则是**不改 SR**）。
 7. **新增 SR 真伤类型**：命中后清帧仍由 SR 1.8.6+ 原生处理；SRA 自己新增伤害类型时，仍需在落地路径前后自行清帧。
    若该类型必须保持固定值，再加入上述两个标签并走 `TrueDamageLimits.hurt`。
-8. **新增网络包**（需要把客户端输入送到服务端时）：在 `net/ApocryphaNetworking` 里按顺序追加
-   `CHANNEL.registerMessage(序号, ...)` 并同步升协议版本；客户端发送侧照 `client/ApocryphaClientInput`
-   的写法（FORGE 总线 + `Dist.CLIENT`）做**按下沿检测**，服务端在 handler 里再做一次完整校验。
+8. **新增网络包**：在 `net/ApocryphaNetworking` 里按消息方向注册 NeoForge payload，并同步升级协议。
+   客户端输入沿用 `client/ApocryphaClientInput` 的按下沿检测，服务端负责校验动作。
 
 ## 更新前置 jar（SR 出新版本时）
 
 1. 把 SR 产物 `JAR/<Minecraft版本>/summy-reliquary/summy-reliquary-<版本>.jar` 拷进本工程的 `libs/`
    （文件名保持 `summy-reliquary-<版本>.jar`）；
 2. 改 `gradle.properties` 的 `summy_reliquary_version=<版本>`；
-3. `gradlew build` 通过即可（`compileOnly` 与 `run/mods` 的那份都会跟着这个版本号走）。
+3. 在 `run/mods` 停用旧 SR 包，重新构建并验证客户端、专用服与相关兼容机制。
 
 ## 排查
 
